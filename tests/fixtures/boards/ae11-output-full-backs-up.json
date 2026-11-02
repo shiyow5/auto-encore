@@ -1,7 +1,7 @@
 {
   "meta": {
     "ae": ["AE-11", "AE-10"],
-    "purpose": "出口1が先に満杯 → 受けずに後ろが詰まり入口Aが待つ。出口2が埋まって completed。出口1は2個のまま",
+    "purpose": "出口1が先に満杯 → 受けずに後ろが詰まり入口Aが待つ。出口2が埋まって completed。出口1は2個のまま。入口Aは7個で、出口1の受け2個＋ベルト3本の5個より多いので背圧が起きる",
     "provisional": {
       "ticks": "E-U2"
     },
@@ -23,7 +23,15 @@
         "dir": "E",
         "emit": {
           "interval": 1,
-          "notes": ["do:short", "do:short", "do:short", "do:short"]
+          "notes": [
+            "do:short",
+            "do:short",
+            "do:short",
+            "do:short",
+            "do:short",
+            "do:short",
+            "do:short"
+          ]
         }
       },
       {
