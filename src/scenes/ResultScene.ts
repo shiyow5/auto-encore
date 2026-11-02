@@ -7,8 +7,10 @@
  */
 import Phaser from "phaser";
 import type { ScoreReport } from "../core/score";
+import type { SimState } from "../core/sim/sim";
 import type { Order, Placement } from "../core/sim/types";
 import { fxEnabled } from "../ui/flags";
+import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
 import {
   MEDAL_TEXT,
@@ -23,6 +25,8 @@ export interface ResultData {
   readonly order: Order;
   readonly report: ScoreReport;
   readonly placements: readonly Placement[];
+  /** 最後の tick の状態（QA の stateHash 用）。 */
+  readonly finalState?: SimState;
 }
 
 function h<K extends keyof HTMLElementTagNameMap>(
@@ -88,7 +92,16 @@ export class ResultScene extends Phaser.Scene {
     back.focus();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.overlay?.remove());
-    if (fxEnabled()) this.cameras.main.fadeIn(200, 30, 23, 34);
+    setQaState(data.finalState ?? null);
+    if (fxEnabled()) {
+      setQaBusy("fade", true);
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () =>
+        setQaBusy("fade", false),
+      );
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => setQaBusy("fade", false));
+      this.cameras.main.fadeIn(200, 30, 23, 34);
+    }
     document.body.dataset.scene = "result";
+    setQaBusy("transition", false);
   }
 }
