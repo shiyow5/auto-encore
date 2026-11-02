@@ -70,6 +70,8 @@ test("?fx=0: キーボードだけで置ける（矢印で移動・Enter で置�
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "マス 2,3: ベルト 東向き" })).toBeFocused();
+  await page.keyboard.press("r");
+  await expect(page.getByRole("button", { name: "マス 2,3: ベルト 南向き" })).toBeFocused();
   await page.keyboard.press("Delete");
   await expect(page.getByRole("button", { name: "マス 2,3: 空き" })).toBeVisible();
   await expect(page.getByLabel("配置の合計")).toHaveText("機械 1台 / 1G");
@@ -149,4 +151,30 @@ test("演出あり: 実行すると音符を tick ごとに動かしてから結
   await page.getByRole("button", { name: "結果へスキップ" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "result");
   expect(errors).toEqual([]);
+
+test("?fx=0: マウス操作中の R はホバー中のマスを回し、矢印で動いた後はフォーカスのマスを回す", async ({
+  page,
+}) => {
+  await page.goto("/?fx=0");
+  for (let x = 1; x <= 3; x++) {
+    await page.getByRole("button", { name: `マス ${x},3: 空き` }).click();
+  }
+  // 3,3 をクリックしたのでフォーカスは 3,3 に残っている。ホバー中の 1,3 が回る
+  await page.getByRole("button", { name: /^マス 1,3:/ }).hover();
+  await page.keyboard.press("r");
+  await expect(page.getByRole("button", { name: /^マス 1,3:/ })).toHaveAccessibleName(
+    "マス 1,3: ベルト 南向き",
+  );
+  await expect(page.getByRole("button", { name: /^マス 3,3:/ })).toHaveAccessibleName(
+    "マス 3,3: ベルト 東向き",
+  );
+  // 矢印で 2,3 へ移るとキーボード操作に戻り、マウスが 1,3 の上にあってもフォーカスの 2,3 が回る
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("r");
+  await expect(page.getByRole("button", { name: /^マス 2,3:/ })).toHaveAccessibleName(
+    "マス 2,3: ベルト 南向き",
+  );
+  await expect(page.getByRole("button", { name: /^マス 1,3:/ })).toHaveAccessibleName(
+    "マス 1,3: ベルト 南向き",
+  );
 });

@@ -93,6 +93,12 @@ export class WorkshopScene extends Phaser.Scene {
   private nextDir: Dir = "E";
   private hover: Point | null = null;
   private focus: Point = { x: 1, y: 3 };
+  /** マウスが乗っているマス（ホバー表示とは別。フォーカスでは変わらない）。 */
+  private pointer: Point | null = null;
+  /** 最後に使った入力。R をマウスのマスに効かせるか、フォーカスのマスに効かせるかを決める。 */
+  private lastInput: "pointer" | "keyboard" = "keyboard";
+  /** クリックで focus が来た途中か（そのときは入力の種類をキーボードに戻さない） */
+  private pointerPressing = false;
 
   private gfx!: Phaser.GameObjects.Graphics;
   private overlay!: HTMLElement;
@@ -397,14 +403,24 @@ export class WorkshopScene extends Phaser.Scene {
           this.removeAtPos(pos);
         });
         b.addEventListener("pointerenter", () => {
+          this.pointer = pos;
+          this.lastInput = "pointer";
           this.hover = pos;
           this.redraw();
         });
         b.addEventListener("pointerleave", () => {
+          if (this.pointer && this.pointer.x === x && this.pointer.y === y) this.pointer = null;
           if (this.hover && this.hover.x === x && this.hover.y === y) this.hover = null;
           this.redraw();
         });
+        b.addEventListener("pointerdown", () => {
+          this.pointerPressing = true;
+        });
+        b.addEventListener("pointerup", () => {
+          this.pointerPressing = false;
+        });
         b.addEventListener("focus", () => {
+          if (!this.pointerPressing) this.lastInput = "keyboard";
           this.focus = pos;
           this.hover = pos;
           this.redraw();
@@ -465,6 +481,7 @@ export class WorkshopScene extends Phaser.Scene {
     const d = move[e.key];
     if (d) {
       e.preventDefault();
+      this.lastInput = "keyboard";
       const nx = Math.min(this.rules.width - 1, Math.max(0, pos.x + d[0]));
       const ny = Math.min(this.rules.height - 1, Math.max(0, pos.y + d[1]));
       this.focus = { x: nx, y: ny };
@@ -474,7 +491,8 @@ export class WorkshopScene extends Phaser.Scene {
     }
     if (e.key === "r" || e.key === "R") {
       e.preventDefault();
-      this.rotate(pos);
+      // クリックしたマスにフォーカスが残っていても、マウス操作中はホバー中のマスを回す
+      this.rotate(this.lastInput === "pointer" && this.pointer ? this.pointer : pos);
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       this.removeAtPos(pos);
