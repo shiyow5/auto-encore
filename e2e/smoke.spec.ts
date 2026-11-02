@@ -151,6 +151,7 @@ test("演出あり: 実行すると音符を tick ごとに動かしてから結
   await page.getByRole("button", { name: "結果へスキップ" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "result");
   expect(errors).toEqual([]);
+});
 
 test("?fx=0: マウス操作中の R はホバー中のマスを回し、矢印で動いた後はフォーカスのマスを回す", async ({
   page,
