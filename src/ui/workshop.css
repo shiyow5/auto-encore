@@ -1,0 +1,251 @@
+/* 工房の DOM（棚・マスのボタン・注文票）。仮の見た目。design-detail §1-2「閉店後のカラオケ工房」。
+ * 大きさは --u（内部解像度 1 ドット = 何 px か）で決める。canvas と一緒に拡大縮小する。 */
+:root {
+  --ae-bg: #1e1722;
+  --ae-surface: #2a2030;
+  --ae-surface-up: #3a2d42;
+  --ae-text: #f3e9dc;
+  --ae-text-weak: #c4b4c9;
+  --ae-amber: #f2b45a;
+  --ae-danger: #ff8a7a;
+}
+
+#game {
+  position: relative;
+}
+
+#ws-overlay {
+  position: absolute;
+  --u: 1px;
+  font-family: ui-monospace, "DotGothic16", monospace;
+  font-size: calc(var(--u) * 6);
+  line-height: 1.35;
+  color: var(--ae-text);
+  pointer-events: none;
+}
+
+#ws-overlay h2 {
+  margin: 0 0 calc(var(--u) * 3);
+  font-size: calc(var(--u) * 7);
+  color: var(--ae-amber);
+}
+
+#ws-overlay p,
+#ws-overlay ul {
+  margin: 0 0 calc(var(--u) * 3);
+}
+
+#ws-overlay ul {
+  padding-left: calc(var(--u) * 8);
+}
+
+.ws-shelf,
+.ws-order {
+  position: absolute;
+  top: calc(var(--u) * 26);
+  box-sizing: border-box;
+  padding: calc(var(--u) * 3);
+  background: var(--ae-surface);
+  border-radius: calc(var(--u) * 2);
+  pointer-events: auto;
+}
+
+.ws-shelf {
+  left: calc(var(--u) * 4);
+  width: calc(var(--u) * 66);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 3);
+}
+
+.ws-order {
+  right: calc(var(--u) * 4);
+  width: calc(var(--u) * 68);
+  max-height: calc(var(--u) * 112);
+  overflow: auto;
+}
+
+.ws-btn {
+  font: inherit;
+  color: var(--ae-text);
+  background: var(--ae-surface-up);
+  border: calc(var(--u) * 1) solid transparent;
+  border-radius: calc(var(--u) * 2);
+  padding: calc(var(--u) * 2) calc(var(--u) * 3);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 120ms ease-out;
+}
+
+.ws-btn:hover {
+  background: #4a3a54;
+}
+
+.ws-btn[aria-pressed="true"] {
+  border-color: var(--ae-amber);
+}
+
+/* マスのボタンは透明（見た目は canvas が描く）。フォーカスだけは DOM で見せる */
+.ws-grid {
+  position: absolute;
+  left: var(--grid-x);
+  top: var(--grid-y);
+  width: var(--grid-w);
+  height: var(--grid-h);
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  pointer-events: auto;
+}
+
+.ws-cell {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ws-cell[data-kind="input"],
+.ws-cell[data-kind="output"],
+.ws-cell[data-kind="blocked"] {
+  cursor: not-allowed;
+}
+
+.ws-btn:focus-visible,
+.ws-cell:focus-visible {
+  outline: calc(var(--u) * 1) solid var(--ae-amber);
+  outline-offset: calc(var(--u) * -1);
+}
+
+.ws-status {
+  position: absolute;
+  left: calc(var(--u) * 76);
+  top: calc(var(--u) * 142);
+  width: calc(var(--u) * 168);
+  min-height: 1.35em;
+}
+
+.ws-status.ws-error {
+  color: var(--ae-danger);
+}
+
+/* 実行ボタン（注文票のいちばん下）。主操作なので塗りつぶし */
+.ws-run {
+  display: block;
+  width: 100%;
+  margin-top: calc(var(--u) * 2);
+  text-align: center;
+  font-weight: bold;
+  color: var(--ae-bg);
+  background: var(--ae-amber);
+}
+
+.ws-run:hover {
+  background: #f6c77f;
+}
+
+.ws-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#ws-overlay[data-running="true"] .ws-cell {
+  cursor: progress;
+}
+
+/* ---- 結果画面（K4。仮の見た目。数値が読めることを優先） ---- */
+#rs-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  width: min(92vw, 28rem);
+  max-height: 92vh;
+  overflow: auto;
+  padding: 1.25rem 1.5rem;
+  font-family: ui-monospace, "DotGothic16", monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ae-text);
+  background: var(--ae-surface);
+  border-radius: 0.5rem;
+}
+
+#rs-overlay h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  color: var(--ae-amber);
+}
+
+.rs-sub {
+  margin: 0 0 1rem;
+  color: var(--ae-text-weak);
+}
+
+.rs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-table caption {
+  text-align: left;
+  padding-bottom: 0.25rem;
+  color: var(--ae-text-weak);
+}
+
+.rs-table th,
+.rs-table td {
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--ae-surface-up);
+}
+
+.rs-table thead th {
+  font-weight: normal;
+  color: var(--ae-text-weak);
+}
+
+.rs-table th:nth-child(2),
+.rs-table td:nth-child(2) {
+  text-align: right;
+}
+
+.rs-table [data-medal="gold"] {
+  color: var(--ae-amber);
+}
+
+.rs-table [data-medal="silver"] {
+  color: #d8dce6;
+}
+
+.rs-table [data-medal="bronze"] {
+  color: #e0a07a;
+}
+
+.rs-table [data-medal="none"] {
+  color: var(--ae-text-weak);
+}
+
+.rs-msg {
+  margin: 0 0 1rem;
+}
+
+.rs-back {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+}
+
+.rs-back:focus-visible {
+  outline: 2px solid var(--ae-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-btn {
+    transition: none;
+  }
+}

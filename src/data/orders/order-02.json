@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "order-02",
+  "title": "高い音と低い音",
+  "client": {
+    "id": "kogure",
+    "name": "小暮店長"
+  },
+  "texts": {
+    "intro": "ドとソが混ざって届いたんだ。低い箱と高い箱に分けてくれないか。",
+    "tutorial": "仕分け機は、設定した音を前へ、それ以外を右へ送ります。",
+    "result": {
+      "encore": "きれいに分かれた。これで棚に並べられる。",
+      "pass": "分けられてる。もう少し詰められそうだ。",
+      "fail": "混ざったまま届いてしまったみたい。仕分け機の設定を見てみよう。"
+    }
+  },
+  "board": {
+    "width": 12,
+    "height": 8,
+    "blocked": []
+  },
+  "inputs": [
+    {
+      "id": "P",
+      "pos": [0, 2],
+      "dir": "E",
+      "emit": {
+        "interval": 1,
+        "notes": [
+          "do:short",
+          "so:short",
+          "so:short",
+          "do:short",
+          "so:short",
+          "do:short",
+          "do:short",
+          "so:short"
+        ]
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "HI",
+      "pos": [6, 7],
+      "dir": "S",
+      "expect": ["so:short", "so:short", "so:short", "so:short"]
+    },
+    {
+      "id": "LO",
+      "pos": [11, 2],
+      "dir": "E",
+      "expect": ["do:short", "do:short", "do:short", "do:short"]
+    }
+  ],
+  "allowedMachines": ["belt", "sorter"],
+  "limits": {
+    "maxTicks": 80
+  },
+  "scoring": {
+    "accuracy": {
+      "gold": 100,
+      "silver": 90,
+      "bronze": 80,
+      "unit": "percent"
+    },
+    "ticks": { "gold": 18, "silver": 24, "bronze": 36 },
+    "cost": {
+      "gold": 19,
+      "silver": 23,
+      "bronze": 30
+    },
+    "passRule": "all-bronze-or-better",
+    "encoreRule": "two-or-more-gold"
+  },
+  "unlocks": [],
+  "referenceSolutions": ["solutions/order-02-frugal.json"]
+}
