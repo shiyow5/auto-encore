@@ -27,6 +27,7 @@ Issue #6・#8 のフィクスチャ。テストは `tests/qa/ae-fixtures.test.ts
 ## schema/（#6: AE-22・AE-23）
 
 - `orders/valid/order-01.json` を1か所だけ変えた誤例が `orders/invalid/`、`solutions/valid/order-01-frugal.json` を1か所だけ変えた誤例が `solutions/invalid/`
+- `orders/valid/order-01-sorter-allowed.json` は order-01 の `allowedMachines` に `sorter` を足しただけの正例。`solutions/invalid/sorter-without-config.json` はこれと組む（order-01 と組むと machine-not-allowed と同じ理由で弾かれてしまうため）
 - `manifest.json` の `reason` に何が悪いかを書いている。`undecided` があるものは未決なので判定に使わない（`do:long` は E-U5、入口・出口のマスに置く配置は E-U16）
 - `notes` は音符の文字列だけの正例・誤例
 - PR #18 の `parseOrder` / `parseSolution` に通した結果（11/03）: 誤例は全部弾かれる。例外は2つ
@@ -37,16 +38,16 @@ Issue #6・#8 のフィクスチャ。テストは `tests/qa/ae-fixtures.test.ts
 
 1ファイルに、ミニ注文（`order`）・配置（`solution`）・期待（`expected`）・見ること（`meta.checks`）を入れている。
 
-| ファイル                       | 見ること                                                                     |
-| ------------------------------ | ---------------------------------------------------------------------------- |
-| ae09-belt-off-board.json       | ベルトの先が盤外 → stuck の前提。expected は E-U3（11/04 合意）まで null     |
-| ae09-belt-into-blocked.json    | ベルトの先が塞がりマス → 同上                                                |
-| ae09-belt-into-empty.json      | 対照: ベルトの先が盤内の空きマス → stuck（決まっている側）                   |
-| ae10-tuner-backpressure.json   | 調律機（2 tick）の手前で詰まり、入口が捨てずに待つ・出す tick が後ろへずれる |
-| ae10-sorter-dead-end.json      | 仕分け機の右が行き止まり → 仕分け機・後ろ・入口が待って stuck                |
-| ae11-output-exact.json         | 出口が期待数ちょうど → completed                                             |
-| ae11-output-plus-one.json      | 期待数+1 → ちょうどと同じ tick で completed・出口は3個のまま                 |
-| ae11-output-full-backs-up.json | 出口1が先に満杯 → 入口Aが待ち、出口2が埋まって completed                     |
+| ファイル                       | 見ること                                                                            |
+| ------------------------------ | ----------------------------------------------------------------------------------- |
+| ae09-belt-off-board.json       | ベルトの先が盤外 → stuck の前提。expected は E-U3（11/04 合意）まで null            |
+| ae09-belt-into-blocked.json    | ベルトの先が塞がりマス → 同上                                                       |
+| ae09-belt-into-empty.json      | 対照: ベルトの先が盤内の空きマス → stuck（決まっている側）                          |
+| ae10-tuner-backpressure.json   | 調律機（2 tick）の手前で詰まり、入口が捨てずに待つ・出す tick が後ろへずれる        |
+| ae10-sorter-dead-end.json      | 仕分け機の右が行き止まり → 仕分け機・後ろ・入口が待って stuck                       |
+| ae11-output-exact.json         | 出口が期待数ちょうど → completed                                                    |
+| ae11-output-plus-one.json      | 期待数+1 → ちょうどと同じ tick で completed・出口は3個のまま                        |
+| ae11-output-full-backs-up.json | 出口1が先に満杯 → 入口Aが待ち、出口2が埋まって completed（A は7個＞受け2＋ベルト3） |
 
 `checks` の意味: `noThrow`＝例外を出さずに止まる、`conservation`＝毎 tick「入口から出た数＝出口が受けた数＋盤上＋機械が持つ数」、`inputDelayed`＝入口が interval どおりより遅れて出す、`outputNeverOverExpect`＝出口が受けた数は期待数を超えない。
 

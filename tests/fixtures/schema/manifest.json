@@ -1,7 +1,7 @@
 {
   "$comment": "valid は通る、invalid は弾く。undecided があるものは未決なので判定に使わない（決まったら外す）",
   "orders": {
-    "valid": ["valid/order-01.json"],
+    "valid": ["valid/order-01.json", "valid/order-01-sorter-allowed.json"],
     "invalid": [
       {
         "file": "invalid/output-off-board.json",
@@ -93,7 +93,8 @@
       },
       {
         "file": "invalid/note-long.json",
-        "reason": "最小版は短のみ"
+        "reason": "最小版は短のみ",
+        "undecided": "E-U5（do:long を最小版で弾くか）"
       }
     ]
   },
@@ -134,7 +135,7 @@
       },
       {
         "file": "invalid/sorter-without-config.json",
-        "order": "valid/order-01.json",
+        "order": "valid/order-01-sorter-allowed.json",
         "reason": "仕分け機に config.pitch が無い"
       },
       {
