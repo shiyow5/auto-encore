@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "machines": [
+    { "id": "belt", "cost": 1, "accepts": ["back"], "emits": ["front"], "processTicks": 0 },
+    {
+      "id": "merger",
+      "cost": 4,
+      "accepts": ["left", "right"],
+      "emits": ["front"],
+      "processTicks": 0,
+      "arbitration": "alternate"
+    },
+    {
+      "id": "sorter",
+      "cost": 6,
+      "accepts": ["back"],
+      "emits": ["front", "right"],
+      "processTicks": 0,
+      "config": { "pitch": ["do", "mi", "so"] }
+    },
+    { "id": "tuner", "cost": 8, "accepts": ["back"], "emits": ["front"], "processTicks": 2 }
+  ]
+}
