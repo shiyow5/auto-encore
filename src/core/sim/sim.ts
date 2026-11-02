@@ -12,7 +12,7 @@
  * tick の数え方: 初期状態が tick 0。step() を1回呼ぶと tick 1。入口は tick 1 に最初の1音を出す。
  * 速度 = 全出口が期待数を受けた tick。
  *
- * 現在の対応機械: ベルト。仕分け機・合流機・調律機は T3〜（未対応の機械は例外）。
+ * 現在の対応機械: ベルト・仕分け機。合流機・調律機は T5〜（未対応の機械は例外）。
  */
 import { DIRS, DIR_VEC, opposite, step as stepPoint, type Dir, type Point } from "../grid";
 import { MAX_TICKS_CAP, totalCost } from "./load";
@@ -88,7 +88,7 @@ export interface World {
   readonly maxTicks: number;
 }
 
-const SUPPORTED: ReadonlySet<string> = new Set(["belt"]);
+const SUPPORTED: ReadonlySet<string> = new Set(["belt", "sorter"]);
 
 /** 配置は validatePlacements（load.ts）を通したものを渡す前提。 */
 export function buildWorld(
@@ -173,9 +173,17 @@ function inBounds(world: World, p: Point): boolean {
   return p.x >= 0 && p.y >= 0 && p.x < world.width && p.y < world.height;
 }
 
-/** 音符が今いる機械から出たい絶対方向。 */
-function emitDir(m: PlacedMachine): Dir {
-  // ベルト: 前へ。仕分け機・調律機などはここに分岐を足す。
+/**
+ * 音符が今いる機械から出たい絶対方向。
+ * 仕分け機は設定音高に一致→前、不一致→右。行き先が詰まっても逃がさず待つ（spec-e v0.3 §2）。
+ */
+function emitDir(m: PlacedMachine, note: Note): Dir {
+  if (m.def.id === "sorter") {
+    const pitch = m.placement.config?.pitch;
+    if (pitch === undefined)
+      throw new Error("仕分け機に config.pitch が無い（validatePlacements を通すこと）");
+    return absOf(m.placement.dir, note.pitch === pitch ? "front" : "right");
+  }
   return absOf(m.placement.dir, "front");
 }
 
@@ -206,7 +214,7 @@ function wantedMoves(world: World, s: SimState): Move[] {
     const m = world.machineAt.get(c.key);
     if (!m) throw new Error(`機械の無いマスに音符がある: ${c.key}`);
     const p = pointOf(world, c.key);
-    const q = stepPoint(p, emitDir(m));
+    const q = stepPoint(p, emitDir(m, c.note));
     if (!inBounds(world, q)) continue;
     const to = q.y * world.width + q.x;
     if (canEnter(world, s, p, to)) moves.push({ from: c.key, to, note: c.note });

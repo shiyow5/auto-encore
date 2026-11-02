@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- テストで JSON を書き換えるため */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseMachines, parseOrder, parseSolution } from "../../src/core/sim/load";
@@ -155,14 +155,17 @@ describe("停止判定", () => {
 });
 
 describe("模範解ゴールデン（solutions/*.json の expected と完全一致）", () => {
-  const data = (() => {
-    const order = order01;
-    return order.referenceSolutions.map((ref) => ({
-      ref,
-      order,
-      sol: parseSolution(readJson(ref), ref, order, machines),
-    }));
-  })();
+  const data = readdirSync(join(DATA, "orders"))
+    .filter((f) => f.endsWith(".json"))
+    .sort()
+    .flatMap((f) => {
+      const order = parseOrder(readJson(`orders/${f}`), `orders/${f}`);
+      return order.referenceSolutions.map((ref) => ({
+        ref,
+        order,
+        sol: parseSolution(readJson(ref), ref, order, machines),
+      }));
+    });
 
   it.each(data)("$ref", ({ order, sol }) => {
     expect(sol.expected).toBeDefined();
