@@ -4,7 +4,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { PixelFxLayer } from "../fx/PixelFxLayer";
 import { Rng } from "../core/rng";
 
-export const TITLE = "Auto Encore";
+export const TITLE = "Auto Encore ― 夜更けのオルゴール工房";
 
 export class BootScene extends Phaser.Scene {
   private fx?: PixelFxLayer;
