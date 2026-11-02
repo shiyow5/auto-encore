@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "orderId": "order-02",
+  "name": "no-sorter",
+  "placements": [
+    {
+      "machine": "belt",
+      "pos": [1, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [2, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [3, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [4, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [5, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [6, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [7, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [8, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [9, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [10, 2],
+      "dir": "E"
+    }
+  ],
+  "expected": {
+    "result": "stuck",
+    "accuracy": 25,
+    "ticks": null,
+    "cost": 10
+  }
+}

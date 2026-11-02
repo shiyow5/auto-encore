@@ -1,0 +1,187 @@
+{
+  "$comment": "valid は通る、invalid は弾く。undecided があるものは未決なので判定に使わない（決まったら外す）",
+  "orders": {
+    "valid": ["valid/order-01.json"],
+    "invalid": [
+      {
+        "file": "invalid/output-off-board.json",
+        "reason": "出口 pos が盤外（x=width）"
+      },
+      {
+        "file": "invalid/input-off-board-y.json",
+        "reason": "入口 pos が盤外（y=height）"
+      },
+      {
+        "file": "invalid/pos-negative.json",
+        "reason": "pos が負"
+      },
+      {
+        "file": "invalid/pos-three-elements.json",
+        "reason": "pos が3要素"
+      },
+      {
+        "file": "invalid/input-output-overlap.json",
+        "reason": "入口と出口が同じマス"
+      },
+      {
+        "file": "invalid/blocked-on-input.json",
+        "reason": "塞がりマスと入口が同じ"
+      },
+      {
+        "file": "invalid/dir-X.json",
+        "reason": "dir が N/E/S/W 以外"
+      },
+      {
+        "file": "invalid/dir-lowercase.json",
+        "reason": "dir が小文字"
+      },
+      {
+        "file": "invalid/note-fa.json",
+        "reason": "音高 fa は無い（AE-23）"
+      },
+      {
+        "file": "invalid/note-empty-length.json",
+        "reason": "長さが空（AE-23）"
+      },
+      {
+        "file": "invalid/note-uppercase.json",
+        "reason": "大文字（AE-23）"
+      },
+      {
+        "file": "invalid/note-no-colon.json",
+        "reason": "長さが無い（AE-23）"
+      },
+      {
+        "file": "invalid/note-extra-part.json",
+        "reason": "区切りが多い（AE-23）"
+      },
+      {
+        "file": "invalid/note-space.json",
+        "reason": "前後の空白（AE-23）"
+      },
+      {
+        "file": "invalid/missing-outputs.json",
+        "reason": "必須キー outputs が無い"
+      },
+      {
+        "file": "invalid/empty-outputs.json",
+        "reason": "出口が0個"
+      },
+      {
+        "file": "invalid/unknown-machine.json",
+        "reason": "最小版に無い機械（bin）"
+      },
+      {
+        "file": "invalid/schema-version-2.json",
+        "reason": "schemaVersion が 1 以外"
+      },
+      {
+        "file": "invalid/medal-accuracy-inverted.json",
+        "reason": "accuracy は gold>=silver>=bronze（大きいほど良い）"
+      },
+      {
+        "file": "invalid/medal-ticks-inverted.json",
+        "reason": "ticks は gold<=silver<=bronze（小さいほど良い）"
+      },
+      {
+        "file": "invalid/max-ticks-over-cap.json",
+        "reason": "maxTicks が 2000 を超える"
+      },
+      {
+        "file": "invalid/reference-solution-other-order.json",
+        "reason": "参照解のファイル名が別の注文"
+      },
+      {
+        "file": "invalid/note-long.json",
+        "reason": "最小版は短のみ"
+      }
+    ]
+  },
+  "solutions": {
+    "valid": [
+      {
+        "file": "valid/order-01-frugal.json",
+        "order": "valid/order-01.json"
+      }
+    ],
+    "invalid": [
+      {
+        "file": "invalid/placement-off-board.json",
+        "order": "valid/order-01.json",
+        "reason": "配置が盤外"
+      },
+      {
+        "file": "invalid/placement-on-output.json",
+        "order": "valid/order-01.json",
+        "reason": "出口のマスに置いた",
+        "undecided": "E-U16（画面で置けない／読み込みで弾く）"
+      },
+      {
+        "file": "invalid/placement-on-input.json",
+        "order": "valid/order-01.json",
+        "reason": "入口のマスに置いた",
+        "undecided": "E-U16"
+      },
+      {
+        "file": "invalid/placement-duplicate.json",
+        "order": "valid/order-01.json",
+        "reason": "同じマスに2つ"
+      },
+      {
+        "file": "invalid/machine-not-allowed.json",
+        "order": "valid/order-01.json",
+        "reason": "order-01 は belt だけ（allowedMachines）"
+      },
+      {
+        "file": "invalid/sorter-without-config.json",
+        "order": "valid/order-01.json",
+        "reason": "仕分け機に config.pitch が無い"
+      },
+      {
+        "file": "invalid/belt-with-config.json",
+        "order": "valid/order-01.json",
+        "reason": "ベルトは config を持たない"
+      },
+      {
+        "file": "invalid/placement-dir-X.json",
+        "order": "valid/order-01.json",
+        "reason": "dir が N/E/S/W 以外"
+      },
+      {
+        "file": "invalid/order-id-mismatch.json",
+        "order": "valid/order-01.json",
+        "reason": "orderId が注文と違う"
+      },
+      {
+        "file": "invalid/expected-cost-mismatch.json",
+        "order": "valid/order-01.json",
+        "reason": "expected.cost が machines.json から計算した 10G と違う（AE-22）"
+      },
+      {
+        "file": "invalid/expected-ticks-on-stuck.json",
+        "order": "valid/order-01.json",
+        "reason": "stuck なのに ticks が整数"
+      }
+    ]
+  },
+  "notes": {
+    "valid": ["do:short", "mi:short", "so:short"],
+    "invalid": [
+      "fa:short",
+      "do:",
+      "DO:short",
+      "do",
+      ":short",
+      "do:short:x",
+      " do:short",
+      "do:short ",
+      "do:SHORT",
+      "",
+      "re:short"
+    ],
+    "undecided": {
+      "do:long": "E-U5",
+      "so:long": "E-U5"
+    }
+  }
+}

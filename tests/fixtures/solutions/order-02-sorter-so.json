@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "orderId": "order-02",
+  "name": "sorter-so",
+  "placements": [
+    {
+      "machine": "belt",
+      "pos": [1, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [2, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [3, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [4, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [5, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "sorter",
+      "pos": [6, 2],
+      "dir": "E",
+      "config": {
+        "pitch": "so"
+      }
+    },
+    {
+      "machine": "belt",
+      "pos": [7, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [8, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [9, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [10, 2],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [6, 3],
+      "dir": "S"
+    },
+    {
+      "machine": "belt",
+      "pos": [6, 4],
+      "dir": "S"
+    },
+    {
+      "machine": "belt",
+      "pos": [6, 5],
+      "dir": "S"
+    },
+    {
+      "machine": "belt",
+      "pos": [6, 6],
+      "dir": "S"
+    }
+  ],
+  "expected": {
+    "result": "completed",
+    "accuracy": 0,
+    "ticks": 18,
+    "cost": 19
+  }
+}

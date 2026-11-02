@@ -17,7 +17,7 @@ test("起動してキャンバスが表示され、工房に進む（演出あ�
   expect(errors).toEqual([]);
 });
 
-// 工房の配置操作（K2）。実行・結果は K4 で core につないでから（T4 の smoke）。
+// 工房の配置操作（K2）。
 test("?fx=0: 入口・出口が見え、ベルトを置く・回す・消す", async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto("/?fx=0");
@@ -73,4 +73,80 @@ test("?fx=0: キーボードだけで置ける（矢印で移動・Enter で置�
   await page.keyboard.press("Delete");
   await expect(page.getByRole("button", { name: "マス 2,3: 空き" })).toBeVisible();
   await expect(page.getByLabel("配置の合計")).toHaveText("機械 1台 / 1G");
+});
+
+// 実行 → 結果（K4）。step() を最後まで回して、3指標（正確さ・速度・コスト）を数値で出す。
+async function placeStraightBelts(page: import("@playwright/test").Page): Promise<void> {
+  for (let x = 1; x <= 10; x++) {
+    await page.getByRole("button", { name: `マス ${x},3: 空き` }).click();
+  }
+  await expect(page.getByLabel("配置の合計")).toHaveText("機械 10台 / 10G");
+}
+
+test("?fx=0: ベルト10本 → 実行 → 結果に3指標が数値で出る → 工房にもどると配置が残る", async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  await page.goto("/?fx=0");
+  await placeStraightBelts(page);
+  await page.getByRole("button", { name: "実行" }).click();
+
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "result");
+  await expect(page.getByRole("heading", { name: "結果: アンコール！" })).toBeVisible();
+  const table = page.getByRole("table", { name: "3指標" });
+  await expect(table.getByRole("row", { name: /^正確さ/ })).toHaveAccessibleName(
+    "正確さ 100%（8/8） 金",
+  );
+  await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName("速度 18 tick 金");
+  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName("コスト 10G 金");
+  const back = page.getByRole("button", { name: "工房にもどる" });
+  await expect(back).toBeFocused();
+
+  await back.click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
+  await expect(page.getByLabel("配置の合計")).toHaveText("機械 10台 / 10G");
+  await expect(page.getByRole("button", { name: "マス 10,3: ベルト 東向き" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("?fx=0: 途中が切れていると詰まって「もう一歩」・速度は記録なし", async ({ page }) => {
+  await page.goto("/?fx=0");
+  await placeStraightBelts(page);
+  await page.getByRole("button", { name: "マス 6,3: ベルト 東向き" }).click({ button: "right" });
+  await page.getByRole("button", { name: "実行" }).click();
+  await expect(page.getByRole("heading", { name: "結果: もう一歩" })).toBeVisible();
+  const table = page.getByRole("table", { name: "3指標" });
+  await expect(table.getByRole("row", { name: /^正確さ/ })).toHaveAccessibleName(
+    "正確さ 0%（0/8） なし",
+  );
+  await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName(
+    "速度 記録なし なし",
+  );
+  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName("コスト 9G 金");
+});
+
+test("演出あり: 実行すると音符を tick ごとに動かしてから結果へ（スキップもできる）", async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  await page.goto("/");
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+  await placeStraightBelts(page);
+  await page.getByRole("button", { name: "実行" }).click();
+  const overlay = page.locator("#ws-overlay");
+  await expect(overlay).toHaveAttribute("data-running", "true");
+  await expect(page.getByRole("button", { name: "結果へスキップ" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /ベルトを選ぶ/ })).toBeDisabled();
+  await expect(overlay).toHaveAttribute("data-tick", /^[1-9]/);
+  // 18 tick × 110ms ≒ 2秒で結果へ
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "result", { timeout: 10_000 });
+  await expect(page.getByRole("heading", { name: "結果: アンコール！" })).toBeVisible();
+
+  // もどってすぐスキップ
+  await page.getByRole("button", { name: "工房にもどる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
+  await page.getByRole("button", { name: "実行" }).click();
+  await page.getByRole("button", { name: "結果へスキップ" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "result");
+  expect(errors).toEqual([]);
 });

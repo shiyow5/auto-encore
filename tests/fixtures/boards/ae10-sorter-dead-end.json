@@ -1,0 +1,102 @@
+{
+  "meta": {
+    "ae": ["AE-10"],
+    "purpose": "仕分け機の右（南）に何も無い → so が仕分け機で待ち、後ろの do も入口も待つ",
+    "provisional": {
+      "accuracy": "止まったときの正確さの数え方",
+      "stopTick": "E-U2・E-U9"
+    },
+    "checks": ["noThrow", "conservation"]
+  },
+  "order": {
+    "schemaVersion": 1,
+    "id": "order-95",
+    "title": "QA ミニ盤面 order-95",
+    "board": {
+      "width": 6,
+      "height": 3,
+      "blocked": []
+    },
+    "inputs": [
+      {
+        "id": "A",
+        "pos": [0, 1],
+        "dir": "E",
+        "emit": {
+          "interval": 1,
+          "notes": ["do:short", "so:short", "do:short", "do:short"]
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "id": "OUT",
+        "pos": [5, 1],
+        "dir": "E",
+        "expect": ["do:short", "do:short", "do:short"]
+      }
+    ],
+    "allowedMachines": ["belt", "sorter"],
+    "limits": {
+      "maxTicks": 60
+    },
+    "scoring": {
+      "accuracy": {
+        "gold": 100,
+        "silver": 90,
+        "bronze": 80,
+        "unit": "percent"
+      },
+      "ticks": {
+        "gold": 18,
+        "silver": 24,
+        "bronze": 36
+      },
+      "cost": {
+        "gold": 10,
+        "silver": 12,
+        "bronze": 16
+      },
+      "passRule": "all-bronze-or-better",
+      "encoreRule": "two-or-more-gold"
+    },
+    "unlocks": [],
+    "referenceSolutions": []
+  },
+  "solution": {
+    "schemaVersion": 1,
+    "orderId": "order-95",
+    "name": "ae10-sorter-dead-end",
+    "placements": [
+      {
+        "machine": "sorter",
+        "pos": [1, 1],
+        "dir": "E",
+        "config": {
+          "pitch": "do"
+        }
+      },
+      {
+        "machine": "belt",
+        "pos": [2, 1],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [3, 1],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [4, 1],
+        "dir": "E"
+      }
+    ]
+  },
+  "expected": {
+    "result": "stuck",
+    "accuracy": 33,
+    "ticks": null,
+    "cost": 9
+  }
+}

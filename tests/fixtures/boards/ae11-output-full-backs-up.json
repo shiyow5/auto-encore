@@ -1,0 +1,123 @@
+{
+  "meta": {
+    "ae": ["AE-11", "AE-10"],
+    "purpose": "出口1が先に満杯 → 受けずに後ろが詰まり入口Aが待つ。出口2が埋まって completed。出口1は2個のまま",
+    "provisional": {
+      "ticks": "E-U2"
+    },
+    "checks": ["noThrow", "conservation", "outputNeverOverExpect"]
+  },
+  "order": {
+    "schemaVersion": 1,
+    "id": "order-98",
+    "title": "QA ミニ盤面 order-98",
+    "board": {
+      "width": 5,
+      "height": 3,
+      "blocked": []
+    },
+    "inputs": [
+      {
+        "id": "A",
+        "pos": [0, 0],
+        "dir": "E",
+        "emit": {
+          "interval": 1,
+          "notes": ["do:short", "do:short", "do:short", "do:short"]
+        }
+      },
+      {
+        "id": "B",
+        "pos": [0, 2],
+        "dir": "E",
+        "emit": {
+          "interval": 3,
+          "notes": ["do:short", "do:short", "do:short"]
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "id": "OUT1",
+        "pos": [4, 0],
+        "dir": "E",
+        "expect": ["do:short", "do:short"]
+      },
+      {
+        "id": "OUT2",
+        "pos": [4, 2],
+        "dir": "E",
+        "expect": ["do:short", "do:short", "do:short"]
+      }
+    ],
+    "allowedMachines": ["belt"],
+    "limits": {
+      "maxTicks": 60
+    },
+    "scoring": {
+      "accuracy": {
+        "gold": 100,
+        "silver": 90,
+        "bronze": 80,
+        "unit": "percent"
+      },
+      "ticks": {
+        "gold": 18,
+        "silver": 24,
+        "bronze": 36
+      },
+      "cost": {
+        "gold": 10,
+        "silver": 12,
+        "bronze": 16
+      },
+      "passRule": "all-bronze-or-better",
+      "encoreRule": "two-or-more-gold"
+    },
+    "unlocks": [],
+    "referenceSolutions": []
+  },
+  "solution": {
+    "schemaVersion": 1,
+    "orderId": "order-98",
+    "name": "ae11-output-full-backs-up",
+    "placements": [
+      {
+        "machine": "belt",
+        "pos": [1, 0],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [2, 0],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [3, 0],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [1, 2],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [2, 2],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [3, 2],
+        "dir": "E"
+      }
+    ]
+  },
+  "expected": {
+    "result": "completed",
+    "accuracy": 100,
+    "ticks": 10,
+    "cost": 6
+  }
+}

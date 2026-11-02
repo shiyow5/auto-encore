@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "order-01",
+  "title": "開店前の試し弾き",
+  "client": {
+    "id": "kogure",
+    "name": "小暮店長"
+  },
+  "texts": {
+    "intro": "開店前に、ドの音をまっすぐ流せるか試してほしいんだ。",
+    "tutorial": "ベルトは後ろから受けた音を、1 tick に1マス前へ運びます。",
+    "result": {
+      "encore": "いいね。これなら朝から流せるよ。",
+      "pass": "ちゃんと流れてる。もう少し詰められそうだ。",
+      "fail": "音が途中で止まってしまったみたい。もう一度見てみよう。"
+    }
+  },
+  "board": {
+    "width": 12,
+    "height": 8,
+    "blocked": []
+  },
+  "inputs": [
+    {
+      "id": "A",
+      "pos": [0, 3],
+      "dir": "E",
+      "emit": {
+        "interval": 1,
+        "notes": [
+          "do:short",
+          "do:short",
+          "do:short",
+          "do:short",
+          "do:short",
+          "do:short",
+          "do:short",
+          "do:short"
+        ]
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "OUT",
+      "pos": [0, 3],
+      "dir": "E",
+      "expect": [
+        "do:short",
+        "do:short",
+        "do:short",
+        "do:short",
+        "do:short",
+        "do:short",
+        "do:short",
+        "do:short"
+      ]
+    }
+  ],
+  "allowedMachines": ["belt"],
+  "limits": {
+    "maxTicks": 80
+  },
+  "scoring": {
+    "accuracy": {
+      "gold": 100,
+      "silver": 90,
+      "bronze": 80,
+      "unit": "percent"
+    },
+    "ticks": {
+      "gold": 18,
+      "silver": 24,
+      "bronze": 36
+    },
+    "cost": {
+      "gold": 10,
+      "silver": 12,
+      "bronze": 16
+    },
+    "passRule": "all-bronze-or-better",
+    "encoreRule": "two-or-more-gold"
+  },
+  "unlocks": ["order-02"],
+  "referenceSolutions": ["solutions/order-01-frugal.json"]
+}
