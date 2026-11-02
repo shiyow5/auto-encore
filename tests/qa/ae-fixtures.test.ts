@@ -212,6 +212,17 @@ describe("#5 Schema に通す例・弾く例（#6: AE-22・AE-23）", () => {
     expect(invalid).toEqual(expect.arrayContaining(["fa:short", "do:", "DO:short"]));
   });
 
+  it("誤例の order は manifest の orders.valid のどれか。sorter の config 欠落は sorter を許す order と組む", () => {
+    for (const c of schemaManifest.solutions.invalid) {
+      expect(schemaManifest.orders.valid, c.file).toContain(c.order);
+    }
+    const c = schemaManifest.solutions.invalid.find(
+      (x) => x.file === "invalid/sorter-without-config.json",
+    )!;
+    const order = readJson(`schema/orders/${c.order}`) as RawOrder;
+    expect(order.allowedMachines).toContain("sorter");
+  });
+
   // #5 の Schema（と読み込み時検証 parseOrder / parseSolution）が決まり次第外す。undecided の例は判定しない。
   it.todo("orders/valid は Schema・parseOrder を通る");
   it.todo("orders/invalid（undecided 以外）は Schema か parseOrder のどちらかで弾かれる");
@@ -271,6 +282,16 @@ describe("盤面フィクスチャ（#8: AE-09・AE-10・AE-11）", () => {
     expect(exact.order.inputs[0]!.emit.notes).toHaveLength(out);
     expect(plus.order.inputs[0]!.emit.notes).toHaveLength(out + 1);
     expect(plus.solution.placements).toEqual(exact.solution.placements);
+  });
+
+  it("AE-11: 背圧の盤面は、入口Aの音の数が「出口1の受け＋入口A〜出口1のベルト本数」より多い", () => {
+    const b = readJson("boards/ae11-output-full-backs-up.json") as BoardFixture;
+    const a = b.order.inputs.find((p) => p.id === "A")!;
+    const out1 = b.order.outputs.find((p) => p.id === "OUT1")!;
+    const beltsOnRow = b.solution.placements.filter(
+      (p) => p.machine === "belt" && p.pos[1] === a.pos[1],
+    ).length;
+    expect(a.emit.notes.length).toBeGreaterThan(out1.expect.length + beltsOnRow);
   });
 
   // シミュ核が main に入ったら外す。保存則は毎 tick: 入口から出た数 = 出口が受けた数 + 盤上 + 機械が持つ数。
