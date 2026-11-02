@@ -53,5 +53,12 @@
       "pos": [10, 3],
       "dir": "E"
     }
-  ]
+  ],
+  "expected": {
+    "result": "completed",
+    "accuracy": 100,
+    "ticks": 18,
+    "cost": 10,
+    "finalHash": "fdb36a20d11f225b"
+  }
 }
