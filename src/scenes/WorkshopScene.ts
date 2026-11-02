@@ -13,10 +13,12 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { rotateCW } from "../core/grid";
 import type { Dir, Point } from "../core/grid";
-import type { SimState } from "../core/sim/sim";
+import { buildWorld, initialState, type SimState } from "../core/sim/sim";
+import { parseSolution } from "../core/sim/load";
 import type { MachineId, MachineTable, Order, Pitch, Placement } from "../core/sim/types";
 import { loadGameData } from "../data";
 import { fxEnabled } from "../ui/flags";
+import { qaAttach, qaDetach, type QaScene } from "../ui/qa";
 import "../ui/workshop.css";
 import {
   place,
@@ -104,6 +106,13 @@ export class WorkshopScene extends Phaser.Scene {
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => this.layout();
+  /** テスト用フック（Issue #13）の窓口。 */
+  private readonly qa: QaScene = {
+    name: "workshop",
+    busy: () => this.playing !== null || this.cameras.main.fadeEffect.isRunning,
+    simState: () => this.shownState(),
+    loadSolution: (json) => this.loadSolution(json),
+  };
 
   constructor() {
     super("workshop");
@@ -132,6 +141,27 @@ export class WorkshopScene extends Phaser.Scene {
 
     if (fxEnabled()) this.cameras.main.fadeIn(200, 30, 23, 34);
     document.body.dataset.scene = "workshop";
+    qaAttach(this.qa);
+  }
+
+  /** 今の盤に出ているシミュ状態。再生中はその tick、編集中は今の配置の初期状態（組めない配置なら undefined）。 */
+  private shownState(): SimState | undefined {
+    const p = this.playing;
+    if (p) return p.ex.frames[p.frame];
+    try {
+      return initialState(buildWorld(this.order, this.placements, this.machines));
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** 解 JSON を検証して盤に置く（__qa.loadSolution）。 */
+  private loadSolution(json: unknown): void {
+    if (this.playing) throw new Error("__qa.loadSolution: 再生中は置けない");
+    const sol = parseSolution(json, "__qa.loadSolution", this.order, this.machines);
+    this.placements = sol.placements;
+    this.say(`解「${sol.name}」を置いた`);
+    this.changed();
   }
 
   /** 今の配置（K4 の実行ボタン・QA フック用）。 */
@@ -192,7 +222,9 @@ export class WorkshopScene extends Phaser.Scene {
       order: this.order,
       report: ex.report,
       placements: this.placements,
+      final: ex.final,
     };
+    qaDetach(this.qa);
     this.scene.start("result", data);
   }
 
@@ -533,6 +565,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private teardown(): void {
+    qaDetach(this.qa);
     this.playing?.timer.remove();
     this.playing = null;
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);

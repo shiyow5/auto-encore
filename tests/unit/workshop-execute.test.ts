@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { loadGameData } from "../../src/data";
+import { stateHash } from "../../src/core/sim/hash";
 import type { Placement } from "../../src/core/sim/types";
 import {
   execute,
@@ -32,6 +33,9 @@ describe("工房の実行（order-01）", () => {
       cost: frugal.expected?.cost,
     });
     expect(ex.finalHash).toBe(frugal.expected?.finalHash);
+    // __qa.stateHash() は結果画面で stateHash(final) を返す → ゴールデンと同じ値になる
+    expect(stateHash(ex.final)).toBe(ex.finalHash);
+    expect(ex.frames.at(-1)).toBe(ex.final);
     expect(verdictOf(ex.report)).toBe("encore");
     expect(verdictMessage(order, "encore")).toBe("いいね。これなら朝から流せるよ。");
   });

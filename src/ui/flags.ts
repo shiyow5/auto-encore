@@ -1,7 +1,8 @@
 /**
  * URL で切り替えるフラグ。
  * - `?fx=0` … 演出（pixelfx・画面遷移のフェード）を切る。Playwright smoke 用
- * - `?seed=xxx` … タイトルのシード欄の初期値
+ * - `?seed=xxx` … 演出の乱数のシード（起動グリッチ）。シミュは乱数を使わないので結果は変わらない
+ * - `?qa=1` … テスト用フック window.__qa を公開する（src/ui/qa.ts）
  */
 export interface Flags {
   fx: boolean;

@@ -13,6 +13,8 @@ export interface Execution {
   readonly report: ScoreReport;
   /** frames[0] が初期状態、frames[t] が tick t。ベルト上の音符の再描画に使う。 */
   readonly frames: readonly SimState[];
+  /** 止まったときの状態（stateHash(final) === finalHash）。 */
+  readonly final: SimState;
   readonly finalHash: string;
 }
 
@@ -30,7 +32,7 @@ export function execute(
   validatePlacements(placements, order);
   const out = simulate(order, placements, machines, { recordFrames: true });
   const report = score(out.result, order, toSolution(order, placements));
-  return { report, frames: out.frames, finalHash: out.result.finalHash };
+  return { report, frames: out.frames, final: out.final, finalHash: out.result.finalHash };
 }
 
 export const STOP_TEXT: Record<StopReason, string> = {

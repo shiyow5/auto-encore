@@ -3,7 +3,8 @@ import * as glitch from "pixelfx/fx/scifi/glitch";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { PixelFxLayer } from "../fx/PixelFxLayer";
 import { Rng } from "../core/rng";
-import { fxEnabled } from "../ui/flags";
+import { flags, fxEnabled } from "../ui/flags";
+import { qaDetach } from "../ui/qa";
 
 export const TITLE = "Auto Encore ― 夜更けのオルゴール工房";
 
@@ -17,12 +18,14 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     document.body.dataset.scene = "boot";
+    qaDetach();
     this.game.events.emit("ready");
     if (!fxEnabled()) {
       this.scene.start("workshop");
       return;
     }
-    const rng = new Rng("boot");
+    // ?seed= があれば演出の乱数もそのシードで（同じURLなら同じ見た目）。シミュ自体は乱数を使わない
+    const rng = new Rng(flags().seed ?? "boot");
     this.fx = new PixelFxLayer(this, "fx-boot", GAME_WIDTH, GAME_HEIGHT);
     this.fx.play(glitch, { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, seed: rng.int(1, 9999) });
     this.add

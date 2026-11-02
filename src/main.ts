@@ -3,6 +3,7 @@ import { BootScene } from "./scenes/BootScene";
 import { ResultScene } from "./scenes/ResultScene";
 import { WorkshopScene } from "./scenes/WorkshopScene";
 import { GAME_HEIGHT, GAME_WIDTH } from "./config";
+import { installQa } from "./ui/qa";
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -22,3 +23,5 @@ declare global {
   }
 }
 window.__game = game;
+// テスト用フック window.__qa（Issue #13）。DEV か ?qa=1 のときだけ
+installQa();

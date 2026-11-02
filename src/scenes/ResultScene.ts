@@ -7,8 +7,10 @@
  */
 import Phaser from "phaser";
 import type { ScoreReport } from "../core/score";
+import type { SimState } from "../core/sim/sim";
 import type { Order, Placement } from "../core/sim/types";
 import { fxEnabled } from "../ui/flags";
+import { qaAttach, qaDetach, type QaScene } from "../ui/qa";
 import "../ui/workshop.css";
 import {
   MEDAL_TEXT,
@@ -23,6 +25,8 @@ export interface ResultData {
   readonly order: Order;
   readonly report: ScoreReport;
   readonly placements: readonly Placement[];
+  /** シミュが止まったときの状態（__qa.stateHash() 用。stateHash(final) === finalHash）。 */
+  readonly final: SimState;
 }
 
 function h<K extends keyof HTMLElementTagNameMap>(
@@ -44,7 +48,12 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(data: ResultData): void {
-    const { order, report, placements } = data;
+    const { order, report, placements, final } = data;
+    const qa: QaScene = {
+      name: "result",
+      busy: () => this.cameras.main.fadeEffect.isRunning,
+      simState: () => final,
+    };
     const verdict = verdictOf(report);
 
     document.getElementById("rs-overlay")?.remove();
@@ -81,14 +90,21 @@ export class ResultScene extends Phaser.Scene {
     if (msg) ov.append(h("p", { class: "rs-msg" }, msg));
 
     const back = h("button", { type: "button", class: "ws-btn rs-back" }, "工房にもどる");
-    back.addEventListener("click", () => this.scene.start("workshop", { placements }));
+    back.addEventListener("click", () => {
+      qaDetach(qa);
+      this.scene.start("workshop", { placements });
+    });
     ov.append(back);
 
     (document.getElementById("game") ?? document.body).append(ov);
     back.focus();
 
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.overlay?.remove());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      qaDetach(qa);
+      this.overlay?.remove();
+    });
     if (fxEnabled()) this.cameras.main.fadeIn(200, 30, 23, 34);
     document.body.dataset.scene = "result";
+    qaAttach(qa);
   }
 }
