@@ -94,7 +94,7 @@ function samePos(a: Point, b: Point): boolean {
 }
 
 function inBoard(p: Point, b: Board): boolean {
-  return p.x < b.width && p.y < b.height;
+  return p.x >= 0 && p.y >= 0 && p.x < b.width && p.y < b.height;
 }
 
 // ---------- machines.json ----------

@@ -10,6 +10,7 @@ import {
   parseOrder,
   parseSolution,
   totalCost,
+  validatePlacements,
 } from "../../src/core/sim/load";
 import { loadGameData } from "../../src/data";
 
@@ -204,6 +205,18 @@ describe("solutions/*.json", () => {
       () => parseSolution(frugalJson, "s.json", order, machines),
       '"belt" は 9 個まで',
     );
+  });
+
+  it("validatePlacements を直接呼んでも負の座標は盤の外で失敗", () => {
+    for (const pos of [
+      { x: -1, y: 3 },
+      { x: 3, y: -1 },
+    ]) {
+      expectDataError(
+        () => validatePlacements([{ machine: "belt", pos, dir: "E" }], order01),
+        "盤の外",
+      );
+    }
   });
 
   it("expected: completed 以外で ticks を持つと失敗", () => {
