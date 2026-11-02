@@ -1,0 +1,85 @@
+{
+  "meta": {
+    "ae": ["AE-09"],
+    "purpose": "対照: ベルトの先が盤内の空きマス [3,0] → stuck（v0.3 で決まっている側）",
+    "checks": ["noThrow", "conservation"]
+  },
+  "order": {
+    "schemaVersion": 1,
+    "id": "order-93",
+    "title": "QA ミニ盤面 order-93",
+    "board": {
+      "width": 5,
+      "height": 2,
+      "blocked": []
+    },
+    "inputs": [
+      {
+        "id": "A",
+        "pos": [0, 0],
+        "dir": "E",
+        "emit": {
+          "interval": 1,
+          "notes": ["do:short", "do:short"]
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "id": "OUT",
+        "pos": [4, 1],
+        "dir": "E",
+        "expect": ["do:short", "do:short"]
+      }
+    ],
+    "allowedMachines": ["belt"],
+    "limits": {
+      "maxTicks": 60
+    },
+    "scoring": {
+      "accuracy": {
+        "gold": 100,
+        "silver": 90,
+        "bronze": 80,
+        "unit": "percent"
+      },
+      "ticks": {
+        "gold": 18,
+        "silver": 24,
+        "bronze": 36
+      },
+      "cost": {
+        "gold": 10,
+        "silver": 12,
+        "bronze": 16
+      },
+      "passRule": "all-bronze-or-better",
+      "encoreRule": "two-or-more-gold"
+    },
+    "unlocks": [],
+    "referenceSolutions": []
+  },
+  "solution": {
+    "schemaVersion": 1,
+    "orderId": "order-93",
+    "name": "ae09-belt-into-empty",
+    "placements": [
+      {
+        "machine": "belt",
+        "pos": [1, 0],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [2, 0],
+        "dir": "E"
+      }
+    ]
+  },
+  "expected": {
+    "result": "stuck",
+    "accuracy": 0,
+    "ticks": null,
+    "cost": 2
+  }
+}

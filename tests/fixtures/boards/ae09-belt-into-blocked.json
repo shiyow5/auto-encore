@@ -1,0 +1,81 @@
+{
+  "meta": {
+    "ae": ["AE-09"],
+    "purpose": "一直線のベルトの先が塞がりマス [3,0] → 止まる前提",
+    "pending": "E-U3（11/04 合意）まで expected は null",
+    "checks": ["noThrow", "conservation"]
+  },
+  "order": {
+    "schemaVersion": 1,
+    "id": "order-92",
+    "title": "QA ミニ盤面 order-92",
+    "board": {
+      "width": 5,
+      "height": 2,
+      "blocked": [[3, 0]]
+    },
+    "inputs": [
+      {
+        "id": "A",
+        "pos": [0, 0],
+        "dir": "E",
+        "emit": {
+          "interval": 1,
+          "notes": ["do:short", "do:short"]
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "id": "OUT",
+        "pos": [4, 1],
+        "dir": "E",
+        "expect": ["do:short", "do:short"]
+      }
+    ],
+    "allowedMachines": ["belt"],
+    "limits": {
+      "maxTicks": 60
+    },
+    "scoring": {
+      "accuracy": {
+        "gold": 100,
+        "silver": 90,
+        "bronze": 80,
+        "unit": "percent"
+      },
+      "ticks": {
+        "gold": 18,
+        "silver": 24,
+        "bronze": 36
+      },
+      "cost": {
+        "gold": 10,
+        "silver": 12,
+        "bronze": 16
+      },
+      "passRule": "all-bronze-or-better",
+      "encoreRule": "two-or-more-gold"
+    },
+    "unlocks": [],
+    "referenceSolutions": []
+  },
+  "solution": {
+    "schemaVersion": 1,
+    "orderId": "order-92",
+    "name": "ae09-belt-into-blocked",
+    "placements": [
+      {
+        "machine": "belt",
+        "pos": [1, 0],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [2, 0],
+        "dir": "E"
+      }
+    ]
+  },
+  "expected": null
+}
