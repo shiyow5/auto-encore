@@ -6,12 +6,15 @@
  *   → クリック・右クリック・キーボード（矢印/Enter/R/Delete）・読み上げ・getByRole が全部そのまま効く
  * - 配置は placements[]（core の Placement[] と同じ形）で持つ。K4 でそのまま Solution にして step() に渡す
  * - 棚は今はベルトだけ（order-01 の allowedMachines）
+ * - 「実行」（K4）: execute() で step() を止まるまで回して採点 → 音符を tick ごとに置き直して見せる → 結果画面。
+ *   ?fx=0 / 視差効果を減らす のときは再生せず、すぐ結果画面へ
  */
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { rotateCW } from "../core/grid";
 import type { Dir, Point } from "../core/grid";
-import type { MachineId, MachineTable, Order, Placement } from "../core/sim/types";
+import type { SimState } from "../core/sim/sim";
+import type { MachineId, MachineTable, Order, Pitch, Placement } from "../core/sim/types";
 import { loadGameData } from "../data";
 import { fxEnabled } from "../ui/flags";
 import "../ui/workshop.css";
@@ -25,6 +28,11 @@ import {
   totalCost,
   type WorkshopRules,
 } from "./workshop/placements";
+import { execute, type Execution } from "./workshop/execute";
+import type { ResultData } from "./ResultScene";
+
+/** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
+export const PLAY_MS_PER_TICK = 110;
 
 /** 1マスの大きさ（内部解像度のドット）。design-detail §1-2 は 16px 仮想だが、320×180 に棚と注文票を並べるため仮に 14。 */
 export const CELL = 14;
@@ -40,6 +48,9 @@ const COLOR = {
   output: 0xf28f9a,
   hover: 0xffffff,
 };
+
+/** 音符の色（ド・ミ・ソ）。 */
+const NOTE_COLOR: Record<Pitch, number> = { 0: 0xf3e9dc, 1: 0x8fd6c8, 2: 0xf28f9a };
 
 export const MACHINE_NAME: Record<MachineId, string> = {
   belt: "ベルト",
@@ -89,20 +100,24 @@ export class WorkshopScene extends Phaser.Scene {
   private status!: HTMLElement;
   private costText!: HTMLElement;
   private dirButton!: HTMLButtonElement;
+  private runButton!: HTMLButtonElement;
+  /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
+  private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => this.layout();
 
   constructor() {
     super("workshop");
   }
 
-  create(): void {
+  create(init?: { placements?: readonly Placement[] }): void {
     const data = loadGameData();
     const order = data.orders[0];
     if (!order) throw new Error("注文データが1件も無い");
     this.order = order;
     this.machines = data.machines;
     this.rules = rulesFor(order);
-    this.placements = [];
+    this.placements = init?.placements ?? [];
+    this.playing = null;
     this.selected = order.allowedMachines[0] ?? "belt";
     this.nextDir = "E";
 
@@ -124,9 +139,67 @@ export class WorkshopScene extends Phaser.Scene {
     return this.placements;
   }
 
+  // ---- 実行 -------------------------------------------------------------
+
+  /** 「実行」: 最後まで回して採点。演出ありなら tick ごとに音符を置き直して見せてから結果へ。 */
+  private runSim(): void {
+    if (this.playing) {
+      this.finishPlayback();
+      return;
+    }
+    let ex: Execution;
+    try {
+      ex = execute(this.order, this.machines, this.placements);
+    } catch (e) {
+      this.say(`✕ 実行できない: ${e instanceof Error ? e.message : String(e)}`, true);
+      return;
+    }
+    if (!fxEnabled() || ex.frames.length <= 1) {
+      this.showResult(ex);
+      return;
+    }
+    const timer = this.time.addEvent({
+      delay: PLAY_MS_PER_TICK,
+      loop: true,
+      callback: () => this.advance(),
+    });
+    this.playing = { ex, frame: 0, timer };
+    this.say("実行中…");
+    this.changed();
+  }
+
+  private advance(): void {
+    const p = this.playing;
+    if (!p) return;
+    if (p.frame >= p.ex.frames.length - 1) {
+      this.finishPlayback();
+      return;
+    }
+    p.frame++;
+    this.redraw();
+    this.overlay.dataset.tick = String(p.frame);
+  }
+
+  private finishPlayback(): void {
+    const p = this.playing;
+    if (!p) return;
+    p.timer.remove();
+    this.showResult(p.ex);
+  }
+
+  private showResult(ex: Execution): void {
+    const data: ResultData = {
+      order: this.order,
+      report: ex.report,
+      placements: this.placements,
+    };
+    this.scene.start("result", data);
+  }
+
   // ---- 操作 -------------------------------------------------------------
 
   private placeAt(pos: Point): void {
+    if (this.playing) return;
     const res = place(this.placements, this.rules, this.selected, pos, this.nextDir);
     if (!res.ok) {
       this.say(`✕ ${res.error}`, true);
@@ -141,6 +214,7 @@ export class WorkshopScene extends Phaser.Scene {
 
   /** R: マスに機械があればそれを回す。無ければ次に置く向きを回す。 */
   private rotate(pos: Point | null): void {
+    if (this.playing) return;
     if (pos && placementAt(this.placements, pos)) {
       this.placements = rotateAt(this.placements, pos);
       const p = placementAt(this.placements, pos);
@@ -154,6 +228,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private removeAtPos(pos: Point): void {
+    if (this.playing) return;
     if (!placementAt(this.placements, pos)) return;
     this.placements = removeAt(this.placements, pos);
     this.say(`${pos.x},${pos.y} の機械を消した`);
@@ -161,6 +236,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private clearAll(): void {
+    if (this.playing) return;
     if (this.placements.length === 0) return;
     this.placements = [];
     this.say("全部消した");
@@ -226,10 +302,26 @@ export class WorkshopScene extends Phaser.Scene {
       this.arrow(x, y, p.dir, COLOR.arrow);
     }
 
-    if (this.hover) {
+    const frame = this.playing?.ex.frames[this.playing.frame];
+    if (frame) this.drawNotes(frame);
+
+    if (this.hover && !this.playing) {
       const { x, y } = this.cellXY(this.hover);
       g.lineStyle(1, COLOR.hover, 0.9);
       g.strokeRect(x + 1.5, y + 1.5, CELL - 2, CELL - 2);
+    }
+  }
+
+  /** その tick の音符をマスの中央に置く（移動の補間なし＝最小の再生）。長い音は大きめ。 */
+  private drawNotes(frame: SimState): void {
+    const { width } = this.rules;
+    for (const c of frame.cells) {
+      const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      const r = c.note.length === 1 ? 4 : 3;
+      this.gfx.fillStyle(0x000000, 0.5);
+      this.gfx.fillCircle(x + CELL / 2 + 1, y + CELL / 2 + 1.5, r);
+      this.gfx.fillStyle(NOTE_COLOR[c.note.pitch], 1);
+      this.gfx.fillCircle(x + CELL / 2 + 0.5, y + CELL / 2 + 0.5, r);
     }
   }
 
@@ -337,6 +429,9 @@ export class WorkshopScene extends Phaser.Scene {
     card.append(list);
     this.costText = h("p", { "aria-label": "配置の合計" });
     card.append(this.costText);
+    this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
+    this.runButton.addEventListener("click", () => this.runSim());
+    card.append(this.runButton);
     ov.append(card);
 
     // 直前の操作（読み上げにも流す）
@@ -409,6 +504,13 @@ export class WorkshopScene extends Phaser.Scene {
     const cost = totalCost(this.placements, this.machines, this.order);
     this.costText.textContent = `機械 ${this.placements.length}台 / ${cost}G`;
     this.overlay.dataset.placements = String(this.placements.length);
+    const running = this.playing !== null;
+    this.overlay.dataset.running = String(running);
+    this.runButton.textContent = running ? "結果へスキップ" : "実行";
+    for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(".ws-shelf .ws-btn")) {
+      b.disabled = running;
+    }
+    this.cells.forEach((b) => b.setAttribute("aria-disabled", String(running)));
   }
 
   /** overlay を canvas の表示位置・大きさに合わせる。中身は内部解像度に対する % で置いてある。 */
@@ -431,6 +533,8 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private teardown(): void {
+    this.playing?.timer.remove();
+    this.playing = null;
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);
     window.removeEventListener("resize", this.onResize);
     this.overlay.remove();
