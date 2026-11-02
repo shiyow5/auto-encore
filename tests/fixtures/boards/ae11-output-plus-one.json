@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "ae": ["AE-11"],
+    "purpose": "期待数+1 個流れてくる。ちょうどの盤面と同じ tick で completed、出口は3個のまま",
+    "provisional": {
+      "ticks": "E-U2"
+    },
+    "checks": ["noThrow", "conservation", "outputNeverOverExpect"],
+    "sameTicksAs": "ae11-output-exact.json"
+  },
+  "order": {
+    "schemaVersion": 1,
+    "id": "order-97",
+    "title": "QA ミニ盤面 order-97",
+    "board": {
+      "width": 4,
+      "height": 1,
+      "blocked": []
+    },
+    "inputs": [
+      {
+        "id": "A",
+        "pos": [0, 0],
+        "dir": "E",
+        "emit": {
+          "interval": 1,
+          "notes": ["do:short", "do:short", "do:short", "do:short"]
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "id": "OUT",
+        "pos": [3, 0],
+        "dir": "E",
+        "expect": ["do:short", "do:short", "do:short"]
+      }
+    ],
+    "allowedMachines": ["belt"],
+    "limits": {
+      "maxTicks": 60
+    },
+    "scoring": {
+      "accuracy": {
+        "gold": 100,
+        "silver": 90,
+        "bronze": 80,
+        "unit": "percent"
+      },
+      "ticks": {
+        "gold": 18,
+        "silver": 24,
+        "bronze": 36
+      },
+      "cost": {
+        "gold": 10,
+        "silver": 12,
+        "bronze": 16
+      },
+      "passRule": "all-bronze-or-better",
+      "encoreRule": "two-or-more-gold"
+    },
+    "unlocks": [],
+    "referenceSolutions": []
+  },
+  "solution": {
+    "schemaVersion": 1,
+    "orderId": "order-97",
+    "name": "ae11-output-plus-one",
+    "placements": [
+      {
+        "machine": "belt",
+        "pos": [1, 0],
+        "dir": "E"
+      },
+      {
+        "machine": "belt",
+        "pos": [2, 0],
+        "dir": "E"
+      }
+    ]
+  },
+  "expected": {
+    "result": "completed",
+    "accuracy": 100,
+    "ticks": 5,
+    "cost": 2
+  }
+}

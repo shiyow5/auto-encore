@@ -1,0 +1,94 @@
+{
+  "$comment": "tests/fixtures/README.md を参照。provisional は 仮の値（未決事項が決まったら直す）",
+  "cases": [
+    {
+      "file": "order-01-frugal.json",
+      "ae": ["AE-18", "AE-31①"],
+      "pass": true,
+      "observe": {
+        "firstArrivalTick": 11,
+        "lastArrivalTick": 18
+      },
+      "provisional": {
+        "ticks": "E-U2（tick は1始まりで数えた仮の値）"
+      }
+    },
+    {
+      "file": "order-01-wrong-5-3-W.json",
+      "ae": ["AE-18", "AE-31②", "AE-09"],
+      "pass": false,
+      "observe": {
+        "stopTick": 5,
+        "emitted": 4,
+        "onBoard": 4,
+        "inputRemaining": 4
+      },
+      "provisional": {
+        "stopTick": "E-U2"
+      }
+    },
+    {
+      "file": "order-01-wrong-5-3-N.json",
+      "ae": ["AE-31②"],
+      "pass": false,
+      "observe": {
+        "stopTick": 5,
+        "emitted": 4,
+        "onBoard": 4,
+        "inputRemaining": 4
+      },
+      "provisional": {
+        "stopTick": "E-U2"
+      }
+    },
+    {
+      "file": "order-01-gap-5-3.json",
+      "ae": ["AE-31③"],
+      "pass": false,
+      "observe": {
+        "stopTick": 5,
+        "emitted": 4,
+        "onBoard": 4,
+        "inputRemaining": 4
+      },
+      "provisional": {
+        "stopTick": "E-U2"
+      }
+    },
+    {
+      "file": "order-01-extra-belt.json",
+      "ae": ["AE-18", "AE-31④"],
+      "pass": true,
+      "note": "結果は frugal と同じ・コストだけ 11G（コストのメダルが金→銀）",
+      "provisional": {
+        "ticks": "E-U2"
+      }
+    },
+    {
+      "file": "order-02-frugal.json",
+      "ae": ["AE-19"],
+      "pass": true,
+      "provisional": {
+        "ticks": "E-U2・E-U9（仕分け機が1 tick とどまるなら18、素通りなら17）"
+      }
+    },
+    {
+      "file": "order-02-sorter-so.json",
+      "ae": ["AE-19"],
+      "pass": false,
+      "note": "左右が逆になり、両出口とも4音ずつ受けるが全部ずれる → 正確さ0%で不合格",
+      "provisional": {
+        "ticks": "E-U2・E-U9"
+      }
+    },
+    {
+      "file": "order-02-no-sorter.json",
+      "ae": ["AE-19"],
+      "pass": false,
+      "note": "低が do,so,so,do を受けて満杯→後ろが詰まる。高に何も来ない。一致2/8",
+      "provisional": {
+        "accuracy": "止まったときに正確さを数えるか（spec-e §4）"
+      }
+    }
+  ]
+}
