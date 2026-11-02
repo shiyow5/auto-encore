@@ -1,6 +1,6 @@
-# auto-encore
+# Auto Encore ― 夜更けのオルゴール工房
 
-《Auto Encore》自動化パズル — 音符パーツで自動演奏マシンを組む（ブラウザゲーム / Vite + TypeScript + Phaser 3 + pixelfx）
+《Auto Encore ― 夜更けのオルゴール工房》自動化パズル — 音符パーツで自動演奏マシンを組む（ブラウザゲーム / Vite + TypeScript + Phaser 3 + pixelfx）
 
 > 状態: 基盤のみ（2週間の最小版を 2026-11-16 に向けて開発中）。リポジトリは Private。
 
