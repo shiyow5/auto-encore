@@ -12,7 +12,11 @@
  * tick の数え方: 初期状態が tick 0。step() を1回呼ぶと tick 1。入口は tick 1 に最初の1音を出す。
  * 速度 = 全出口が期待数を受けた tick。
  *
- * 現在の対応機械: ベルト・仕分け機・合流機。調律機は T5〜（未対応の機械は例外）。
+ * 対応機械: ベルト・仕分け機・合流機・調律機（v0.3 の4種）。
+ *
+ * 調律機（processTicks 2）: 入った tick を t とすると t+2 に前へ出る。出るときに音高を1段上げる
+ * （ド→ミ→ソ→ド）。処理中・出口詰まり中は次を受けない（中の音符が動けないので後ろは待つ）。
+ * 中の音符が出る tick には、後ろの音符が同じ tick に入れる（ベルトと同じ）。
  *
  * 合流機の交互（Issue #3）: 同じ tick に左右から来たら、前回通した側の反対を通す（初回は左）。
  * 「前回」は同時のときだけでなく、片側だけで通ったときも含めて直前に通した側で決める。
@@ -26,6 +30,7 @@ import type {
   MachineTable,
   Note,
   Order,
+  Pitch,
   Placement,
   Side,
   SimResult,
@@ -43,6 +48,8 @@ export interface SimNote extends Note {
 export interface CellNote {
   readonly key: number;
   readonly note: SimNote;
+  /** 調律機の処理の残り tick（0 なら出られる）。0 のときは載せない（ハッシュを変えないため）。 */
+  readonly wait?: number;
 }
 
 export interface InputState {
@@ -104,7 +111,7 @@ export interface World {
   readonly maxTicks: number;
 }
 
-const SUPPORTED: ReadonlySet<string> = new Set(["belt", "sorter", "merger"]);
+const SUPPORTED: ReadonlySet<string> = new Set(["belt", "sorter", "merger", "tuner"]);
 
 /** 配置は validatePlacements（load.ts）を通したものを渡す前提。 */
 export function buildWorld(
@@ -179,6 +186,11 @@ function dirBetween(p: Point, q: Point): Dir {
 
 // ---------- 1 tick ----------
 
+/** 音高を1段上げる（ド→ミ→ソ→ド）。 */
+export function tuneUp(p: Pitch): Pitch {
+  return ((p + 1) % 3) as Pitch;
+}
+
 /** 移動の希望。from が -1 のときは入口 input から出る音符。 */
 interface Move {
   readonly from: number;
@@ -237,6 +249,7 @@ function wantedMoves(world: World, s: SimState): Move[] {
   for (const c of s.cells) {
     const m = world.machineAt.get(c.key);
     if (!m) throw new Error(`機械の無いマスに音符がある: ${c.key}`);
+    if ((c.wait ?? 0) > 0) continue; // 調律機の処理中
     const p = pointOf(world, c.key);
     const q = stepPoint(p, emitDir(m, c.note));
     if (!inBounds(world, q)) continue;
@@ -337,7 +350,12 @@ export function step(world: World, s: SimState): SimState {
 
   const moved = new Set<number>();
   const cells = new Map<number, SimNote>();
-  for (const c of s.cells) cells.set(c.key, c.note);
+  const waits = new Map<number, number>();
+  for (const c of s.cells) {
+    cells.set(c.key, c.note);
+    // 動かなかった音符の処理は1 tick 進む（今 tick に動く音符は下で消える）
+    if ((c.wait ?? 0) > 1) waits.set(c.key, c.wait! - 1);
+  }
   const received = s.outputs.map((o) => o.received.slice());
   const inputs = s.inputs.map((st) => ({ ...st, wait: Math.max(0, st.wait - 1) }));
   let nextNoteId = s.nextNoteId;
@@ -352,10 +370,19 @@ export function step(world: World, s: SimState): SimState {
       inputs[mv.input] = { next: inputs[mv.input]!.next + 1, wait: inp.interval - 1 };
     } else {
       moved.add(mv.from);
+      // 調律機は出るときに音高を1段上げる（ド→ミ→ソ→ド）
+      if (world.machineAt.get(mv.from)?.def.id === "tuner")
+        note = { ...note, pitch: tuneUp(note.pitch) };
     }
     const port = world.portAt.get(mv.to);
     if (port?.kind === "output") received[port.index]!.push(note);
-    else cells.set(mv.to, note);
+    else {
+      cells.set(mv.to, note);
+      // 入った tick を数えて processTicks 後に出られる。残り = processTicks - 1（0 なら載せない）
+      const hold = world.machineAt.get(mv.to)!.def.processTicks - 1;
+      if (hold > 0) waits.set(mv.to, hold);
+      else waits.delete(mv.to);
+    }
   }
   // 動いた元のマスを空ける（ただし今 tick に別の音符が入ったマスは残す）。
   const entered = new Set(
@@ -379,7 +406,11 @@ export function step(world: World, s: SimState): SimState {
   return {
     tick: s.tick + 1,
     nextNoteId,
-    cells: [...cells.entries()].sort((a, b) => a[0] - b[0]).map(([key, note]) => ({ key, note })),
+    cells: [...cells.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([key, note]) =>
+        waits.has(key) ? { key, note, wait: waits.get(key)! } : { key, note },
+      ),
     inputs,
     outputs: received.map((r) => ({ received: r })),
     mergers,
