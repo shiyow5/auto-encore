@@ -1,14 +1,18 @@
-# auto-encore
+# Auto Encore ― 夜更けのオルゴール工房
 
-《Auto Encore》自動化パズル — 音符パーツで自動演奏マシンを組む（ブラウザゲーム / Vite + TypeScript + Phaser 3 + pixelfx）
+《Auto Encore ― 夜更けのオルゴール工房》自動化パズル — 音符パーツで自動演奏マシンを組む（ブラウザゲーム / Vite + TypeScript + Phaser 3 + pixelfx）
 
 > 状態: 基盤のみ（2週間の最小版を 2026-11-16 に向けて開発中）。リポジトリは Private。
 
 ## 試遊方法
 
-このリポジトリは Private で、現在のプラン（GitHub Free）では **GitHub Pages を Private リポジトリで使えない**ため、次のどちらかで遊ぶ。
+**ブラウザで開くだけで遊べる → https://shiyow5.github.io/auto-encore/**
 
-### A. CI のビルド済みファイルで遊ぶ（Node.js 不要）
+（`main` に反映されるたび GitHub Pages に自動で公開される。）
+
+以下は補助の手順。
+
+### A. CI のビルド済みファイルで遊ぶ（補助）（Node.js 不要）
 
 1. GitHub の **Actions** タブ → `CI` ワークフロー → main の最新の成功した実行を開く
 2. 下の **Artifacts** から `game-build` をダウンロードして解凍する（14日で消える）
@@ -22,7 +26,7 @@
 
 gh CLI なら: `gh run download -R shiyow5/auto-encore -n game-build -D game-build`（最新の実行）
 
-### B. 手元でソースから起動する（Node.js 22 以上）
+### B. 手元でソースから起動する（補助）（Node.js 22 以上）
 
 ```bash
 git clone https://github.com/shiyow5/auto-encore.git
