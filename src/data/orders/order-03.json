@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "id": "order-03",
+  "title": "三つの音を一本に",
+  "client": {
+    "id": "kogure",
+    "name": "小暮店長"
+  },
+  "texts": {
+    "intro": "ドとミと、ミを上げたソを、ド・ソ・ミ・ソの順で一本にまとめてほしいんだ。",
+    "tutorial": "合流機は左右から受けた音を前へ出します。同時に来たら交互、片方だけならそのまま通します。調律機は音を1段上げます（ミ→ソ）。",
+    "result": {
+      "encore": "きれいに並んだ。これで開店できる。",
+      "pass": "並んでる。もう少し詰められそうだ。",
+      "fail": "順番が崩れてしまったみたい。どこで音が待っているか見てみよう。"
+    }
+  },
+  "board": {
+    "width": 12,
+    "height": 8,
+    "blocked": []
+  },
+  "inputs": [
+    {
+      "id": "A",
+      "pos": [5, 0],
+      "dir": "S",
+      "emit": {
+        "interval": 1,
+        "notes": ["do:short", "do:short", "do:short", "do:short", "do:short", "do:short"]
+      }
+    },
+    {
+      "id": "B",
+      "pos": [5, 2],
+      "dir": "N",
+      "emit": {
+        "interval": 1,
+        "notes": ["mi:short", "mi:short", "mi:short", "mi:short", "mi:short", "mi:short"]
+      }
+    },
+    {
+      "id": "C1",
+      "pos": [4, 1],
+      "dir": "S",
+      "emit": {
+        "interval": 1,
+        "notes": ["mi:short", "mi:short", "mi:short", "mi:short", "mi:short", "mi:short"]
+      }
+    },
+    {
+      "id": "C2",
+      "pos": [4, 7],
+      "dir": "N",
+      "emit": {
+        "interval": 1,
+        "notes": ["mi:short", "mi:short", "mi:short", "mi:short", "mi:short", "mi:short"]
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "OUT",
+      "pos": [11, 4],
+      "dir": "E",
+      "expect": [
+        "do:short",
+        "so:short",
+        "mi:short",
+        "so:short",
+        "do:short",
+        "so:short",
+        "mi:short",
+        "so:short",
+        "do:short",
+        "so:short",
+        "mi:short",
+        "so:short",
+        "do:short",
+        "so:short",
+        "mi:short",
+        "so:short",
+        "do:short",
+        "so:short",
+        "mi:short",
+        "so:short",
+        "do:short",
+        "so:short",
+        "mi:short",
+        "so:short"
+      ]
+    }
+  ],
+  "allowedMachines": ["belt", "merger", "tuner"],
+  "limits": {
+    "maxTicks": 120
+  },
+  "scoring": {
+    "accuracy": {
+      "gold": 100,
+      "silver": 90,
+      "bronze": 80,
+      "unit": "percent"
+    },
+    "ticks": {
+      "gold": 30,
+      "silver": 33,
+      "bronze": 40
+    },
+    "cost": {
+      "gold": 38,
+      "silver": 45,
+      "bronze": 55
+    },
+    "passRule": "all-bronze-or-better",
+    "encoreRule": "two-or-more-gold"
+  },
+  "unlocks": [],
+  "referenceSolutions": ["solutions/order-03-frugal.json", "solutions/order-03-speed.json"]
+}

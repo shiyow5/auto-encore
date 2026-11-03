@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "orderId": "order-03",
+  "name": "no-tuner",
+  "placements": [
+    {
+      "machine": "merger",
+      "pos": [5, 1],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [6, 1],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [7, 1],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [8, 1],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [9, 1],
+      "dir": "E"
+    },
+    {
+      "machine": "merger",
+      "pos": [10, 1],
+      "dir": "S"
+    },
+    {
+      "machine": "belt",
+      "pos": [10, 2],
+      "dir": "S"
+    },
+    {
+      "machine": "belt",
+      "pos": [10, 3],
+      "dir": "S"
+    },
+    {
+      "machine": "merger",
+      "pos": [10, 4],
+      "dir": "E"
+    },
+    {
+      "machine": "merger",
+      "pos": [4, 5],
+      "dir": "E"
+    },
+    {
+      "machine": "merger",
+      "pos": [10, 5],
+      "dir": "N"
+    },
+    {
+      "machine": "belt",
+      "pos": [4, 2],
+      "dir": "S"
+    },
+    {
+      "machine": "belt",
+      "pos": [4, 3],
+      "dir": "S"
+    },
+    {
+      "machine": "belt",
+      "pos": [4, 4],
+      "dir": "S"
+    },
+    {
+      "machine": "belt",
+      "pos": [4, 6],
+      "dir": "N"
+    },
+    {
+      "machine": "belt",
+      "pos": [5, 5],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [6, 5],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [7, 5],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [8, 5],
+      "dir": "E"
+    },
+    {
+      "machine": "belt",
+      "pos": [9, 5],
+      "dir": "E"
+    }
+  ]
+}
