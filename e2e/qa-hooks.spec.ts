@@ -40,3 +40,19 @@ test("__qa: 再生中は waitForIdle が待ち、終わると結果画面", asyn
   await page.evaluate(() => window.__qa?.waitForIdle());
   expect(await page.evaluate(() => window.__qa?.scene())).toBe("result");
 });
+
+test("__qa: 「工房にもどる」直後の waitForIdle は工房が開くまで待つ", async ({ page }) => {
+  await page.goto("/?fx=0");
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+  await placeStraightBelts(page);
+  await page.getByRole("button", { name: "実行" }).click();
+  await page.evaluate(() => window.__qa?.waitForIdle());
+  expect(await page.evaluate(() => window.__qa?.scene())).toBe("result");
+  // クリックと waitForIdle を同じタスク内で呼ぶ（scene.start が実際に切り替わる前の隙間を突く）
+  const sceneAfter = await page.evaluate(async () => {
+    document.querySelector<HTMLButtonElement>(".rs-back")?.click();
+    await window.__qa?.waitForIdle();
+    return window.__qa?.scene();
+  });
+  expect(sceneAfter).toBe("workshop");
+});

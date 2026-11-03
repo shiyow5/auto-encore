@@ -85,7 +85,10 @@ export class ResultScene extends Phaser.Scene {
     if (msg) ov.append(h("p", { class: "rs-msg" }, msg));
 
     const back = h("button", { type: "button", class: "ws-btn rs-back" }, "工房にもどる");
-    back.addEventListener("click", () => this.scene.start("workshop", { placements }));
+    back.addEventListener("click", () => {
+      setQaBusy("transition", true); // 工房の create で外す。start は次の step まで遅れるので先に立てる
+      this.scene.start("workshop", { placements });
+    });
     ov.append(back);
 
     (document.getElementById("game") ?? document.body).append(ov);
