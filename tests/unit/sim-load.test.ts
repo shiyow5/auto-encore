@@ -167,6 +167,11 @@ describe("solutions/*.json", () => {
       "placements[0].config",
     ],
     ["注文違い", (s: any) => (s.orderId = "order-02"), "orderId"],
+    [
+      "expected.cost が配置のコストと違う（AE-22）",
+      (s: any) => (s.expected.cost = 11),
+      "expected.cost: 配置から計算したコストは 10",
+    ],
   ])("%s → 失敗", (_label, mutate, message) => {
     const s = clone(frugalJson);
     mutate(s);
