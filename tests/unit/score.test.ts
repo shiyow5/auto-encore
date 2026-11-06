@@ -78,6 +78,22 @@ describe("order-01 模範解（frugal）", () => {
   });
 });
 
+describe("firstMismatch", () => {
+  it("ずれなし（null）なら measure でも null", () => {
+    const m = measure(frugalSim, order01, frugal);
+    expect(m.firstMismatch).toBeNull();
+  });
+
+  it("ずれた場合は数値（1始まり）", () => {
+    const m = measure(
+      sim({ result: "stuck", ticks: null, matched: 3, total: 8, firstMismatch: 5 }),
+      order01,
+      frugal,
+    );
+    expect(m.firstMismatch).toBe(5);
+  });
+});
+
 describe("measure", () => {
   it("止まったら速度なし（ticks null）で、正確さは途中までの値", () => {
     const m = measure(sim({ result: "stuck", ticks: null, matched: 3 }), order01, frugal);
