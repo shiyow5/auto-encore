@@ -3,6 +3,7 @@ import { BootScene } from "./scenes/BootScene";
 import { ResultScene } from "./scenes/ResultScene";
 import { WorkshopScene } from "./scenes/WorkshopScene";
 import { GAME_HEIGHT, GAME_WIDTH } from "./config";
+import { installQa } from "./ui/qa";
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -22,3 +23,4 @@ declare global {
   }
 }
 window.__game = game;
+installQa();

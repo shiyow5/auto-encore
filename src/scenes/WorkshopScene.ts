@@ -26,6 +26,7 @@ import {
 } from "../core/sim/types";
 import { loadGameData } from "../data";
 import { fxEnabled } from "../ui/flags";
+import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
 import {
   cyclePitchAt,
@@ -174,8 +175,16 @@ export class WorkshopScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
     this.layout();
 
-    if (fxEnabled()) this.cameras.main.fadeIn(200, 30, 23, 34);
+    setQaState(null);
+    if (fxEnabled()) {
+      setQaBusy("fade", true);
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () =>
+        setQaBusy("fade", false),
+      );
+      this.cameras.main.fadeIn(200, 30, 23, 34);
+    }
     document.body.dataset.scene = "workshop";
+    setQaBusy("transition", false);
   }
 
   /** 今の配置（K4 の実行ボタン・QA フック用）。 */
@@ -208,6 +217,8 @@ export class WorkshopScene extends Phaser.Scene {
       callback: () => this.advance(),
     });
     this.playing = { ex, frame: 0, timer };
+    setQaBusy("play", true);
+    setQaState(ex.frames[0] ?? null);
     this.say("実行中…");
     this.changed();
   }
@@ -221,6 +232,7 @@ export class WorkshopScene extends Phaser.Scene {
     }
     p.frame++;
     this.redraw();
+    setQaState(p.ex.frames[p.frame] ?? null);
     this.overlay.dataset.tick = String(p.frame);
   }
 
@@ -236,7 +248,10 @@ export class WorkshopScene extends Phaser.Scene {
       order: this.order,
       report: ex.report,
       placements: this.placements,
+      finalState: ex.frames[ex.frames.length - 1],
     };
+    setQaBusy("transition", true); // 結果画面の create で外す。play を外す前に立てて隙間を作らない
+    setQaBusy("play", false);
     this.scene.start("result", data);
   }
 
@@ -648,6 +663,8 @@ export class WorkshopScene extends Phaser.Scene {
   private teardown(): void {
     this.playing?.timer.remove();
     this.playing = null;
+    setQaBusy("play", false);
+    setQaBusy("fade", false);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);
     window.removeEventListener("resize", this.onResize);
     this.overlay.remove();
