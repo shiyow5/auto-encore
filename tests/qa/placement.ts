@@ -10,8 +10,8 @@
 import { DIRS, type Dir, type Point } from "../../src/core/grid";
 import { Rng } from "../../src/core/rng";
 
-export type MachineId = "belt" | "merger" | "sorter" | "tuner";
-export const MACHINE_IDS: readonly MachineId[] = ["belt", "merger", "sorter", "tuner"];
+export type MachineId = "belt" | "merger" | "sorter" | "tuner" | "bin";
+export const MACHINE_IDS: readonly MachineId[] = ["belt", "merger", "sorter", "tuner", "bin"];
 
 export interface PlacementBoard {
   readonly width: number;
