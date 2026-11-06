@@ -43,7 +43,7 @@ import {
 } from "./workshop/placements";
 import { execute, type Execution } from "./workshop/execute";
 import type { ResultData } from "./ResultScene";
-import { playNote, playNotes } from "../audio";
+import { playNote } from "../audio";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
 export const PLAY_MS_PER_TICK = 110;

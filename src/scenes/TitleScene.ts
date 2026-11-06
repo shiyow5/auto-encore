@@ -6,7 +6,6 @@
  * - #47 未マージの間は scene.start("orders") だけ書いておく
  */
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { TITLE } from "./BootScene";
 import { fxEnabled } from "../ui/flags";
 import { setQaBusy } from "../ui/qa";
