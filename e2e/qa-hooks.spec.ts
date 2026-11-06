@@ -1,6 +1,23 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // QA フック（Issue #13）: window.__qa.stateHash() / waitForIdle() / scene()
+async function goToWorkshop(page: Page, url: string): Promise<void> {
+  await page.goto(url);
+  const params = new URL(url, page.url()).searchParams;
+  const isFxOff = params.get("fx") === "0";
+  if (isFxOff) {
+    // ?fx=0: BootScene が工房へ直接行く
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+  } else {
+    // 演出あり: title → orders → workshop の流れ
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
+    await page.getByRole("button", { name: "はじめる" }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "orders");
+    await page.getByRole("button", { name: "工房へ" }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
+  }
+}
+
 async function placeStraightBelts(page: Page): Promise<void> {
   for (let x = 1; x <= 10; x++) {
     await page.getByRole("button", { name: `マス ${x},3: 空き` }).click();
@@ -9,8 +26,7 @@ async function placeStraightBelts(page: Page): Promise<void> {
 }
 
 async function runAndHash(page: Page, url: string): Promise<string> {
-  await page.goto(url);
-  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+  await goToWorkshop(page, url);
   await page.evaluate(() => window.__qa?.waitForIdle());
   expect(await page.evaluate(() => window.__qa?.stateHash())).toBeNull(); // 実行前は null
   await placeStraightBelts(page);
@@ -31,8 +47,7 @@ test("__qa: ?fx=0 と演出ありで結果の stateHash が同じ（waitForIdle 
 });
 
 test("__qa: 再生中は waitForIdle が待ち、終わると結果画面", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+  await goToWorkshop(page, "/");
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();
   await expect(page.locator("#ws-overlay")).toHaveAttribute("data-running", "true");
@@ -42,8 +57,7 @@ test("__qa: 再生中は waitForIdle が待ち、終わると結果画面", asyn
 });
 
 test("__qa: 「工房にもどる」直後の waitForIdle は工房が開くまで待つ", async ({ page }) => {
-  await page.goto("/?fx=0");
-  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+  await goToWorkshop(page, "/?fx=0");
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();
   await page.evaluate(() => window.__qa?.waitForIdle());

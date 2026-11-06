@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import { BootScene } from "./scenes/BootScene";
+import { OrderScene } from "./scenes/OrderScene";
+import { TitleScene } from "./scenes/TitleScene";
 import { ResultScene } from "./scenes/ResultScene";
 import { WorkshopScene } from "./scenes/WorkshopScene";
 import { GAME_HEIGHT, GAME_WIDTH } from "./config";
@@ -13,7 +15,7 @@ const game = new Phaser.Game({
   pixelArt: true,
   backgroundColor: "#0b0d12",
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, WorkshopScene, ResultScene],
+  scene: [BootScene, TitleScene, OrderScene, WorkshopScene, ResultScene],
 });
 
 // E2E テストとデバッグ用。ゲームロジックはここから触らない。

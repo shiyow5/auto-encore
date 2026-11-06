@@ -141,6 +141,26 @@
   color: var(--ae-danger);
 }
 
+/* 操作説明（常時1行） */
+.ws-help {
+  position: absolute;
+  left: calc(var(--u) * 76);
+  top: calc(var(--u) * 149);
+  width: calc(var(--u) * 168);
+  min-height: 1.35em;
+  font-size: calc(var(--u) * 5);
+  color: var(--ae-text-weak);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* tutorial文（注文票内） */
+.ws-tutorial {
+  color: var(--ae-amber);
+  font-style: italic;
+  font-size: calc(var(--u) * 5);
+}
+
 /* 実行ボタン（注文票のいちばん下）。主操作なので塗りつぶし */
 .ws-run {
   display: block;

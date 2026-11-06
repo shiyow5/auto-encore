@@ -8,7 +8,7 @@ import { setQaBusy } from "../ui/qa";
 
 export const TITLE = "Auto Encore ― 夜更けのオルゴール工房";
 
-/** 起動ロゴ。演出ありならグリッチを 0.6 秒見せてから工房へ、?fx=0 ならすぐ工房へ。 */
+/** 起動ロゴ。演出ありならグリッチ→タイトルへ、?fx=0 なら工房へ直接。 */
 export class BootScene extends Phaser.Scene {
   private fx?: PixelFxLayer;
 
@@ -18,9 +18,10 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     document.body.dataset.scene = "boot";
-    setQaBusy("transition", true); // 工房の create で外す
+    setQaBusy("transition", true); // タイトル/工房の create で外す
     this.game.events.emit("ready");
     if (!fxEnabled()) {
+      // ?fx=0: E2Eテスト用。工房へ直接。
       this.scene.start("workshop");
       return;
     }
@@ -34,7 +35,7 @@ export class BootScene extends Phaser.Scene {
         color: "#e6e6e6",
       })
       .setOrigin(0.5);
-    this.time.delayedCall(600, () => this.scene.start("workshop"));
+    this.time.delayedCall(600, () => this.scene.start("title"));
   }
 
   override update(_time: number, delta: number): void {

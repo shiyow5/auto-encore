@@ -39,17 +39,40 @@ async function waitForIdle(page: Page): Promise<void> {
 }
 
 test.describe("縦切り: 注文1 が機械で完成する（AE-17 前段）", () => {
+  // タイトル画面のテスト（Issue #48）
+  test("タイトル画面が表示され、data-scene=title になる", async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto("/");
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "はじめる" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "遊び方" })).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  // ?fx=0: BootScene が工房へ直接行く
+  test("?fx=0: 工房画面が表示される", async ({ page }) => {
+    await page.goto("/?fx=0");
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+  });
+
+  // ?fx=1: タイトル→注文選択→工房
+  test("演出あり: タイトル→はじめる→工房へ", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
+    await page.getByRole("button", { name: "はじめる" }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "orders");
+    await page.getByRole("button", { name: "工房へ" }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
+  });
+
   test.fixme("注文1 を開く → 模範解を置く → 再生 → 完成表示・コンソールエラー0", async ({
     page,
   }) => {
     const errors = collectErrors(page);
 
-    // 1. 起動 → 注文1 を開く（合わせる所: シーン名・ボタンの名前）
+    // ?fx=0: 工房へ直接行く
     await page.goto("/?fx=0");
-    await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
-    await page.getByRole("button", { name: /注文1|開店前の試し弾き/ }).click();
-    await expect(page.locator("body")).toHaveAttribute("data-scene", "order");
-    await waitForIdle(page);
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
 
     // 2. 模範解を置く（loadSolution が無ければ、盤のマスをクリックして10本置く操作に差し替える）
     await page.evaluate(
