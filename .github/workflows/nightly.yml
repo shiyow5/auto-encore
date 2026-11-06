@@ -1,0 +1,47 @@
+name: Nightly
+
+# PR の CI では回さない。毎晩(JST 03:xx)と手動実行だけ。
+on:
+  schedule:
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: "ランダム配置 の本数(既定 1000)"
+        required: false
+        default: "1000"
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  placement-1000:
+    name: placement-1000
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      QA_PLACEMENT_SEEDS: ${{ inputs.seeds || '1000' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: ランダム配置 ${{ env.QA_PLACEMENT_SEEDS }} 本
+        # shell: bash を明示すると -eo pipefail になり、tee 越しでも vitest の失敗でステップが落ちる
+        shell: bash
+        run: |
+          mkdir -p nightly-report
+          npx vitest run tests/qa/ 2>&1 | tee nightly-report/vitest.log
+      - name: 失敗時の seed と 配置 JSON を残す
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: placement-1000-failure
+          path: nightly-report/
+          retention-days: 14
