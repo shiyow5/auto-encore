@@ -21,7 +21,7 @@ export class BootScene extends Phaser.Scene {
     setQaBusy("transition", true); // 工房の create で外す
     this.game.events.emit("ready");
     if (!fxEnabled()) {
-      this.scene.start("workshop");
+      this.scene.start("title");
       return;
     }
     const rng = new Rng(flags().seed ?? "boot");
@@ -34,7 +34,7 @@ export class BootScene extends Phaser.Scene {
         color: "#e6e6e6",
       })
       .setOrigin(0.5);
-    this.time.delayedCall(600, () => this.scene.start("workshop"));
+    this.time.delayedCall(600, () => this.scene.start("title"));
   }
 
   override update(_time: number, delta: number): void {
