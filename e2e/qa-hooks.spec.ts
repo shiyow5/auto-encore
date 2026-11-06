@@ -7,7 +7,9 @@ async function goToWorkshop(page: Page, url: string): Promise<void> {
   const isFxOff = params.get("fx") === "0";
   if (isFxOff) {
     // ?fx=0: BootScene が工房へ直接行く
-    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", {
+      timeout: 15_000,
+    });
   } else {
     // 演出あり: title → orders → workshop の流れ
     await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });

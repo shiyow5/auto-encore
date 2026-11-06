@@ -11,7 +11,7 @@ describe("pitchToFrequency", () => {
   });
 
   it("so(2) = G4 ≈ 392.00 Hz", () => {
-    expect(pitchToFrequency(2)).toBeCloseTo(392.00, 1);
+    expect(pitchToFrequency(2)).toBeCloseTo(392.0, 1);
   });
 
   it("異なる音高は異なる周波数を返す", () => {

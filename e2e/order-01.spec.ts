@@ -52,7 +52,9 @@ test.describe("縦切り: 注文1 が機械で完成する（AE-17 前段）", (
   // ?fx=0: BootScene が工房へ直接行く
   test("?fx=0: 工房画面が表示される", async ({ page }) => {
     await page.goto("/?fx=0");
-    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", {
+      timeout: 15_000,
+    });
   });
 
   // ?fx=1: タイトル→注文選択→工房
@@ -72,7 +74,9 @@ test.describe("縦切り: 注文1 が機械で完成する（AE-17 前段）", (
 
     // ?fx=0: 工房へ直接行く
     await page.goto("/?fx=0");
-    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", { timeout: 15_000 });
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", {
+      timeout: 15_000,
+    });
 
     // 2. 模範解を置く（loadSolution が無ければ、盤のマスをクリックして10本置く操作に差し替える）
     await page.evaluate(

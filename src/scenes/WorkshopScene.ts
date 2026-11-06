@@ -599,7 +599,9 @@ export class WorkshopScene extends Phaser.Scene {
     ov.append(this.status);
 
     // 操作説明（常時1行）
-    this.operationHelp = h("p", { class: "ws-help", "aria-label": "操作説明" },
+    this.operationHelp = h(
+      "p",
+      { class: "ws-help", "aria-label": "操作説明" },
       "置く=クリック / 向き=R / 仕分け機の音高=P か Shift+クリック / 消す=右クリック",
     );
     ov.append(this.operationHelp);
