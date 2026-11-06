@@ -3,17 +3,27 @@
  *
  * - simulate()（中で step() を止まるまで回す）→ score()（S3 の measure → judge）
  * - 画面に出す文（3指標・止まった理由・メダル）もここで作る（Phaser に依存しないのでユニットテストできる）
+ * - binEvents: tick ごとの bin 入り音符（音出し用）。frames[t] の音符が tick t に bin に入ったもの。
  */
 import { score, type Medal, type ScoreReport } from "../../core/score";
 import { simulate, type SimState } from "../../core/sim/sim";
 import { validatePlacements } from "../../core/sim/load";
 import type { MachineTable, Order, Placement, Solution, StopReason } from "../../core/sim/types";
 
+export interface BinEvent {
+  /** tick 番号。 */
+  readonly tick: number;
+  /** bin に入った音符の pitch (0=do, 1=mi, 2=so)。 */
+  readonly pitch: number;
+}
+
 export interface Execution {
   readonly report: ScoreReport;
   /** frames[0] が初期状態、frames[t] が tick t。ベルト上の音符の再描画に使う。 */
   readonly frames: readonly SimState[];
   readonly finalHash: string;
+  /** tick ごとの bin 入り音符。frames[t] が tick t の音符を bin に入れたもの（tick 1 以上）。 */
+  readonly binEvents: readonly BinEvent[];
 }
 
 /** プレイヤーの配置を Solution の形にする（保存・採点で共通の形）。 */
@@ -30,7 +40,36 @@ export function execute(
   validatePlacements(placements, order);
   const out = simulate(order, placements, machines, { recordFrames: true });
   const report = score(out.result, order, toSolution(order, placements));
-  return { report, frames: out.frames, finalHash: out.result.finalHash };
+  const binEvents = computeBinEvents(out.frames);
+  return { report, frames: out.frames, finalHash: out.result.finalHash, binEvents };
+}
+
+/** frames[t-1] から frames[t] への差分で、tick t に bin に入った音符を特定する。 */
+function computeBinEvents(frames: readonly SimState[]): BinEvent[] {
+  const events: BinEvent[] = [];
+  for (let t = 1; t < frames.length; t++) {
+    const prev = frames[t - 1]!;
+    const curr = frames[t]!;
+    const currKeys = new Set(curr.cells.map((c) => c.key));
+
+    // output に入った音符の id 集合（outputs[].received の差分）
+    const outputIds = new Set<number>();
+    for (let i = 0; i < curr.outputs.length; i++) {
+      const prevR = prev.outputs[i]!.received;
+      const currR = curr.outputs[i]!.received;
+      // 新規に追加された音符（received は push で追加される順序）
+      for (let j = prevR.length; j < currR.length; j++) {
+        outputIds.add(currR[j]!.id);
+      }
+    }
+
+    // cells から消えた音符で、output に入らなかったもの = bin に入った
+    const lost = prev.cells.filter((c) => !currKeys.has(c.key) && !outputIds.has(c.note.id));
+    for (const note of lost) {
+      events.push({ tick: t, pitch: note.note.pitch });
+    }
+  }
+  return events;
 }
 
 export const STOP_TEXT: Record<StopReason, string> = {
