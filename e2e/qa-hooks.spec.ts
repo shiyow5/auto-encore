@@ -12,7 +12,7 @@ async function runAndHash(page: Page, url: string): Promise<string> {
   await page.goto(url);
   // タイトル画面経由
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await page.evaluate(() => window.__qa?.waitForIdle());
   expect(await page.evaluate(() => window.__qa?.stateHash())).toBeNull(); // 実行前は null
@@ -36,7 +36,7 @@ test("__qa: ?fx=0 と演出ありで結果の stateHash が同じ（waitForIdle 
 test("__qa: 再生中は waitForIdle が待ち、終わると結果画面", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();
@@ -49,7 +49,7 @@ test("__qa: 再生中は waitForIdle が待ち、終わると結果画面", asyn
 test("__qa: 「工房にもどる」直後の waitForIdle は工房が開くまで待つ", async ({ page }) => {
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();

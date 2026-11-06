@@ -13,9 +13,9 @@ test("起動してキャンバスが表示され、タイトル→工房に進�
   const errors = collectErrors(page);
   await page.goto("/");
   await expect(page.locator("#game canvas")).toBeVisible();
-  // タイトル画面経由 → クリックで工房へ
+  // タイトル画面経由 → はじめるで工房へ
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   expect(errors).toEqual([]);
 });
@@ -26,7 +26,7 @@ test("?fx=0: 入口・出口が見え、ベルトを置く・回す・消す", a
   await page.goto("/?fx=0");
   // ?fx=0 でもタイトル画面経由
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   const grid = page.getByRole("group", { name: /工房 12×8/ });
   await expect(grid.getByRole("button")).toHaveCount(96);
@@ -71,7 +71,7 @@ test("?fx=0: キーボードだけで置ける（矢印で移動・Enter で置�
 }) => {
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   const start = page.getByRole("button", { name: /^マス 1,3:/ });
   await start.focus();
   await page.keyboard.press("Enter");
@@ -99,7 +99,7 @@ test("?fx=0: ベルト10本 → 実行 → 結果に3指標が数値で出る �
   const errors = collectErrors(page);
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();
 
@@ -124,7 +124,7 @@ test("?fx=0: ベルト10本 → 実行 → 結果に3指標が数値で出る �
 test("?fx=0: 途中が切れていると詰まって「もう一歩」・速度は記録なし", async ({ page }) => {
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "マス 6,3: ベルト 東向き" }).click({ button: "right" });
   await page.getByRole("button", { name: "実行" }).click();
@@ -146,7 +146,7 @@ test("演出あり: 実行すると音符を tick ごとに動かしてから結
   await page.goto("/");
   // タイトル画面経由
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();
@@ -173,7 +173,7 @@ test("?fx=0: マウス操作中の R はホバー中のマスを回し、矢印�
 }) => {
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   for (let x = 1; x <= 3; x++) {
     await page.getByRole("button", { name: `マス ${x},3: 空き` }).click();
   }
@@ -204,7 +204,7 @@ test("?fx=0: 棚の仕分け機・合流機・調律機・回収箱を置ける�
   const errors = collectErrors(page);
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
-  await page.locator("#title-overlay").click();
+  await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   const shelf = page.getByRole("region", { name: "パーツ棚" });
   await expect(shelf.getByRole("button", { name: /を選ぶ/ })).toHaveCount(5);

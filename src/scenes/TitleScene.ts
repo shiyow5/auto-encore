@@ -58,14 +58,7 @@ class TitleOverlay {
     `;
     btnStart.addEventListener("click", () => {
       this.remove();
-      // orders 画面へ遷移 (#47 がマージ済みなら orders scene が存在する)
-      // 未マージなら workshop へフォールバック
-      if (this.sceneAvailable("orders")) {
-        (window as unknown as { __navigateToOrders?: () => void }).__navigateToOrders?.();
-      }
-      // orders scene がまだないので、単純に workshop へ遷移するフラグを立てる
-      // toru の #47 で orders scene が実装されたら、这里は this.scene.start("orders") に変更する
-      // 当面は workshop へ
+      // orders scene が未実装なので当面 workshop へ
       this.goToWorkshop();
     });
     ov.append(btnStart);
@@ -88,19 +81,12 @@ class TitleOverlay {
     this.el = ov;
   }
 
-  /** orders scene が登録されているか確認。 */
-  private sceneAvailable(name: string): boolean {
-    // Phaser の scene manager から確認
-    const manager = (document as unknown as { __phaserScenes?: string[] }).__phaserScenes;
-    return manager ? manager.includes(name) : false;
-  }
-
   private goToWorkshop(): void {
-    // Phaser.scene.start を window から経由して呼ぶ
+    // orders が未実装なので当面 workshop へ
     const game = (window as unknown as { __game?: { scene: { start: (s: string) => void } } })
       .__game;
     if (game?.scene) {
-      game.scene.start("orders");
+      game.scene.start("workshop");
     }
   }
 
