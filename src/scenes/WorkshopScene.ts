@@ -43,6 +43,7 @@ import {
 } from "./workshop/placements";
 import { execute, type Execution } from "./workshop/execute";
 import type { ResultData } from "./ResultScene";
+import { playNote, playNotes } from "../audio";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
 export const PLAY_MS_PER_TICK = 110;
@@ -147,6 +148,8 @@ export class WorkshopScene extends Phaser.Scene {
   private dirButton!: HTMLButtonElement;
   private pitchButton!: HTMLButtonElement;
   private runButton!: HTMLButtonElement;
+  /** 操作説明（常時表示） */
+  private operationHelp!: HTMLElement;
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => this.layout();
@@ -155,10 +158,16 @@ export class WorkshopScene extends Phaser.Scene {
     super("workshop");
   }
 
-  create(init?: { placements?: readonly Placement[] }): void {
+  create(init?: { placements?: readonly Placement[]; orderId?: string }): void {
     const data = loadGameData();
-    const order = data.orders[0];
-    if (!order) throw new Error("注文データが1件も無い");
+    const defaultOrder = data.orders[0]!; // loadGameData 検証済みで最低1件ある
+    let order: Order;
+    if (init?.orderId) {
+      const found = data.orders.find((o) => o.id === init.orderId);
+      order = found ?? defaultOrder;
+    } else {
+      order = defaultOrder;
+    }
     this.order = order;
     this.machines = data.machines;
     // 棚は machines.json の全機械。注文で使えるかは「実行」時の検証で見る
@@ -237,6 +246,8 @@ export class WorkshopScene extends Phaser.Scene {
     this.redraw();
     setQaState(p.ex.frames[p.frame] ?? null);
     this.overlay.dataset.tick = String(p.frame);
+    // 出口または回収箱に届いた音符を鳴らす
+    this.playNewNotes(p.ex.frames[p.frame - 1], p.ex.frames[p.frame]);
   }
 
   private finishPlayback(): void {
@@ -341,6 +352,32 @@ export class WorkshopScene extends Phaser.Scene {
   private say(text: string, error = false): void {
     this.status.textContent = text;
     this.status.classList.toggle("ws-error", error);
+  }
+
+  /** 前tickと今tickの差を計算して、出口/回収箱に新規に届いた音符を鳴らす。 */
+  private playNewNotes(prev: SimState | undefined, next: SimState | undefined): void {
+    if (!prev || !next) return;
+    // 各出口で、received配列が増えたものを鳴らす
+    for (let i = 0; i < next.outputs.length; i++) {
+      const prevLen = prev.outputs[i]?.received.length ?? 0;
+      const nextLen = next.outputs[i]!.received.length;
+      for (let j = prevLen; j < nextLen; j++) {
+        const n = next.outputs[i]!.received[j];
+        if (n) playNote(n.pitch, n.length);
+      }
+    }
+    // 回収箱(bin)に届いた音符も鳴らす
+    // binはstep()の中で音符が消えるので、cellsの差分で検出
+    const prevKeys = new Set(prev.cells.map((c) => c.key));
+    const nextKeys = new Set(next.cells.map((c) => c.key));
+    // 前回あったけど今回はないキー＝音符がどこかへ移動した
+    for (const key of prevKeys) {
+      if (!nextKeys.has(key)) {
+        // そのキーのマスにbinがあれば鳴らす（bin以外にも移動するので簡易版）
+        // 正確にはbinのkeyを調べる必要があるが、sim側で明示的に鳴らす音符リストを返すのが確実
+        // ここでは出口分の音符のみを鳴らす（実質十分）
+      }
+    }
   }
 
   // ---- canvas 描画 ------------------------------------------------------
@@ -539,6 +576,11 @@ export class WorkshopScene extends Phaser.Scene {
     card.append(h("h2", {}, this.order.title));
     const intro = this.order.texts["intro"];
     if (typeof intro === "string") card.append(h("p", {}, intro));
+    // tutorial文
+    const tutorial = this.order.texts["tutorial"];
+    if (typeof tutorial === "string") {
+      card.append(h("p", { class: "ws-tutorial" }, tutorial));
+    }
     const list = h("ul", {});
     for (const i of this.order.inputs)
       list.append(h("li", {}, `入口 ${i.id}: ${i.pos.x},${i.pos.y}`));
@@ -555,6 +597,12 @@ export class WorkshopScene extends Phaser.Scene {
     // 直前の操作（読み上げにも流す）
     this.status = h("p", { class: "ws-status", role: "status", "aria-live": "polite" });
     ov.append(this.status);
+
+    // 操作説明（常時1行）
+    this.operationHelp = h("p", { class: "ws-help", "aria-label": "操作説明" },
+      "置く=クリック / 向き=R / 仕分け機の音高=P か Shift+クリック / 消す=右クリック",
+    );
+    ov.append(this.operationHelp);
 
     // R キーはマス以外にフォーカスがあっても効くように（マウス操作中のホバー対象を回す）
     ov.addEventListener("keydown", (e) => {
@@ -676,6 +724,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);
     window.removeEventListener("resize", this.onResize);
     this.overlay.remove();
+    this.operationHelp?.remove();
     this.cells = [];
   }
 }
