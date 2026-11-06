@@ -3,13 +3,22 @@
  *
  * - 今すぐ動くもの: フィクスチャ自体が壊れていないか（盤内・重なり無し・コストの足し算・manifest と実ファイルの対応）。
  *   シミュ本体（src/core/sim/）に依存しないので、main のままで CI が回る。
- * - シミュ・Schema が要るもの: it.todo。#16/#18（シミュ核）と #5（Schema）が main に入ったら外す。
+ * - シミュが要るもの: it.todo。#16/#18（シミュ核）が main に入ったら外す。#5 の Schema の判定は有効化済み。
  * - 値の意味と「仮の値」の一覧は tests/fixtures/README.md。
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { parseMachines, parseNote, parseOrder, parseSolution } from "../../src/core/sim/load";
+import type { Order } from "../../src/core/sim/types";
+import { Ctx, DataError } from "../../src/core/sim/validate";
+import {
+  formatErrors,
+  validateNoteSchema,
+  validateOrderSchema,
+  validateSolutionSchema,
+} from "../helpers/schema";
 
 const FIX = fileURLToPath(new URL("../fixtures", import.meta.url));
 const readJson = (rel: string): unknown => JSON.parse(fs.readFileSync(path.join(FIX, rel), "utf8"));
@@ -212,13 +221,95 @@ describe("#5 Schema に通す例・弾く例（#6: AE-22・AE-23）", () => {
     expect(invalid).toEqual(expect.arrayContaining(["fa:short", "do:", "DO:short"]));
   });
 
-  // #5 の Schema（と読み込み時検証 parseOrder / parseSolution）が決まり次第外す。undecided の例は判定しない。
-  it.todo("orders/valid は Schema・parseOrder を通る");
-  it.todo("orders/invalid（undecided 以外）は Schema か parseOrder のどちらかで弾かれる");
-  it.todo(
-    "solutions/invalid（undecided 以外）は parseSolution か expected の意味チェックで弾かれる",
+  it("誤例の order は manifest の orders.valid のどれか。sorter の config 欠落は sorter を許す order と組む", () => {
+    for (const c of schemaManifest.solutions.invalid) {
+      expect(schemaManifest.orders.valid, c.file).toContain(c.order);
+    }
+    const c = schemaManifest.solutions.invalid.find(
+      (x) => x.file === "invalid/sorter-without-config.json",
+    )!;
+    const order = readJson(`schema/orders/${c.order}`) as RawOrder;
+    expect(order.allowedMachines).toContain("sorter");
+  });
+
+  // #5: Schema（形）と parseOrder / parseSolution（項目をまたぐ条件）の両方で判定する。undecided の例は判定しない。
+  const readSchemaFixture = (rel: string): unknown => readJson(path.join("schema", rel));
+  const decided = (cs: SchemaCase[]): SchemaCase[] => cs.filter((c) => c.undecided === undefined);
+  const rejects = (fn: () => unknown): boolean => {
+    try {
+      fn();
+      return false;
+    } catch (e) {
+      if (e instanceof DataError) return true;
+      throw e;
+    }
+  };
+  const machines = parseMachines(
+    JSON.parse(fs.readFileSync(path.join(FIX, "../../src/data/machines.json"), "utf8")),
   );
-  it.todo("notes.valid は parseNote を通り、notes.invalid はすべて弾かれる");
+  const fixtureOrder = (rel: string): Order => parseOrder(readSchemaFixture(`orders/${rel}`), rel);
+
+  it.each(schemaManifest.orders.valid)("orders/valid/%s は Schema・parseOrder を通る", (f) => {
+    const json = readSchemaFixture(`orders/${f}`);
+    expect(validateOrderSchema(json), formatErrors(validateOrderSchema.errors)).toBe(true);
+    expect(() => parseOrder(json, f)).not.toThrow();
+  });
+
+  it.each(decided(schemaManifest.orders.invalid).map((c) => [c.file, c.reason]))(
+    "orders/%s（%s）は Schema か parseOrder のどちらかで弾かれる",
+    (file) => {
+      const json = readSchemaFixture(`orders/${file}`);
+      const bySchema = !validateOrderSchema(json);
+      const byLoad = rejects(() => parseOrder(json, file));
+      expect(bySchema || byLoad).toBe(true);
+      // 実行時は parseOrder しか通らないので、Schema だけが弾いて parseOrder が通す形は作らない。
+      expect(byLoad, "parseOrder が通してしまう").toBe(true);
+    },
+  );
+
+  it.each(schemaManifest.solutions.valid)(
+    "solutions/$file は Schema・parseSolution を通る",
+    (c) => {
+      const json = readSchemaFixture(`solutions/${c.file}`);
+      expect(validateSolutionSchema(json), formatErrors(validateSolutionSchema.errors)).toBe(true);
+      expect(() => parseSolution(json, c.file, fixtureOrder(c.order), machines)).not.toThrow();
+    },
+  );
+
+  it.each(decided(schemaManifest.solutions.invalid).map((c) => [c.file, c.reason, c.order!]))(
+    "solutions/%s（%s）は parseSolution か expected の意味チェックで弾かれる",
+    (file, _reason, order) => {
+      const json = readSchemaFixture(`solutions/${file}`);
+      expect(rejects(() => parseSolution(json, file, fixtureOrder(order), machines))).toBe(true);
+    },
+  );
+
+  it.skip.each(
+    schemaManifest.orders.invalid
+      .filter((c) => c.undecided !== undefined)
+      .map((c) => [c.file, c.undecided!]),
+  )("未決 orders/%s（%s）は判定しない", () => {});
+
+  it.skip.each(
+    schemaManifest.solutions.invalid
+      .filter((c) => c.undecided !== undefined)
+      .map((c) => [c.file, c.undecided!]),
+  )("未決 solutions/%s（%s）は判定しない", () => {});
+
+  it("notes.valid は parseNote・Schema を通り、notes.invalid はどちらでも弾かれる", () => {
+    const { valid, invalid } = schemaManifest.notes;
+    for (const n of valid) {
+      expect(validateNoteSchema(n), n).toBe(true);
+      expect(() => parseNote(n, new Ctx("notes")), n).not.toThrow();
+    }
+    for (const n of invalid) {
+      expect(validateNoteSchema(n), JSON.stringify(n)).toBe(false);
+      expect(
+        rejects(() => parseNote(n, new Ctx("notes"))),
+        JSON.stringify(n),
+      ).toBe(true);
+    }
+  });
 });
 
 // ---------------------------------------------------------------- #8 盤面フィクスチャ
@@ -271,6 +362,16 @@ describe("盤面フィクスチャ（#8: AE-09・AE-10・AE-11）", () => {
     expect(exact.order.inputs[0]!.emit.notes).toHaveLength(out);
     expect(plus.order.inputs[0]!.emit.notes).toHaveLength(out + 1);
     expect(plus.solution.placements).toEqual(exact.solution.placements);
+  });
+
+  it("AE-11: 背圧の盤面は、入口Aの音の数が「出口1の受け＋入口A〜出口1のベルト本数」より多い", () => {
+    const b = readJson("boards/ae11-output-full-backs-up.json") as BoardFixture;
+    const a = b.order.inputs.find((p) => p.id === "A")!;
+    const out1 = b.order.outputs.find((p) => p.id === "OUT1")!;
+    const beltsOnRow = b.solution.placements.filter(
+      (p) => p.machine === "belt" && p.pos[1] === a.pos[1],
+    ).length;
+    expect(a.emit.notes.length).toBeGreaterThan(out1.expect.length + beltsOnRow);
   });
 
   // シミュ核が main に入ったら外す。保存則は毎 tick: 入口から出た数 = 出口が受けた数 + 盤上 + 機械が持つ数。
