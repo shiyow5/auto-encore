@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import { parseMachines, parseOrder, parseSolution } from "../../src/core/sim/load";
 import { accuracyPercent, simulate } from "../../src/core/sim/sim";
 
-// 合流機（#32）・調律機（#34）が main に入ったら describe.skip を describe に変える。
-const READY = false;
+// 合流機（#32）・調律機（#34）は main に入った。
+const READY = true;
 const suite = READY ? describe : describe.skip;
 
 const SRC = join(__dirname, "../../src/data");

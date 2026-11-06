@@ -157,8 +157,6 @@ describe("停止判定", () => {
 describe("模範解ゴールデン（solutions/*.json の expected と完全一致）", () => {
   const data = readdirSync(join(DATA, "orders"))
     .filter((f) => f.endsWith(".json"))
-    // order-03 は合流機・調律機が要る。#32・#34 が main に入るまでは order-03.test.ts 側（skip）で見る。
-    .filter((f) => f !== "order-03.json")
     .sort()
     .flatMap((f) => {
       const order = parseOrder(readJson(`orders/${f}`), `orders/${f}`);
