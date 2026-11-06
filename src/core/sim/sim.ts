@@ -12,7 +12,11 @@
  * tick の数え方: 初期状態が tick 0。step() を1回呼ぶと tick 1。入口は tick 1 に最初の1音を出す。
  * 速度 = 全出口が期待数を受けた tick。
  *
- * 現在の対応機械: ベルト・仕分け機。合流機・調律機は T5〜（未対応の機械は例外）。
+ * 現在の対応機械: ベルト・仕分け機・合流機。調律機は T5〜（未対応の機械は例外）。
+ *
+ * 合流機の交互（Issue #3）: 同じ tick に左右から来たら、前回通した側の反対を通す（初回は左）。
+ * 「前回」は同時のときだけでなく、片側だけで通ったときも含めて直前に通した側で決める。
+ * 片方だけ来たらその tick で通す（相手を待たない）。片側が尽きたら残りはそのまま流れる。
  */
 import { DIRS, DIR_VEC, opposite, step as stepPoint, type Dir, type Point } from "../grid";
 import { MAX_TICKS_CAP, totalCost } from "./load";
@@ -61,7 +65,19 @@ export interface SimState {
   readonly inputs: readonly InputState[];
   /** order.outputs と同じ並び。 */
   readonly outputs: readonly OutputState[];
+  /**
+   * 合流機ごとの直前に通した側（key 昇順。まだ何も通していない合流機は載せない）。
+   * 合流機の無い盤では undefined（ハッシュを変えないため）。
+   */
+  readonly mergers?: readonly MergerState[];
 }
+
+export interface MergerState {
+  readonly key: number;
+  readonly last: MergeSide;
+}
+
+export type MergeSide = "left" | "right";
 
 // ---------- 盤（注文＋配置から作る、変わらない部分） ----------
 
@@ -88,7 +104,7 @@ export interface World {
   readonly maxTicks: number;
 }
 
-const SUPPORTED: ReadonlySet<string> = new Set(["belt", "sorter"]);
+const SUPPORTED: ReadonlySet<string> = new Set(["belt", "sorter", "merger"]);
 
 /** 配置は validatePlacements（load.ts）を通したものを渡す前提。 */
 export function buildWorld(
@@ -129,7 +145,13 @@ export function initialState(world: World): SimState {
     cells: [],
     inputs: world.order.inputs.map(() => ({ next: 0, wait: 0 })),
     outputs: world.order.outputs.map(() => ({ received: [] })),
+    mergers: hasMerger(world) ? [] : undefined,
   };
+}
+
+function hasMerger(world: World): boolean {
+  for (const m of world.machineAt.values()) if (m.def.id === "merger") return true;
+  return false;
 }
 
 // ---------- 向き ----------
@@ -160,6 +182,8 @@ function dirBetween(p: Point, q: Point): Dir {
 /** 移動の希望。from が -1 のときは入口 input から出る音符。 */
 interface Move {
   readonly from: number;
+  /** 出る元のマス（入口なら入口の位置）。 */
+  readonly fromP: Point;
   readonly to: number;
   readonly note: SimNote;
   readonly input?: number;
@@ -217,7 +241,7 @@ function wantedMoves(world: World, s: SimState): Move[] {
     const q = stepPoint(p, emitDir(m, c.note));
     if (!inBounds(world, q)) continue;
     const to = q.y * world.width + q.x;
-    if (canEnter(world, s, p, to)) moves.push({ from: c.key, to, note: c.note });
+    if (canEnter(world, s, p, to)) moves.push({ from: c.key, fromP: p, to, note: c.note });
   }
   let nextId = s.nextNoteId;
   world.order.inputs.forEach((inp, i) => {
@@ -231,6 +255,7 @@ function wantedMoves(world: World, s: SimState): Move[] {
     // 音符 ID は実際に出られたときだけ確定させる（下の解決で失敗したら捨てる）。
     moves.push({
       from: -1,
+      fromP: inp.pos,
       to,
       note: { id: nextId++, pitch: n.pitch, length: n.length },
       input: i,
@@ -239,8 +264,24 @@ function wantedMoves(world: World, s: SimState): Move[] {
   return moves;
 }
 
-/** 同じ行き先に複数来たら1つに決める。v0.3 の4種ではベルト・仕分け機・調律機は受け口が1つなので起きない。 */
-function arbitrate(moves: Move[]): Move[] {
+/** 合流機 m に fromP から入るとき、どちらの辺から入るか。 */
+function mergeSideOf(world: World, m: PlacedMachine, to: number, fromP: Point): MergeSide {
+  const side = sideOf(m.placement.dir, dirBetween(pointOf(world, to), fromP));
+  if (side !== "left" && side !== "right") throw new Error(`合流機の受け口ではない辺: ${side}`);
+  return side;
+}
+
+/** 合流機 key が次に同時になったとき優先する側。前回の反対、初回は左。 */
+function mergerPriority(s: SimState, key: number): MergeSide {
+  const last = s.mergers?.find((g) => g.key === key)?.last;
+  return last === "left" ? "right" : "left";
+}
+
+/**
+ * 同じ行き先に複数来たら1つに決める。負けた側はその場で待つ。
+ * 複数来うるのは合流機（左・右）だけ。ベルト・仕分け機・調律機・出口は受け口が1つなので起きない。
+ */
+function arbitrate(world: World, s: SimState, moves: Move[]): Move[] {
   const byTo = new Map<number, Move[]>();
   for (const mv of moves) {
     const list = byTo.get(mv.to);
@@ -250,11 +291,18 @@ function arbitrate(moves: Move[]): Move[] {
   const winners: Move[] = [];
   for (const mv of moves) {
     const list = byTo.get(mv.to)!;
-    if (list.length === 1) winners.push(mv);
-    else if (list[0] === mv) {
-      // 合流機（T5）で交互の規則を入れる。それまでは複数来る配置は作れない。
-      throw new Error(`同じマスへの取り合い（未対応）: ${mv.to}`);
+    if (list.length === 1) {
+      winners.push(mv);
+      continue;
     }
+    if (list[0] !== mv) continue;
+    const m = world.machineAt.get(mv.to);
+    if (m?.def.arbitration !== "alternate")
+      throw new Error(`同じマスへの取り合い（受け口が1つのはず）: ${mv.to}`);
+    const want = mergerPriority(s, mv.to);
+    const win = list.find((x) => mergeSideOf(world, m, mv.to, x.fromP) === want);
+    if (!win) throw new Error(`合流機に同じ辺から2つ来た: ${mv.to}`);
+    winners.push(win);
   }
   return winners;
 }
@@ -285,7 +333,7 @@ function resolve(world: World, s: SimState, moves: Move[]): Move[] {
 
 /** 1 tick 進めた新しい状態を返す（s は変えない）。 */
 export function step(world: World, s: SimState): SimState {
-  const moves = resolve(world, s, arbitrate(wantedMoves(world, s)));
+  const moves = resolve(world, s, arbitrate(world, s, wantedMoves(world, s)));
 
   const moved = new Set<number>();
   const cells = new Map<number, SimNote>();
@@ -315,12 +363,26 @@ export function step(world: World, s: SimState): SimState {
   );
   for (const k of moved) if (!entered.has(k)) cells.delete(k);
 
+  // 合流機: 実際に通した側を「前回」として残す（同時かどうかに関わらず）。
+  let mergers = s.mergers;
+  if (mergers !== undefined) {
+    const last = new Map(mergers.map((g) => [g.key, g.last] as const));
+    for (const mv of moves) {
+      const m = world.machineAt.get(mv.to);
+      if (m?.def.id === "merger") last.set(mv.to, mergeSideOf(world, m, mv.to, mv.fromP));
+    }
+    mergers = [...last.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([key, side]) => ({ key, last: side }));
+  }
+
   return {
     tick: s.tick + 1,
     nextNoteId,
     cells: [...cells.entries()].sort((a, b) => a[0] - b[0]).map(([key, note]) => ({ key, note })),
     inputs,
     outputs: received.map((r) => ({ received: r })),
+    mergers,
   };
 }
 
