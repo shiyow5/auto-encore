@@ -12,7 +12,10 @@
  * tick の数え方: 初期状態が tick 0。step() を1回呼ぶと tick 1。入口は tick 1 に最初の1音を出す。
  * 速度 = 全出口が期待数を受けた tick。
  *
- * 対応機械: ベルト・仕分け機・合流機・調律機（v0.3 の4種）。
+ * 対応機械: ベルト・仕分け機・合流機・調律機・回収箱。
+ *
+ * 回収箱（bin, Issue #41）: 後ろから受けた音符をその tick で消す。マスに音符は残らないので
+ * 詰まらず、いつでも受ける。消した音符は出口に届いていないので正確さには数えない。
  *
  * 調律機（processTicks 2）: 入った tick を t とすると t+2 に前へ出る。出るときに音高を1段上げる
  * （ド→ミ→ソ→ド）。処理中・出口詰まり中は次を受けない（中の音符が動けないので後ろは待つ）。
@@ -111,7 +114,7 @@ export interface World {
   readonly maxTicks: number;
 }
 
-const SUPPORTED: ReadonlySet<string> = new Set(["belt", "sorter", "merger", "tuner"]);
+const SUPPORTED: ReadonlySet<string> = new Set(["belt", "sorter", "merger", "tuner", "bin"]);
 
 /** 配置は validatePlacements（load.ts）を通したものを渡す前提。 */
 export function buildWorld(
@@ -376,7 +379,9 @@ export function step(world: World, s: SimState): SimState {
     }
     const port = world.portAt.get(mv.to);
     if (port?.kind === "output") received[port.index]!.push(note);
-    else {
+    else if (world.machineAt.get(mv.to)?.def.id === "bin") {
+      // 回収箱: 入った音符は消える（マスに載せない）
+    } else {
       cells.set(mv.to, note);
       // 入った tick を数えて processTicks 後に出られる。残り = processTicks - 1（0 なら載せない）
       const hold = world.machineAt.get(mv.to)!.def.processTicks - 1;

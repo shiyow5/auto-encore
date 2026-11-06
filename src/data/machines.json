@@ -18,6 +18,7 @@
       "processTicks": 0,
       "config": { "pitch": ["do", "mi", "so"] }
     },
-    { "id": "tuner", "cost": 8, "accepts": ["back"], "emits": ["front"], "processTicks": 2 }
+    { "id": "tuner", "cost": 8, "accepts": ["back"], "emits": ["front"], "processTicks": 2 },
+    { "id": "bin", "cost": 0, "accepts": ["back"], "emits": [], "processTicks": 0 }
   ]
 }

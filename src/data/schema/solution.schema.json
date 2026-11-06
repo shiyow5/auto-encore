@@ -26,7 +26,7 @@
         "required": ["machine", "pos", "dir"],
         "properties": {
           "machine": {
-            "enum": ["belt", "merger", "sorter", "tuner"]
+            "enum": ["belt", "merger", "sorter", "tuner", "bin"]
           },
           "pos": {
             "type": "array",

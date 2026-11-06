@@ -59,6 +59,7 @@ const COLOR = {
   merger: 0x4a5c66,
   sorter: 0x66584a,
   tuner: 0x4a6652,
+  bin: 0x3a3a46,
   arrow: 0xf2b45a,
   input: 0x8fd6c8,
   output: 0xf28f9a,
@@ -73,6 +74,7 @@ export const MACHINE_NAME: Record<MachineId, string> = {
   merger: "合流機",
   sorter: "仕分け機",
   tuner: "調律機",
+  bin: "回収箱",
 };
 
 /** 機械ごとの床の色。 */
@@ -81,6 +83,7 @@ const MACHINE_COLOR: Record<MachineId, number> = {
   merger: COLOR.merger,
   sorter: COLOR.sorter,
   tuner: COLOR.tuner,
+  bin: COLOR.bin,
 };
 
 /** 音高の読み（machines.json の "do"/"mi"/"so" を画面の言葉にする）。候補そのものは machines.json。 */
@@ -386,6 +389,11 @@ export class WorkshopScene extends Phaser.Scene {
       const { x, y } = this.cellXY(p.pos);
       g.fillStyle(MACHINE_COLOR[p.machine], 1);
       g.fillRect(x + 1, y + 1, CELL - 1, CELL - 1);
+      // 回収箱は仮の図形（kotoha 側の素材が届くまで）: 床色の穴の上に向きの三角
+      if (p.machine === "bin") {
+        g.fillStyle(COLOR.floor, 1);
+        g.fillRect(x + 3, y + 3, CELL - 5, CELL - 5);
+      }
       this.arrow(x, y, p.dir, COLOR.arrow);
       // 仕分け機は右下に音高の色の点（ド・ミ・ソ = 音符と同じ色）
       if (p.config) {

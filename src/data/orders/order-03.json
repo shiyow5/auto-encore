@@ -91,7 +91,7 @@
       ]
     }
   ],
-  "allowedMachines": ["belt", "merger", "tuner"],
+  "allowedMachines": ["belt", "merger", "tuner", "bin"],
   "limits": {
     "maxTicks": 120
   },

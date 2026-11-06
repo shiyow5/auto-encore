@@ -180,15 +180,15 @@ test("?fx=0: マウス操作中の R はホバー中のマスを回し、矢印�
   );
 });
 
-// 棚の機械3種と仕分け機の音高（K5）。
-test("?fx=0: 棚の仕分け機・合流機・調律機を置ける。仕分け機は P で音高が巡回する", async ({
+// 棚の機械（K5・回収箱 #41）と仕分け機の音高。
+test("?fx=0: 棚の仕分け機・合流機・調律機・回収箱を置ける。仕分け機は P で音高が巡回する", async ({
   page,
 }) => {
   const errors = collectErrors(page);
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   const shelf = page.getByRole("region", { name: "パーツ棚" });
-  await expect(shelf.getByRole("button", { name: /を選ぶ/ })).toHaveCount(4);
+  await expect(shelf.getByRole("button", { name: /を選ぶ/ })).toHaveCount(5);
 
   // 仕分け機（machines.json: 6G・候補の先頭=ド）
   await page.getByRole("button", { name: /仕分け機を選ぶ（6G/ }).click();
@@ -223,6 +223,12 @@ test("?fx=0: 棚の仕分け機・合流機・調律機を置ける。仕分け�
   await expect(page.getByLabel("配置の合計")).toHaveText("機械 4台 / 24G");
   await page.getByRole("button", { name: "マス 4,3: 合流機 東向き" }).click({ button: "right" });
   await expect(page.getByLabel("配置の合計")).toHaveText("機械 3台 / 20G");
+
+  // 回収箱（#41）: 0G。置いても合計は増えない
+  await page.getByRole("button", { name: /回収箱を選ぶ（0G/ }).click();
+  await page.getByRole("button", { name: "マス 6,3: 空き" }).click();
+  await expect(page.getByRole("button", { name: "マス 6,3: 回収箱 東向き" })).toBeVisible();
+  await expect(page.getByLabel("配置の合計")).toHaveText("機械 4台 / 20G");
 
   // 注文1 では使えない機械 → 実行しても落ちずに検証エラーを出す
   await page.getByRole("button", { name: "実行" }).click();

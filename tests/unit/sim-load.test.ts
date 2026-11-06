@@ -42,8 +42,8 @@ describe("音符の文字列", () => {
 });
 
 describe("machines.json", () => {
-  it("最小版の4種が spec-e v0.3 §2 の値", () => {
-    expect(Object.keys(machines).sort()).toEqual(["belt", "merger", "sorter", "tuner"]);
+  it("最小版の5種が spec-e v0.3 §2（回収箱は v0.2 Q6・#41）の値", () => {
+    expect(Object.keys(machines).sort()).toEqual(["belt", "bin", "merger", "sorter", "tuner"]);
     expect(machines.belt).toMatchObject({
       cost: 1,
       accepts: ["back"],
@@ -61,18 +61,36 @@ describe("machines.json", () => {
       config: { pitch: [0, 1, 2] },
     });
     expect(machines.tuner).toMatchObject({ cost: 8, processTicks: 2 });
+    expect(machines.bin).toMatchObject({ cost: 0, accepts: ["back"], emits: [], processTicks: 0 });
+  });
+
+  it("出口が無くてよいのは回収箱だけ・回収箱は出口と処理時間を持たない", () => {
+    const base = readJson("machines.json") as { schemaVersion: number; machines: object[] };
+    const noEmit = clone(base);
+    (noEmit.machines[0] as Record<string, unknown>).emits = [];
+    expectDataError(() => parseMachines(noEmit), "machines[0].emits: 出口が1つもない");
+    const binIdx = base.machines.findIndex((m) => (m as { id: string }).id === "bin");
+    const binEmit = clone(base);
+    (binEmit.machines[binIdx] as Record<string, unknown>).emits = ["front"];
+    expectDataError(
+      () => parseMachines(binEmit),
+      `machines[${binIdx}].emits: 回収箱は出口を持たない`,
+    );
+    const binWait = clone(base);
+    (binWait.machines[binIdx] as Record<string, unknown>).processTicks = 1;
+    expectDataError(() => parseMachines(binWait), `machines[${binIdx}].processTicks`);
   });
 
   it("schemaVersion 違い・機械の不足・重複・知らない項目で失敗", () => {
     const base = readJson("machines.json") as { schemaVersion: number; machines: object[] };
     expectDataError(() => parseMachines({ ...base, schemaVersion: 2 }), "schemaVersion");
     expectDataError(
-      () => parseMachines({ ...base, machines: base.machines.slice(0, 3) }),
-      '"tuner" の定義がない',
+      () => parseMachines({ ...base, machines: base.machines.slice(0, 4) }),
+      '"bin" の定義がない',
     );
     expectDataError(
       () => parseMachines({ ...base, machines: [...base.machines, base.machines[0]] }),
-      "machines[4].id",
+      "machines[5].id",
     );
     const typo = clone(base);
     (typo.machines[0] as Record<string, unknown>).cots = 1;
@@ -118,7 +136,7 @@ describe("orders/*.json", () => {
       (o: any) => (o.inputs[0].emit.notes[5] = "do:shrot"),
       "inputs[0].emit.notes[5]",
     ],
-    ["知らない機械", (o: any) => (o.allowedMachines = ["belt", "bin"]), "allowedMachines[1]"],
+    ["知らない機械", (o: any) => (o.allowedMachines = ["belt", "linker"]), "allowedMachines[1]"],
     ["閾値の向きが逆", (o: any) => (o.scoring.ticks.gold = 99), "scoring.ticks: gold <= silver"],
     ["maxTicks が上限超え", (o: any) => (o.limits.maxTicks = 2001), "limits.maxTicks"],
     ["passRule が不明", (o: any) => (o.scoring.passRule = "any"), "scoring.passRule"],
