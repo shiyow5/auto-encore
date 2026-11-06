@@ -5,7 +5,9 @@
  * - 操作はすべて DOM（#ws-overlay）。canvas の上にマスと同じ位置で <button> を96個重ねる
  *   → クリック・右クリック・キーボード（矢印/Enter/R/Delete）・読み上げ・getByRole が全部そのまま効く
  * - 配置は placements[]（core の Placement[] と同じ形）で持つ。K4 でそのまま Solution にして step() に渡す
- * - 棚は今はベルトだけ（order-01 の allowedMachines）
+ * - 棚は machines.json の全機械（ベルト・合流機・仕分け機・調律機）。コスト・音高の候補も machines.json から読む。
+ *   注文で使えない機械も置けるが、「実行」時の検証（validatePlacements）で理由を出して止める
+ * - 仕分け機の音高: 置いた仕分け機の上で P（またはマスを Shift+クリック）で候補を巡回。棚の「音高」ボタンは次に置く音高
  * - 「実行」（K4）: execute() で step() を止まるまで回して採点 → 音符を tick ごとに置き直して見せる → 結果画面。
  *   ?fx=0 / 視差効果を減らす のときは再生せず、すぐ結果画面へ
  */
@@ -14,12 +16,22 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { rotateCW } from "../core/grid";
 import type { Dir, Point } from "../core/grid";
 import type { SimState } from "../core/sim/sim";
-import type { MachineId, MachineTable, Order, Pitch, Placement } from "../core/sim/types";
+import {
+  PITCH_NAMES,
+  type MachineId,
+  type MachineTable,
+  type Order,
+  type Pitch,
+  type Placement,
+} from "../core/sim/types";
 import { loadGameData } from "../data";
 import { fxEnabled } from "../ui/flags";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
 import {
+  cyclePitchAt,
+  nextPitch,
+  pitchChoices,
   place,
   placementAt,
   removeAt,
@@ -44,6 +56,9 @@ const COLOR = {
   floor: 0x1e1722,
   line: 0x3a2f40,
   belt: 0x5c4a66,
+  merger: 0x4a5c66,
+  sorter: 0x66584a,
+  tuner: 0x4a6652,
   arrow: 0xf2b45a,
   input: 0x8fd6c8,
   output: 0xf28f9a,
@@ -60,6 +75,21 @@ export const MACHINE_NAME: Record<MachineId, string> = {
   tuner: "調律機",
 };
 
+/** 機械ごとの床の色。 */
+const MACHINE_COLOR: Record<MachineId, number> = {
+  belt: COLOR.belt,
+  merger: COLOR.merger,
+  sorter: COLOR.sorter,
+  tuner: COLOR.tuner,
+};
+
+/** 音高の読み（machines.json の "do"/"mi"/"so" を画面の言葉にする）。候補そのものは machines.json。 */
+const PITCH_KANA: Record<(typeof PITCH_NAMES)[number], string> = { do: "ド", mi: "ミ", so: "ソ" };
+
+export function pitchLabel(pitch: Pitch): string {
+  return PITCH_KANA[PITCH_NAMES[pitch]];
+}
+
 export const DIR_NAME: Record<Dir, string> = { N: "北", E: "東", S: "南", W: "西" };
 const DIR_ARROW: Record<Dir, string> = { N: "↑", E: "→", S: "↓", W: "←" };
 
@@ -70,7 +100,10 @@ export function cellLabel(rules: WorkshopRules, list: readonly Placement[], pos:
   if (r?.kind === "output") return `${head}: 出口 ${r.id ?? ""}（${DIR_NAME[r.dir ?? "E"]}向き）`;
   if (r?.kind === "blocked") return `${head}: ふさがっている`;
   const p = placementAt(list, pos);
-  if (p) return `${head}: ${MACHINE_NAME[p.machine]} ${DIR_NAME[p.dir]}向き`;
+  if (p) {
+    const pitch = p.config ? `・音高 ${pitchLabel(p.config.pitch)}` : "";
+    return `${head}: ${MACHINE_NAME[p.machine]} ${DIR_NAME[p.dir]}向き${pitch}`;
+  }
   return `${head}: 空き`;
 }
 
@@ -92,8 +125,16 @@ export class WorkshopScene extends Phaser.Scene {
   private placements: readonly Placement[] = [];
   private selected: MachineId = "belt";
   private nextDir: Dir = "E";
+  /** 次に置く仕分け機の音高。候補は machines.json。 */
+  private nextPitchValue: Pitch = 0;
   private hover: Point | null = null;
   private focus: Point = { x: 1, y: 3 };
+  /** マウスが乗っているマス（ホバー表示とは別。フォーカスでは変わらない）。 */
+  private pointer: Point | null = null;
+  /** 最後に使った入力。R をマウスのマスに効かせるか、フォーカスのマスに効かせるかを決める。 */
+  private lastInput: "pointer" | "keyboard" = "keyboard";
+  /** クリックで focus が来た途中か（そのときは入力の種類をキーボードに戻さない） */
+  private pointerPressing = false;
 
   private gfx!: Phaser.GameObjects.Graphics;
   private overlay!: HTMLElement;
@@ -101,6 +142,7 @@ export class WorkshopScene extends Phaser.Scene {
   private status!: HTMLElement;
   private costText!: HTMLElement;
   private dirButton!: HTMLButtonElement;
+  private pitchButton!: HTMLButtonElement;
   private runButton!: HTMLButtonElement;
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
@@ -116,11 +158,13 @@ export class WorkshopScene extends Phaser.Scene {
     if (!order) throw new Error("注文データが1件も無い");
     this.order = order;
     this.machines = data.machines;
-    this.rules = rulesFor(order);
+    // 棚は machines.json の全機械。注文で使えるかは「実行」時の検証で見る
+    this.rules = rulesFor(order, Object.keys(data.machines) as MachineId[]);
     this.placements = init?.placements ?? [];
     this.playing = null;
     this.selected = order.allowedMachines[0] ?? "belt";
     this.nextDir = "E";
+    this.nextPitchValue = pitchChoices(data.machines, "sorter")[0] ?? 0;
 
     this.gfx = this.add.graphics();
     this.buildOverlay();
@@ -215,15 +259,43 @@ export class WorkshopScene extends Phaser.Scene {
 
   private placeAt(pos: Point): void {
     if (this.playing) return;
-    const res = place(this.placements, this.rules, this.selected, pos, this.nextDir);
+    const hasPitch = pitchChoices(this.machines, this.selected).length > 0;
+    const res = place(
+      this.placements,
+      this.rules,
+      this.selected,
+      pos,
+      this.nextDir,
+      this.machines,
+      hasPitch ? this.nextPitchValue : undefined,
+    );
     if (!res.ok) {
       this.say(`✕ ${res.error}`, true);
       return;
     }
     this.placements = res.placements;
+    const pitch = hasPitch ? `（音高 ${pitchLabel(this.nextPitchValue)}）` : "";
     this.say(
-      `${MACHINE_NAME[this.selected]}を ${pos.x},${pos.y} に${DIR_NAME[this.nextDir]}向きで置いた`,
+      `${MACHINE_NAME[this.selected]}を ${pos.x},${pos.y} に${DIR_NAME[this.nextDir]}向きで置いた${pitch}`,
     );
+    this.changed();
+  }
+
+  /** P: マスに音高を持つ機械（仕分け機）があればその音高を回す。無ければ次に置く音高を回す。 */
+  private cyclePitch(pos: Point | null): void {
+    if (this.playing) return;
+    const p = pos ? placementAt(this.placements, pos) : undefined;
+    if (pos && p && pitchChoices(this.machines, p.machine).length > 0) {
+      this.placements = cyclePitchAt(this.placements, this.machines, pos);
+      const now = placementAt(this.placements, pos)?.config?.pitch;
+      if (now !== undefined) this.say(`${pos.x},${pos.y} の音高を${pitchLabel(now)}にした`);
+      this.changed();
+      return;
+    }
+    const choices = pitchChoices(this.machines, "sorter");
+    if (choices.length === 0) return;
+    this.nextPitchValue = nextPitch(choices, this.nextPitchValue);
+    this.say(`次に置く仕分け機の音高: ${pitchLabel(this.nextPitchValue)}`);
     this.changed();
   }
 
@@ -312,9 +384,14 @@ export class WorkshopScene extends Phaser.Scene {
 
     for (const p of this.placements) {
       const { x, y } = this.cellXY(p.pos);
-      g.fillStyle(COLOR.belt, 1);
+      g.fillStyle(MACHINE_COLOR[p.machine], 1);
       g.fillRect(x + 1, y + 1, CELL - 1, CELL - 1);
       this.arrow(x, y, p.dir, COLOR.arrow);
+      // 仕分け機は右下に音高の色の点（ド・ミ・ソ = 音符と同じ色）
+      if (p.config) {
+        g.fillStyle(NOTE_COLOR[p.config.pitch], 1);
+        g.fillRect(x + CELL - 4, y + CELL - 4, 3, 3);
+      }
     }
 
     const frame = this.playing?.ex.frames[this.playing.frame];
@@ -365,14 +442,16 @@ export class WorkshopScene extends Phaser.Scene {
     // 棚（左）
     const shelf = h("section", { class: "ws-shelf", "aria-label": "パーツ棚" });
     shelf.append(h("h2", {}, "棚"));
-    for (const id of this.order.allowedMachines) {
+    for (const id of Object.keys(this.machines) as MachineId[]) {
       const cost = this.order.machineCost[id] ?? this.machines[id].cost;
+      const allowed = this.order.allowedMachines.includes(id);
       const b = h("button", {
         type: "button",
         class: "ws-btn ws-tool",
         "aria-pressed": String(id === this.selected),
-        "aria-label": `${MACHINE_NAME[id]}を選ぶ（${cost}G）`,
+        "aria-label": `${MACHINE_NAME[id]}を選ぶ（${cost}G${allowed ? "" : "・この注文では使えない"}）`,
         "data-machine": id,
+        "data-allowed": String(allowed),
       });
       b.textContent = `${MACHINE_NAME[id]} ${cost}G`;
       b.addEventListener("click", () => {
@@ -384,6 +463,9 @@ export class WorkshopScene extends Phaser.Scene {
     this.dirButton = h("button", { type: "button", class: "ws-btn" });
     this.dirButton.addEventListener("click", () => this.rotate(null));
     shelf.append(this.dirButton);
+    this.pitchButton = h("button", { type: "button", class: "ws-btn ws-pitch" });
+    this.pitchButton.addEventListener("click", () => this.cyclePitch(null));
+    shelf.append(this.pitchButton);
     const clear = h(
       "button",
       { type: "button", class: "ws-btn", "aria-label": "配置を全部消す" },
@@ -397,7 +479,7 @@ export class WorkshopScene extends Phaser.Scene {
     const grid = h("div", {
       class: "ws-grid",
       role: "group",
-      "aria-label": `工房 ${this.rules.width}×${this.rules.height}（クリックで置く・R で回す・右クリックか Delete で消す）`,
+      "aria-label": `工房 ${this.rules.width}×${this.rules.height}（クリックで置く・R で回す・P か Shift+クリックで仕分け機の音高・右クリックか Delete で消す）`,
     });
     grid.style.setProperty("--cols", String(this.rules.width));
     grid.style.setProperty("--rows", String(this.rules.height));
@@ -406,20 +488,33 @@ export class WorkshopScene extends Phaser.Scene {
       for (let x = 0; x < this.rules.width; x++) {
         const pos = { x, y };
         const b = h("button", { type: "button", class: "ws-cell", tabindex: "-1" });
-        b.addEventListener("click", () => this.placeAt(pos));
+        b.addEventListener("click", (e) => {
+          if (e.shiftKey) this.cyclePitch(pos);
+          else this.placeAt(pos);
+        });
         b.addEventListener("contextmenu", (e) => {
           e.preventDefault();
           this.removeAtPos(pos);
         });
         b.addEventListener("pointerenter", () => {
+          this.pointer = pos;
+          this.lastInput = "pointer";
           this.hover = pos;
           this.redraw();
         });
         b.addEventListener("pointerleave", () => {
+          if (this.pointer && this.pointer.x === x && this.pointer.y === y) this.pointer = null;
           if (this.hover && this.hover.x === x && this.hover.y === y) this.hover = null;
           this.redraw();
         });
+        b.addEventListener("pointerdown", () => {
+          this.pointerPressing = true;
+        });
+        b.addEventListener("pointerup", () => {
+          this.pointerPressing = false;
+        });
         b.addEventListener("focus", () => {
+          if (!this.pointerPressing) this.lastInput = "keyboard";
           this.focus = pos;
           this.hover = pos;
           this.redraw();
@@ -459,11 +554,18 @@ export class WorkshopScene extends Phaser.Scene {
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         this.rotate(this.hover);
+      } else if (e.key === "p" || e.key === "P") {
+        e.preventDefault();
+        this.cyclePitch(this.hover);
       }
     });
     this.input.keyboard?.on("keydown-R", () => {
       if (document.activeElement && ov.contains(document.activeElement)) return;
       this.rotate(this.hover);
+    });
+    this.input.keyboard?.on("keydown-P", () => {
+      if (document.activeElement && ov.contains(document.activeElement)) return;
+      this.cyclePitch(this.hover);
     });
 
     (document.getElementById("game") ?? document.body).append(ov);
@@ -480,6 +582,7 @@ export class WorkshopScene extends Phaser.Scene {
     const d = move[e.key];
     if (d) {
       e.preventDefault();
+      this.lastInput = "keyboard";
       const nx = Math.min(this.rules.width - 1, Math.max(0, pos.x + d[0]));
       const ny = Math.min(this.rules.height - 1, Math.max(0, pos.y + d[1]));
       this.focus = { x: nx, y: ny };
@@ -489,7 +592,11 @@ export class WorkshopScene extends Phaser.Scene {
     }
     if (e.key === "r" || e.key === "R") {
       e.preventDefault();
-      this.rotate(pos);
+      // クリックしたマスにフォーカスが残っていても、マウス操作中はホバー中のマスを回す
+      this.rotate(this.lastInput === "pointer" && this.pointer ? this.pointer : pos);
+    } else if (e.key === "p" || e.key === "P") {
+      e.preventDefault();
+      this.cyclePitch(pos);
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       this.removeAtPos(pos);
@@ -515,6 +622,12 @@ export class WorkshopScene extends Phaser.Scene {
     this.dirButton.setAttribute(
       "aria-label",
       `次に置く向き: ${DIR_NAME[this.nextDir]}（押すと回す）`,
+    );
+    const pitch = pitchLabel(this.nextPitchValue);
+    this.pitchButton.textContent = `音高 ${pitch}`;
+    this.pitchButton.setAttribute(
+      "aria-label",
+      `次に置く仕分け機の音高: ${pitch}（押すと切り替え。置いた仕分け機はマスで P）`,
     );
     const cost = totalCost(this.placements, this.machines, this.order);
     this.costText.textContent = `機械 ${this.placements.length}台 / ${cost}G`;

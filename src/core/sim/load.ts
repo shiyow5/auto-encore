@@ -347,14 +347,24 @@ export function parseSolution(
   );
   validatePlacements(placements, order, pc);
 
+  const expected =
+    o.expected === undefined ? undefined : parseExpected(o.expected, root.at("expected"));
+  if (expected) {
+    const cost = totalCost(placements, order, machines);
+    if (expected.cost !== cost) {
+      root
+        .at("expected")
+        .at("cost")
+        .fail(`配置から計算したコストは ${cost}（実際: ${expected.cost}）`);
+    }
+  }
+
   return {
     schemaVersion: 1,
     orderId,
     name: expectString(o.name, root.at("name")),
     placements,
-    ...(o.expected !== undefined
-      ? { expected: parseExpected(o.expected, root.at("expected")) }
-      : {}),
+    ...(expected ? { expected } : {}),
   };
 }
 
