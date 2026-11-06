@@ -70,6 +70,8 @@ test("?fx=0: キーボードだけで置ける（矢印で移動・Enter で置�
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "マス 2,3: ベルト 東向き" })).toBeFocused();
+  await page.keyboard.press("r");
+  await expect(page.getByRole("button", { name: "マス 2,3: ベルト 南向き" })).toBeFocused();
   await page.keyboard.press("Delete");
   await expect(page.getByRole("button", { name: "マス 2,3: 空き" })).toBeVisible();
   await expect(page.getByLabel("配置の合計")).toHaveText("機械 1台 / 1G");
@@ -148,5 +150,83 @@ test("演出あり: 実行すると音符を tick ごとに動かしてから結
   await page.getByRole("button", { name: "実行" }).click();
   await page.getByRole("button", { name: "結果へスキップ" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "result");
+  expect(errors).toEqual([]);
+});
+
+test("?fx=0: マウス操作中の R はホバー中のマスを回し、矢印で動いた後はフォーカスのマスを回す", async ({
+  page,
+}) => {
+  await page.goto("/?fx=0");
+  for (let x = 1; x <= 3; x++) {
+    await page.getByRole("button", { name: `マス ${x},3: 空き` }).click();
+  }
+  // 3,3 をクリックしたのでフォーカスは 3,3 に残っている。ホバー中の 1,3 が回る
+  await page.getByRole("button", { name: /^マス 1,3:/ }).hover();
+  await page.keyboard.press("r");
+  await expect(page.getByRole("button", { name: /^マス 1,3:/ })).toHaveAccessibleName(
+    "マス 1,3: ベルト 南向き",
+  );
+  await expect(page.getByRole("button", { name: /^マス 3,3:/ })).toHaveAccessibleName(
+    "マス 3,3: ベルト 東向き",
+  );
+  // 矢印で 2,3 へ移るとキーボード操作に戻り、マウスが 1,3 の上にあってもフォーカスの 2,3 が回る
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("r");
+  await expect(page.getByRole("button", { name: /^マス 2,3:/ })).toHaveAccessibleName(
+    "マス 2,3: ベルト 南向き",
+  );
+  await expect(page.getByRole("button", { name: /^マス 1,3:/ })).toHaveAccessibleName(
+    "マス 1,3: ベルト 南向き",
+  );
+});
+
+// 棚の機械3種と仕分け機の音高（K5）。
+test("?fx=0: 棚の仕分け機・合流機・調律機を置ける。仕分け機は P で音高が巡回する", async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  await page.goto("/?fx=0");
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
+  const shelf = page.getByRole("region", { name: "パーツ棚" });
+  await expect(shelf.getByRole("button", { name: /を選ぶ/ })).toHaveCount(4);
+
+  // 仕分け機（machines.json: 6G・候補の先頭=ド）
+  await page.getByRole("button", { name: /仕分け機を選ぶ（6G/ }).click();
+  await page.getByRole("button", { name: "マス 2,3: 空き" }).click();
+  const sorter = page.getByRole("button", { name: /^マス 2,3:/ });
+  await expect(sorter).toHaveAccessibleName("マス 2,3: 仕分け機 東向き・音高 ド");
+  await sorter.focus();
+  await page.keyboard.press("p");
+  await expect(sorter).toHaveAccessibleName("マス 2,3: 仕分け機 東向き・音高 ミ");
+  await page.keyboard.press("p");
+  await page.keyboard.press("p");
+  await expect(sorter).toHaveAccessibleName("マス 2,3: 仕分け機 東向き・音高 ド");
+  await page.keyboard.press("r");
+  await expect(sorter).toHaveAccessibleName("マス 2,3: 仕分け機 南向き・音高 ド");
+  // Shift+クリックでも巡回
+  await sorter.click({ modifiers: ["Shift"] });
+  await expect(sorter).toHaveAccessibleName("マス 2,3: 仕分け機 南向き・音高 ミ");
+
+  // 棚の「音高」で次に置く音高を変える
+  await page.getByRole("button", { name: /次に置く仕分け機の音高: ド/ }).click();
+  await page.getByRole("button", { name: "マス 3,3: 空き" }).click();
+  await expect(page.getByRole("button", { name: /^マス 3,3:/ })).toHaveAccessibleName(
+    "マス 3,3: 仕分け機 東向き・音高 ミ",
+  );
+
+  // 合流機・調律機
+  await page.getByRole("button", { name: /合流機を選ぶ（4G/ }).click();
+  await page.getByRole("button", { name: "マス 4,3: 空き" }).click();
+  await page.getByRole("button", { name: /調律機を選ぶ（8G/ }).click();
+  await page.getByRole("button", { name: "マス 5,3: 空き" }).click();
+  await expect(page.getByRole("button", { name: "マス 5,3: 調律機 東向き" })).toBeVisible();
+  await expect(page.getByLabel("配置の合計")).toHaveText("機械 4台 / 24G");
+  await page.getByRole("button", { name: "マス 4,3: 合流機 東向き" }).click({ button: "right" });
+  await expect(page.getByLabel("配置の合計")).toHaveText("機械 3台 / 20G");
+
+  // 注文1 では使えない機械 → 実行しても落ちずに検証エラーを出す
+  await page.getByRole("button", { name: "実行" }).click();
+  await expect(page.getByRole("status")).toHaveText(/^✕ 実行できない: .*置けない/);
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   expect(errors).toEqual([]);
 });

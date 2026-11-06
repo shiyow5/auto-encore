@@ -85,6 +85,17 @@
   border-color: var(--ae-amber);
 }
 
+/* 注文で使えない機械も棚には出す（置けるが「実行」で止まる）。色だけに頼らず点線の枠でも区別 */
+.ws-tool[data-allowed="false"] {
+  color: var(--ae-text-weak);
+  border-style: dashed;
+  border-color: var(--ae-text-weak);
+}
+
+.ws-tool[data-allowed="false"][aria-pressed="true"] {
+  border-color: var(--ae-amber);
+}
+
 /* マスのボタンは透明（見た目は canvas が描く）。フォーカスだけは DOM で見せる */
 .ws-grid {
   position: absolute;
