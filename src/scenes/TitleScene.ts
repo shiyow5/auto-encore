@@ -156,7 +156,6 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     document.body.dataset.scene = "title";
-    setQaBusy("transition", true);
 
     const gameEl = document.getElementById("game") ?? document.body;
     this.overlay.attach(gameEl);

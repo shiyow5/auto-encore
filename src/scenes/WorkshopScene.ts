@@ -172,7 +172,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.selected = order.allowedMachines[0] ?? "belt";
     this.nextDir = "E";
     this.nextPitchValue = pitchChoices(data.machines, "sorter")[0] ?? 0;
-    this.muted = false;
+    this.muted = localStorage.getItem("muted") === "true";
 
     this.gfx = this.add.graphics();
     this.buildOverlay();
@@ -492,9 +492,9 @@ export class WorkshopScene extends Phaser.Scene {
     this.muteButton = h("button", {
       type: "button",
       class: "ws-btn",
-      "aria-label": "音を切る",
+      "aria-label": this.muted ? "音をオンにする" : "音を切る",
     });
-    this.muteButton.textContent = "🔊";
+    this.muteButton.textContent = this.muted ? "🔇" : "🔊";
     this.muteButton.addEventListener("click", () => this.toggleMute());
     shelf.append(this.muteButton);
     const clear = h(
@@ -693,6 +693,7 @@ export class WorkshopScene extends Phaser.Scene {
 
   private toggleMute(): void {
     this.muted = !this.muted;
+    localStorage.setItem("muted", String(this.muted));
     this.muteButton.textContent = this.muted ? "🔇" : "🔊";
     this.muteButton.setAttribute("aria-label", this.muted ? "音をオンにする" : "音を切る");
     this.say(this.muted ? "音を切った" : "音をオンにした");
