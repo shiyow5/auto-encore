@@ -8,7 +8,6 @@
 import Phaser from "phaser";
 
 import { TITLE } from "./BootScene";
-import { setQaBusy } from "../ui/qa";
 import "../ui/workshop.css";
 
 function h<K extends keyof HTMLElementTagNameMap>(

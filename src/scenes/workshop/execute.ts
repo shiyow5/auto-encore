@@ -52,19 +52,19 @@ function computeBinEvents(frames: readonly SimState[]): BinEvent[] {
     const curr = frames[t]!;
     const currKeys = new Set(curr.cells.map((c) => c.key));
 
-    // output に入った音符の key 集合（outputs[].received の差分）
-    const outputKeys = new Set<number>();
+    // output に入った音符の id 集合（outputs[].received の差分）
+    const outputIds = new Set<number>();
     for (let i = 0; i < curr.outputs.length; i++) {
       const prevR = prev.outputs[i]!.received;
       const currR = curr.outputs[i]!.received;
       // 新規に追加された音符（received は push で追加される順序）
       for (let j = prevR.length; j < currR.length; j++) {
-        outputKeys.add(currR[j]!.key);
+        outputIds.add(currR[j]!.id);
       }
     }
 
     // cells から消えた音符で、output に入らなかったもの = bin に入った
-    const lost = prev.cells.filter((c) => !currKeys.has(c.key) && !outputKeys.has(c.note.key));
+    const lost = prev.cells.filter((c) => !currKeys.has(c.key) && !outputIds.has(c.note.id));
     for (const note of lost) {
       events.push({ tick: t, pitch: note.note.pitch });
     }
