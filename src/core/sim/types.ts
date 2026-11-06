@@ -28,9 +28,12 @@ export interface Note {
 export type Side = "front" | "back" | "left" | "right";
 export const SIDES: readonly Side[] = ["front", "back", "left", "right"];
 
-/** 最小版の機械4種（回収箱・連結機は spec-e v0.3 で外した）。 */
-export type MachineId = "belt" | "merger" | "sorter" | "tuner";
-export const MACHINE_IDS: readonly MachineId[] = ["belt", "merger", "sorter", "tuner"];
+/**
+ * 最小版の機械5種。回収箱（bin）は spec-e v0.2 Q6 で戻した（rei 判断 11/06・Issue #41）。連結機は外したまま。
+ * 回収箱は後ろから受けた音符をその場で消す（出口が無い・詰まらない）。
+ */
+export type MachineId = "belt" | "merger" | "sorter" | "tuner" | "bin";
+export const MACHINE_IDS: readonly MachineId[] = ["belt", "merger", "sorter", "tuner", "bin"];
 
 /** 同じマスに複数来たときの受け側の規則。動作そのものはコードに書く。 */
 export type Arbitration = "alternate";

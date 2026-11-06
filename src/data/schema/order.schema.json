@@ -224,7 +224,7 @@
       "enum": ["N", "E", "S", "W"]
     },
     "machineId": {
-      "enum": ["belt", "merger", "sorter", "tuner"]
+      "enum": ["belt", "merger", "sorter", "tuner", "bin"]
     },
     "note": {
       "description": "\"音高:長さ\"。最小版の注文で長を弾くかは E-U5 で未決なので、ここでは6種とも通す。",

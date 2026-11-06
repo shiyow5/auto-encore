@@ -124,7 +124,11 @@ export function parseMachines(json: unknown, file = "machines.json"): MachineTab
       ...(m.config !== undefined ? { config: parseMachineConfig(m.config, c.at("config")) } : {}),
     };
     if (def.accepts.length === 0) c.at("accepts").fail("受け口が1つもない");
-    if (def.emits.length === 0) c.at("emits").fail("出口が1つもない");
+    // 出口が無くてよいのは回収箱だけ（受けた音符をその場で消すので、中に音符が残らない）。
+    if (id === "bin") {
+      if (def.emits.length > 0) c.at("emits").fail("回収箱は出口を持たない");
+      if (def.processTicks !== 0) c.at("processTicks").fail("回収箱の processTicks は 0");
+    } else if (def.emits.length === 0) c.at("emits").fail("出口が1つもない");
     table[id] = def;
   });
   for (const id of MACHINE_IDS) {

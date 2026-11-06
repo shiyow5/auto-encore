@@ -225,3 +225,35 @@ describe("工房の配置で order-02 の模範解（仕分け機入り）を組
     expect(() => validatePlacements(list, order2)).not.toThrow();
   });
 });
+
+describe("工房の配置: 回収箱（bin, #41）", () => {
+  const order03 = data.orders.find((o) => o.id === "order-03");
+  if (!order03) throw new Error("order-03 が無い");
+  const r3 = rulesFor(order03);
+
+  it("棚に回収箱が出る（machines.json にあり、注文3では使える）", () => {
+    expect(Object.keys(data.machines)).toContain("bin");
+    expect(order03.allowedMachines).toContain("bin");
+    expect(order03.outputs.map((o) => o.id)).not.toContain("bin");
+    expect(r3.allowed).toContain("bin");
+    expect(rulesFor(order).allowed).not.toContain("bin");
+  });
+
+  it("コスト0・音高設定なし・何台でも置ける", () => {
+    expect(pitchChoices(data.machines, "bin")).toEqual([]);
+    let list: readonly Placement[] = [];
+    const free: { x: number; y: number }[] = [];
+    for (let y = 0; y < r3.height && free.length < 12; y++)
+      for (let x = 0; x < r3.width && free.length < 12; x++)
+        if (whyNot(r3, "bin", { x, y }) === null) free.push({ x, y });
+    for (const pos of free) {
+      const r = place(list, r3, "bin", pos, "E", data.machines);
+      if (!r.ok) throw new Error(r.error);
+      list = r.placements;
+    }
+    expect(list).toHaveLength(12);
+    expect(list.every((p) => p.config === undefined)).toBe(true);
+    expect(totalCost(list, data.machines, order03)).toBe(0);
+    expect(() => validatePlacements(list, order03)).not.toThrow();
+  });
+});

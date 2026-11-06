@@ -69,7 +69,7 @@
       },
       {
         "file": "invalid/unknown-machine.json",
-        "reason": "最小版に無い機械（bin）"
+        "reason": "最小版に無い機械（linker・連結機）。bin は #41 で最小版に入った"
       },
       {
         "file": "invalid/schema-version-2.json",
