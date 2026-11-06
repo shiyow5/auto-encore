@@ -42,6 +42,7 @@ import {
   type WorkshopRules,
 } from "./workshop/placements";
 import { execute, type Execution } from "./workshop/execute";
+import { playNote, initAudio } from "../fx/audio";
 import type { ResultData } from "./ResultScene";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
@@ -146,9 +147,12 @@ export class WorkshopScene extends Phaser.Scene {
   private costText!: HTMLElement;
   private dirButton!: HTMLButtonElement;
   private pitchButton!: HTMLButtonElement;
+  private muteButton!: HTMLButtonElement;
   private runButton!: HTMLButtonElement;
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
+  /** 現在のミュート状態。 */
+  private muted: boolean = false;
   private readonly onResize = (): void => this.layout();
 
   constructor() {
@@ -168,6 +172,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.selected = order.allowedMachines[0] ?? "belt";
     this.nextDir = "E";
     this.nextPitchValue = pitchChoices(data.machines, "sorter")[0] ?? 0;
+    this.muted = false;
 
     this.gfx = this.add.graphics();
     this.buildOverlay();
@@ -214,6 +219,8 @@ export class WorkshopScene extends Phaser.Scene {
       this.showResult(ex);
       return;
     }
+    // 最初の再生で AudioContext を resume
+    initAudio(() => {});
     const timer = this.time.addEvent({
       delay: PLAY_MS_PER_TICK,
       loop: true,
@@ -234,6 +241,13 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     p.frame++;
+    // bin に入った音符を鳴らす
+    if (!this.muted) {
+      const events = p.ex.binEvents.filter((ev) => ev.tick === p.frame);
+      for (const ev of events) {
+        playNote(ev.pitch);
+      }
+    }
     this.redraw();
     setQaState(p.ex.frames[p.frame] ?? null);
     this.overlay.dataset.tick = String(p.frame);
@@ -474,6 +488,15 @@ export class WorkshopScene extends Phaser.Scene {
     this.pitchButton = h("button", { type: "button", class: "ws-btn ws-pitch" });
     this.pitchButton.addEventListener("click", () => this.cyclePitch(null));
     shelf.append(this.pitchButton);
+    // ミュートボタン
+    this.muteButton = h("button", {
+      type: "button",
+      class: "ws-btn",
+      "aria-label": "音を切る",
+    });
+    this.muteButton.textContent = "🔊";
+    this.muteButton.addEventListener("click", () => this.toggleMute());
+    shelf.append(this.muteButton);
     const clear = h(
       "button",
       { type: "button", class: "ws-btn", "aria-label": "配置を全部消す" },
@@ -666,6 +689,13 @@ export class WorkshopScene extends Phaser.Scene {
     s.setProperty("--grid-y", `${(GRID_Y / GAME_HEIGHT) * 100}%`);
     s.setProperty("--grid-w", `${((this.rules.width * CELL) / GAME_WIDTH) * 100}%`);
     s.setProperty("--grid-h", `${((this.rules.height * CELL) / GAME_HEIGHT) * 100}%`);
+  }
+
+  private toggleMute(): void {
+    this.muted = !this.muted;
+    this.muteButton.textContent = this.muted ? "🔇" : "🔊";
+    this.muteButton.setAttribute("aria-label", this.muted ? "音をオンにする" : "音を切る");
+    this.say(this.muted ? "音を切った" : "音をオンにした");
   }
 
   private teardown(): void {
