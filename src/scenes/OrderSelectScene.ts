@@ -1,0 +1,184 @@
+/**
+ * 注文選択画面 (Issue #47)。
+ *
+ * - 注文一覧 (タイトル・メダル) を表示
+ * - 解放状態は core/save.ts の SaveStore で管理
+ * - 「はじめる」(TitleScene) → ここ → WorkshopScene
+ * - ResultScene から「次の注文へ」でここへ戻ってくる
+ */
+import Phaser from "phaser";
+import type { Order } from "../core/sim/types";
+import { loadGameData } from "../data";
+import { SaveStore, MemoryStorage } from "../core/save";
+import "../ui/workshop.css";
+import { setQaBusy } from "../ui/qa";
+
+/** 解放状態の保存キー。 */
+const UNLOCK_STORE_KEY = "ae-order-unlocked";
+
+/** 解放済み注文IDの配列を保存・読み込みする Store。 */
+function getUnlockStore(): SaveStore<string[]> {
+  // テスト環境 (SSR) では MemoryStorage を使う
+  const storage =
+    typeof localStorage !== "undefined"
+      ? localStorage
+      : (new MemoryStorage() as unknown as typeof localStorage);
+  return new SaveStore<string[]>(storage, UNLOCK_STORE_KEY, 1);
+}
+
+/** 最初の注文 (order-01) は常に解放済み。 */
+const DEFAULT_UNLOCKED: string[] = ["order-01"];
+
+function h<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  attrs: Record<string, string> = {},
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+export class OrderSelectScene extends Phaser.Scene {
+  private overlay!: HTMLDivElement;
+
+  constructor() {
+    super("orders");
+  }
+
+  create(): void {
+    document.getElementById("order-select-overlay")?.remove();
+
+    const data = loadGameData();
+    const store = getUnlockStore();
+
+    // 解放済み注文を読み込み (デフォルトは order-01)
+    const loadResult = store.load();
+    const unlocked: string[] =
+      loadResult.ok && loadResult.data.length > 0 ? loadResult.data : [...DEFAULT_UNLOCKED];
+
+    // overlay 作成
+    const ov = h("div", {
+      id: "order-select-overlay",
+      "data-scene": "order-select",
+    });
+    ov.style.cssText = `
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: monospace;
+    `;
+
+    // タイトル
+    ov.append(h("h1", { style: "font-size: 14px; margin: 0 0 4px;" }, "Auto Encore"));
+    ov.append(
+      h(
+        "p",
+        { style: "font-size: 10px; color: #8a8090; margin: 0 0 20px;" },
+        "夜更けのオルゴール工房",
+      ),
+    );
+    ov.append(h("h2", { style: "font-size: 12px; margin: 0 0 12px;" }, "注文を選ぶ"));
+
+    // 注文一覧
+    const list = h("div", { style: "width: 100%; max-width: 300px;" });
+    for (const order of data.orders) {
+      const isUnlocked = unlocked.includes(order.id);
+      const item = h("div", {
+        "data-order-id": order.id,
+        style: `
+          border: 1px solid ${isUnlocked ? "#5c4a66" : "#3a2f40"};
+          border-radius: 4px; margin: 6px 0; padding: 8px 12px;
+          background: ${isUnlocked ? "#2a2530" : "#1a1520"};
+          opacity: ${isUnlocked ? 1 : 0.5};
+        `,
+      });
+
+      if (isUnlocked) {
+        const btn = h("button", {
+          type: "button",
+          class: "ws-btn",
+          "data-order-id": order.id,
+          style:
+            "width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;",
+        });
+        btn.append(h("span", {}, order.title));
+        // メダル表示 (簡易: 3指標の合計メダル数はまだ分からないので "???" または order ごとにハードコード)
+        // Issue #47 の完了条件「注文名・メダル」なのでメダル表示は必要
+        // とりあえず order ごとに決まっているメダル数を表示 (data になければ "—" )
+        const medals = this.estimateMedals(order);
+        btn.append(h("span", { style: "color: #f2b45a;" }, medals));
+        btn.addEventListener("click", () => {
+          this.selectOrder(order.id, data.orders);
+        });
+        item.append(btn);
+      } else {
+        item.append(h("span", {}, `🔒 ${order.title} (解放済み: ---)`));
+      }
+      list.append(item);
+    }
+    ov.append(list);
+
+    // 工房に戻る (TitleScene へ)
+    const back = h("button", {
+      type: "button",
+      class: "ws-btn",
+      style: "margin-top: 16px;",
+    });
+    back.textContent = "工房に戻る";
+    back.addEventListener("click", () => {
+      this.scene.start("title");
+    });
+    ov.append(back);
+
+    ov.append(
+      h(
+        "p",
+        {
+          style: "font-size: 9px; color: #666; margin-top: 12px;",
+        },
+        "クリアすると次の注文が解放されます",
+      ),
+    );
+
+    const gameEl = document.getElementById("game") ?? document.body;
+    gameEl.append(ov);
+    this.overlay = ov;
+
+    // クリックで閉じる (注文以外)
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (!ov.contains(pointer.event.target as Node)) {
+        this.scene.start("title");
+      }
+    });
+
+    document.body.dataset.scene = "order-select";
+  }
+
+  shutdown(): void {
+    this.overlay?.remove();
+  }
+
+  /** 注文IDで WorkshopScene を起動。解放済みなら unlock を保存。 */
+  private selectOrder(orderId: string, orders: readonly Order[]): void {
+    const store = getUnlockStore();
+    const loadResult = store.load();
+    const unlocked: string[] = loadResult.ok ? [...loadResult.data] : [...DEFAULT_UNLOCKED];
+    if (!unlocked.includes(orderId)) {
+      unlocked.push(orderId);
+      store.save(unlocked);
+    }
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
+
+    setQaBusy("transition", true);
+    this.scene.start("workshop", { orderId });
+  }
+
+  /** メダル数を推定 (簡易)。実際の実行結果ではないのでダミー。 */
+  private estimateMedals(_order: Order): string {
+    // order の数や難易度によって決まるが、選択時はまだ実行していない
+    // Issue #47 の「メダル」はクリア後の結果なので、ここでは "---" にする
+    return "---";
+  }
+}
