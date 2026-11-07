@@ -176,3 +176,34 @@ describe("judge（閾値は引数で受けるだけ）", () => {
     expect(judge(m({}), strict).medals.cost).toBe("none");
   });
 });
+
+describe("firstMismatch", () => {
+  it("null のときは表示値も null", () => {
+    const m = measure(frugalSim, order01, frugal);
+    expect(m.firstMismatch).toBeNull();
+  });
+
+  it("ずれた位置が 1 始まりの番号で入る", () => {
+    // matched=7, total=8, firstMismatch=5 のケース（8中5番目にずれる）
+    const m = measure(
+      sim({ result: "completed", matched: 7, total: 8, firstMismatch: 5 }),
+      order01,
+      frugal,
+    );
+    expect(m.firstMismatch).toBe(5);
+  });
+
+  it("judge の metrics.firstMismatch は伝搬する", () => {
+    const simRes: SimResult = {
+      result: "completed",
+      ticks: 18,
+      matched: 7,
+      total: 8,
+      cost: frugalSim.cost,
+      firstMismatch: 3,
+      finalHash: "abc",
+    };
+    const r = score(simRes, order01, frugal);
+    expect(r.metrics.firstMismatch).toBe(3);
+  });
+});
