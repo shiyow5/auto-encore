@@ -134,20 +134,25 @@ Result screens use a full-width layout with the lightweight-charts graph compone
 ## Components
 
 ### Buttons
+
 Primary buttons use electric cyan with dark text. Secondary (back/cancel) buttons use outlined style.
 
 ### Panels
+
 Main UI panels use the neutral base (#16162A) with a subtle 1px border (#2A2A4A). Interior padding is 16px.
 
 ### Tiles
+
 Game element tiles use a slightly lighter background (#1E1E36) with the same border color.
 
 ### HUD Elements
+
 - Score bar: 8px high, green fill (#6BCB77) on dark gray track
 - Combo counter: oversized cyan text at 1.75rem
 - Medal display: pink highlight text for special rewards
 
 ### Result Screen
+
 - Graph area: dark panel (#0F0F1E) with lightweight-charts for performance visualization
 - Score summary: large typography for total score and grade
 - Medal collection: grid of acquired medals with highlight color
