@@ -81,6 +81,16 @@ export class ResultScene extends Phaser.Scene {
     table.append(body);
     ov.append(table);
 
+    // 最初にずれた位置（spec-e §2）。ずれなし（null）のときは出さない。
+    const fm = report.metrics.firstMismatch;
+    if (fm !== null) {
+      const mismatchRow = h("tr", { "data-first-mismatch": String(fm) });
+      mismatchRow.append(h("th", { scope: "row" }, "最初にずれた位置"));
+      mismatchRow.append(h("td", {}, `最初にずれた位置: ${fm}音目`));
+      mismatchRow.append(h("td")); // メダル列は空
+      body.append(mismatchRow);
+    }
+
     const msg = verdictMessage(order, verdict);
     if (msg) ov.append(h("p", { class: "rs-msg" }, msg));
 

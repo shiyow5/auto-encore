@@ -75,3 +75,34 @@ test.describe("縦切り: 注文1 が機械で完成する（AE-17 前段）", (
   // finalHash はシミュ核（#18）の src/data/solutions/order-01-frugal.json にあるので、#18 が main に入ってから書く。
   test.fixme("Node とブラウザで注文1 模範解の stateHash が一致する（AE-17 D6）", async () => {});
 });
+
+test.describe("結果画面 spec-e §2", () => {
+  test.fixme("模範解（ずれなし）では「最初にずれた位置」が出ない", async ({ page }) => {
+    const errors = collectErrors(page);
+
+    await page.goto("/?fx=0");
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
+    await page.getByRole("button", { name: /注文1|開店前の試し弾き/ }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "order");
+    await waitForIdle(page);
+
+    // 模範解を配置
+    await page.evaluate(
+      (json) => (window as unknown as { __qa: QaHooks }).__qa.loadSolution(json),
+      SOLUTION,
+    );
+    await waitForIdle(page);
+
+    // 再生
+    await page.getByRole("button", { name: /再生|実行/ }).click();
+    await waitForIdle(page);
+
+    // 結果画面: ずれなしなので「最初にずれた位置」の行はない
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "result");
+    await expect(page.locator("[data-first-mismatch]")).toHaveCount(0);
+    // 3指標（正確さ・速度・コスト）は出る
+    await expect(page.getByText(/%$/)).toBeVisible();
+
+    expect(errors).toEqual([]);
+  });
+});
