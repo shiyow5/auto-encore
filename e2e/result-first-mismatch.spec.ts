@@ -4,7 +4,7 @@
  * - 模範解（ずれなし）: firstMismatch 要素が出ない
  * - ずれる配置（1つでも外す）: data-first-mismatch 属性と「最初にずれた位置」テキストが出る
  *
- * 既存の order-01.spec.ts が test.fixme であるため、独立した spec として書く。
+ * タイトル画面から「はじめる」→工房→loadSolution→実行の流れでテストする。
  */
 import { expect, test } from "@playwright/test";
 
@@ -24,36 +24,39 @@ function collectErrors(page: import("@playwright/test").Page): string[] {
 
 async function waitForIdle(page: import("@playwright/test").Page): Promise<void> {
   await page.waitForFunction(() => (window as unknown as { __qa?: QaHooks }).__qa !== undefined);
-  await page.evaluate(
-    () =>
-      (window as unknown as { __qa: QaHooks }).__qa.waitForIdle(),
-  );
+  await page.evaluate(() => (window as unknown as { __qa: QaHooks }).__qa.waitForIdle());
 }
 
 test.describe("spec-e §2: 最初にずれた位置", () => {
   test("模範解では firstMismatch 要素が出ない（ずれなし）", async ({ page }) => {
     const errors = collectErrors(page);
+
+    // タイトル → はじめる → 工房
     await page.goto("/?fx=0");
     await expect(page.locator("body")).toHaveAttribute("data-scene", "title", {
       timeout: 15_000,
     });
-
-    // 模範解を適用
-    await page.getByRole("button", { name: /注文1|開店前の試し弾き/ }).click();
-    await expect(page.locator("body")).toHaveAttribute("data-scene", "order");
+    await page.getByRole("button", { name: "はじめる" }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", {
+      timeout: 10_000,
+    });
     await waitForIdle(page);
 
-    await page.evaluate((json) => (window as unknown as { __qa: QaHooks }).__qa.loadSolution(json), {
-      orderId: "order-01",
-      name: "frugal",
-      placements: [
-        { kind: "belt", x: 0, y: 3, dir: "east" },
-        { kind: "belt", x: 4, y: 3, dir: "east" },
-        { kind: "belt", x: 8, y: 3, dir: "east" },
-        { kind: "output", x: 12, y: 3, dir: "east", notes: ["do", "do", "mi"] },
-        { kind: "output", x: 14, y: 3, dir: "east", notes: ["so", "so"] },
-      ],
-    });
+    // 模範解を適用
+    await page.evaluate(
+      (json) => (window as unknown as { __qa: QaHooks }).__qa.loadSolution(json),
+      {
+        orderId: "order-01",
+        name: "frugal",
+        placements: [
+          { kind: "belt", x: 0, y: 3, dir: "east" },
+          { kind: "belt", x: 4, y: 3, dir: "east" },
+          { kind: "belt", x: 8, y: 3, dir: "east" },
+          { kind: "output", x: 12, y: 3, dir: "east", notes: ["do", "do", "mi"] },
+          { kind: "output", x: 14, y: 3, dir: "east", notes: ["so", "so"] },
+        ],
+      },
+    );
     await waitForIdle(page);
 
     // 実行
@@ -70,29 +73,36 @@ test.describe("spec-e §2: 最初にずれた位置", () => {
 
   test("ずれる配置では data-first-mismatch 属性とテキストが出る", async ({ page }) => {
     const errors = collectErrors(page);
+
+    // タイトル → はじめる → 工房
     await page.goto("/?fx=0");
     await expect(page.locator("body")).toHaveAttribute("data-scene", "title", {
       timeout: 15_000,
     });
-
-    await page.getByRole("button", { name: /注文1|開店前の試し弾き/ }).click();
-    await expect(page.locator("body")).toHaveAttribute("data-scene", "order");
-    await waitForIdle(page);
-
-    // 意図的に1つずらす: 最初の出力に "do" ではなく "mi" を入れる
-    await page.evaluate((json) => (window as unknown as { __qa: QaHooks }).__qa.loadSolution(json), {
-      orderId: "order-01",
-      name: "bad",
-      placements: [
-        { kind: "belt", x: 0, y: 3, dir: "east" },
-        { kind: "belt", x: 4, y: 3, dir: "east" },
-        { kind: "belt", x: 8, y: 3, dir: "east" },
-        { kind: "output", x: 12, y: 3, dir: "east", notes: ["mi", "do", "mi"] }, // 1つ目ずらし
-        { kind: "output", x: 14, y: 3, dir: "east", notes: ["so", "so"] },
-      ],
+    await page.getByRole("button", { name: "はじめる" }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop", {
+      timeout: 10_000,
     });
     await waitForIdle(page);
 
+    // 意図的に1つずらす: 最初の出力に "do" ではなく "mi" を入れる
+    await page.evaluate(
+      (json) => (window as unknown as { __qa: QaHooks }).__qa.loadSolution(json),
+      {
+        orderId: "order-01",
+        name: "bad",
+        placements: [
+          { kind: "belt", x: 0, y: 3, dir: "east" },
+          { kind: "belt", x: 4, y: 3, dir: "east" },
+          { kind: "belt", x: 8, y: 3, dir: "east" },
+          { kind: "output", x: 12, y: 3, dir: "east", notes: ["mi", "do", "mi"] }, // 1つ目ずらし
+          { kind: "output", x: 14, y: 3, dir: "east", notes: ["so", "so"] },
+        ],
+      },
+    );
+    await waitForIdle(page);
+
+    // 実行
     await page.getByRole("button", { name: /再生|実行/ }).click();
     await waitForIdle(page);
 
