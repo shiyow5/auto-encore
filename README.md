@@ -2,13 +2,17 @@
 
 《Auto Encore ― 夜更けのオルゴール工房》自動化パズル — 音符パーツで自動演奏マシンを組む（ブラウザゲーム / Vite + TypeScript + Phaser 3 + pixelfx）
 
-> 状態: 基盤のみ（2週間の最小版を 2026-11-16 に向けて開発中）。リポジトリは Private。
+> 状態: 最小版（11/07）。Pages で遊べます
 
 ## 試遊方法
 
 **ブラウザで開くだけで遊べる → https://shiyow5.github.io/auto-encore/**
 
 （`main` に反映されるたび GitHub Pages に自動で公開される。）
+
+**操作方法**: PCブラウザ（Chrome/Edge/Firefox推奨）でアクセス。マウスで音符パーツをドラッグ＆ドロップし、自動演奏マシンを組む。
+
+**推奨ブラウザ**: Chrome / Edge / Firefox（最新の安定版を推奨）
 
 以下は補助の手順。
 
