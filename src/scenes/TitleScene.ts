@@ -57,8 +57,7 @@ class TitleOverlay {
     `;
     btnStart.addEventListener("click", () => {
       this.remove();
-      // orders scene が未実装なので当面 workshop へ
-      this.goToWorkshop();
+      this.goToOrders();
     });
     ov.append(btnStart);
 
@@ -80,12 +79,11 @@ class TitleOverlay {
     this.el = ov;
   }
 
-  private goToWorkshop(): void {
-    // orders が未実装なので当面 workshop へ
+  private goToOrders(): void {
     const game = (window as unknown as { __game?: { scene: { start: (s: string) => void } } })
       .__game;
     if (game?.scene) {
-      game.scene.start("workshop");
+      game.scene.start("orders");
     }
   }
 
@@ -159,11 +157,10 @@ export class TitleScene extends Phaser.Scene {
     const gameEl = document.getElementById("game") ?? document.body;
     this.overlay.attach(gameEl);
 
-    // クリックでタイトル画面を閉じて workshop へ
+    // クリックでタイトル画面を閉じて orders へ
     this.input.on("pointerdown", () => {
       this.overlay.remove();
-      // orders がまだないので workshop へフォールバック
-      this.scene.start("workshop");
+      this.scene.start("orders");
     });
   }
 
