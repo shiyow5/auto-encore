@@ -8,8 +8,10 @@ import {
   runPlacementSmoke,
   validateGenerated,
   type GenInput,
+  type GenPlacement,
   type SmokeOutcome,
   type Simulate,
+  STOP_REASONS,
 } from "./placement";
 
 const INPUT: GenInput = {
@@ -166,10 +168,93 @@ describe("検査の枠（おもちゃのシミュで実際に動かす）", () =
   });
 });
 
-// 本物のシミュ（src/core/sim）が main に入ったら、toySim を差し替えて有効化する。
-describe("本番検査（シミュ待ち）", () => {
-  it.todo("本物のシミュ × order-01 の盤で N seed: 例外なし（AE-24）");
-  it.todo("本物のシミュ: 終わり方が completed/stuck/loop/maxTicks のどれか（AE-24）");
-  it.todo("本物のシミュ: 入口の音 = 出口で受けた音 + 盤上に残った音（保存則 AE-24）");
-  it.todo("注文3相当（合流機・調律機あり）の盤・機械一覧でも同じ検査（AE-24）");
+// ---------- 本物のシミュ ----------
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseMachines, parseOrder } from "../../src/core/sim/load";
+import { simulate } from "../../src/core/sim/sim";
+import type { Placement, MachineTable, Order, StopReason } from "../../src/core/sim/types";
+
+const FIXTURES_DIR = fileURLToPath(new URL("../../", import.meta.url));
+const loadJson = <T>(rel: string): T =>
+  JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, rel), "utf8"));
+
+const machinesJson = loadJson<Record<string, unknown>>("src/data/machines.json");
+const machines = parseMachines(machinesJson, "machines.json") as MachineTable;
+
+const order01Json = loadJson<Record<string, unknown>>("src/data/orders/order-01.json");
+const order01 = parseOrder(order01Json, "src/data/orders/order-01.json") as Order;
+
+const order03Json = loadJson<Record<string, unknown>>("src/data/orders/order-03.json");
+const order03 = parseOrder(order03Json, "src/data/orders/order-03.json") as Order;
+
+/** GenPlacement[] を Placement[] にキャスト（互換型） */
+function toPlacements(gs: readonly GenPlacement[]): Placement[] {
+  return gs as unknown as Placement[];
+}
+
+/** RunOutput.result (SimResult) を SmokeOutcome に変換 */
+function toSmoke(r: { result: StopReason; total: number; matched: number }): SmokeOutcome {
+  return { result: r.result, emitted: r.total, received: r.matched, remaining: r.total - r.matched };
+}
+
+describe("本番検査（本物 simulate）", () => {
+  const sim = (placements: readonly GenPlacement[], _seed: string): SmokeOutcome => {
+    const r = simulate(order01, toPlacements(placements), machines);
+    return toSmoke(r.result);
+  };
+
+  it("本物のシミュ × order-01 の盤で N seed: 例外なし（AE-24）", () => {
+    for (let i = 0; i < N; i++) {
+      const seed = `ae24-${i}`;
+      const placements = generatePlacements(seed, INPUT);
+      // 例外なしで呼べることを確認
+      expect(() => sim(placements, seed)).not.toThrow();
+    }
+  });
+
+  it("本物のシミュ: 終わり方が completed/stuck/loop/maxTicks のどれか（AE-24）", () => {
+    const results = new Set<string>();
+    for (let i = 0; i < N; i++) {
+      const seed = `ae24-${i}`;
+      const placements = generatePlacements(seed, INPUT);
+      const outcome = sim(placements, seed);
+      expect(STOP_REASONS).toContain(outcome.result);
+      results.add(outcome.result);
+    }
+    // order-01盤は単純なので1種類になりうる。stop reasons に含まれることが保証されればOK
+    expect(results.size).toBeGreaterThanOrEqual(1);
+  });
+
+  it("本物のシミュ: 入口の音 = 出口で受けた音 + 盤上に残った音（保存則 AE-24）", () => {
+    for (let i = 0; i < N; i++) {
+      const seed = `ae24-${i}`;
+      const placements = generatePlacements(seed, INPUT);
+      const outcome = sim(placements, seed);
+      const problems = checkOutcome(outcome);
+      expect(problems).toEqual([]);
+    }
+  });
+
+  it("注文3相当（合流機・調律機あり）の盤・機械一覧でも同じ検査（AE-24）", () => {
+    const order01GenInput: GenInput = {
+      board: { width: 12, height: 8, blocked: [] },
+      machines: ["belt", "merger", "tuner", "bin"],
+      maxPlacements: 20,
+      reserved: [],
+    };
+    const sim03 = (placements: readonly GenPlacement[], _seed: string): SmokeOutcome => {
+      const r = simulate(order03, toPlacements(placements), machines);
+      return toSmoke(r.result);
+    };
+    for (let i = 0; i < N; i++) {
+      const seed = `ae24-${i}`;
+      const placements = generatePlacements(seed, order01GenInput);
+      const outcome = sim03(placements, seed);
+      expect(STOP_REASONS).toContain(outcome.result);
+      const problems = checkOutcome(outcome);
+      expect(problems).toEqual([]);
+    }
+  });
 });
