@@ -196,7 +196,12 @@ function toPlacements(gs: readonly GenPlacement[]): Placement[] {
 
 /** RunOutput.result (SimResult) を SmokeOutcome に変換 */
 function toSmoke(r: { result: StopReason; total: number; matched: number }): SmokeOutcome {
-  return { result: r.result, emitted: r.total, received: r.matched, remaining: r.total - r.matched };
+  return {
+    result: r.result,
+    emitted: r.total,
+    received: r.matched,
+    remaining: r.total - r.matched,
+  };
 }
 
 describe("本番検査（本物 simulate）", () => {
