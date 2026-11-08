@@ -37,6 +37,26 @@ export interface GenInput {
   readonly reserved?: readonly Point[];
 }
 
+/** GenPlacement[] を src/core/sim/types.Placement[] に変換する。 */
+export function toPlacement(
+  p: GenPlacement,
+): import("../../src/core/sim/types").Placement {
+  return {
+    machine: p.machine,
+    pos: p.pos,
+    dir: p.dir,
+    config: p.config
+      ? { pitch: p.config.pitch as import("../../src/core/sim/types").Pitch }
+      : undefined,
+  };
+}
+
+export function toPlacements(
+  arr: readonly GenPlacement[],
+): import("../../src/core/sim/types").Placement[] {
+  return arr.map(toPlacement);
+}
+
 const key = (p: Point): string => `${p.x},${p.y}`;
 
 /** seed から配置を作る。同じ (seed, input) なら必ず同じ配置。マスの重複・盤外・使用済みマスは出さない。 */
