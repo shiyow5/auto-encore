@@ -8,6 +8,20 @@ import { setQaBusy } from "../ui/qa";
 
 export const TITLE = "Auto Encore ― 夜更けのオルゴール工房";
 
+/** フォント読み込みを待つ（失敗時は monospace にフォールバックして先に進む）。 */
+async function waitForFont(): Promise<void> {
+  if (!document.fonts) return; // polyfill なし環境はスキップ
+  try {
+    await Promise.race([
+      document.fonts.load('12px "DotGothic16"'),
+      // 5秒超时は失败时的回退（e2e をブロックしない）
+      new Promise<void>((_res) => setTimeout(_res, 5000)),
+    ]);
+  } catch {
+    // 読み込めなくても先に進む（Phaser は fallback で monospace を使う）
+  }
+}
+
 /** 起動ロゴ。演出ありならグリッチを 0.6 秒見せてから工房へ、?fx=0 ならすぐ工房へ。 */
 export class BootScene extends Phaser.Scene {
   private fx?: PixelFxLayer;
@@ -16,10 +30,14 @@ export class BootScene extends Phaser.Scene {
     super("boot");
   }
 
-  create(): void {
+  async create(): Promise<void> {
     document.body.dataset.scene = "boot";
     setQaBusy("transition", true); // 工房の create で外す
     this.game.events.emit("ready");
+
+    // フォント読み込みを非同期で待つ（5秒超时でフォールバック）
+    waitForFont();
+
     if (!fxEnabled()) {
       this.scene.start("title");
       return;
@@ -29,7 +47,7 @@ export class BootScene extends Phaser.Scene {
     this.fx.play(glitch, { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, seed: rng.int(1, 9999) });
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, TITLE, {
-        fontFamily: "monospace",
+        fontFamily: '"DotGothic16", monospace',
         fontSize: "12px",
         color: "#e6e6e6",
       })

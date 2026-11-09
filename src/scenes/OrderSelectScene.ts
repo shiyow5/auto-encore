@@ -74,7 +74,7 @@ export class OrderSelectScene extends Phaser.Scene {
     ov.style.cssText = `
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: monospace;
+      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: var(--ae-font);
     `;
 
     // タイトル

@@ -32,7 +32,7 @@ class TitleOverlay {
     ov.style.cssText = `
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: monospace;
+      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: var(--ae-font);
       z-index: 100;
     `;
 
@@ -51,7 +51,7 @@ class TitleOverlay {
     });
     btnStart.textContent = "はじめる";
     btnStart.style.cssText = `
-      padding: 8px 24px; font-size: 12px; font-family: monospace;
+      padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
       background: #3a2f40; color: #e6e6e6; border: 1px solid #5c4a66;
       cursor: pointer; margin: 4px;
     `;
@@ -68,7 +68,7 @@ class TitleOverlay {
     });
     btnGuide.textContent = "遊び方";
     btnGuide.style.cssText = `
-      padding: 8px 24px; font-size: 12px; font-family: monospace;
+      padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
       background: #2a2530; color: #b0a0c0; border: 1px solid #3a2f40;
       cursor: pointer; margin: 4px;
     `;
