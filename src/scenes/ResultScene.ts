@@ -9,6 +9,8 @@ import Phaser from "phaser";
 import type { ScoreReport } from "../core/score";
 import type { SimState } from "../core/sim/sim";
 import type { Order, Placement } from "../core/sim/types";
+import { loadGameData } from "../data";
+import { SaveStore, MemoryStorage } from "../core/save";
 import { fxEnabled } from "../ui/flags";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
@@ -97,9 +99,43 @@ export class ResultScene extends Phaser.Scene {
     const back = h("button", { type: "button", class: "ws-btn rs-back" }, "工房にもどる");
     back.addEventListener("click", () => {
       setQaBusy("transition", true); // 工房の create で外す。start は次の step まで遅れるので先に立てる
-      this.scene.start("workshop", { placements });
+      this.scene.start("workshop", { placements, orderId: order.id });
     });
     ov.append(back);
+
+    // Issue #47: 結果が合格 (pass または encore) なら「次の注文へ」を表示
+    if (report.passed) {
+      const unlockStore = new SaveStore<string[]>(
+        typeof localStorage !== "undefined"
+          ? localStorage
+          : (new MemoryStorage() as unknown as typeof localStorage),
+        "ae-order-unlocked",
+        1,
+      );
+      const loadRes = unlockStore.load();
+      const unlocked: string[] = loadRes.ok ? [...loadRes.data] : ["order-01"];
+
+      const allOrders = loadGameData().orders;
+      const idx = allOrders.findIndex((o) => o.id === order.id);
+      const nextOrder = allOrders[idx + 1];
+      // クリアした時点で次の注文を解放する（「工房にもどる」を選んでも解放は残す）
+      if (nextOrder && !unlocked.includes(nextOrder.id)) {
+        unlockStore.save([...unlocked, nextOrder.id]);
+      }
+      if (nextOrder) {
+        const nextBtn = h("button", {
+          type: "button",
+          class: "ws-btn rs-next",
+        });
+        nextBtn.textContent = "次の注文へ";
+        nextBtn.addEventListener("click", () => {
+          setQaBusy("transition", true);
+          // 前の注文の配置は盤・入口が違うので持ち込まない
+          this.scene.start("workshop", { orderId: nextOrder.id });
+        });
+        ov.append(nextBtn);
+      }
+    }
 
     (document.getElementById("game") ?? document.body).append(ov);
     back.focus();

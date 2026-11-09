@@ -13,6 +13,10 @@ async function runAndHash(page: Page, url: string): Promise<string> {
   // タイトル画面経由
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
+    timeout: 10_000,
+  });
+  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await page.evaluate(() => window.__qa?.waitForIdle());
   expect(await page.evaluate(() => window.__qa?.stateHash())).toBeNull(); // 実行前は null
@@ -37,6 +41,10 @@ test("__qa: 再生中は waitForIdle が待ち、終わると結果画面", asyn
   await page.goto("/");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
+    timeout: 10_000,
+  });
+  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();
@@ -50,6 +58,10 @@ test("__qa: 「工房にもどる」直後の waitForIdle は工房が開くま�
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
+    timeout: 10_000,
+  });
+  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();
