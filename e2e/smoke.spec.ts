@@ -291,3 +291,23 @@ test("?fx=0: 棚の仕分け機・合流機・調律機・回収箱を置ける�
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   expect(errors).toEqual([]);
 });
+
+// Issue #70: ロック中の注文に「解放済み」を出さない／戻るボタン名と行き先を一致させる。
+test("?fx=0: 注文選択のロック表示と「タイトルへ戻る」", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/?fx=0");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
+  await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
+    timeout: 10_000,
+  });
+  const overlay = page.locator("#order-select-overlay");
+  await expect(overlay).not.toContainText("解放済み");
+  await expect(overlay).not.toContainText("---");
+  await expect(overlay).toContainText("🔒 高い音と低い音（開店前の試し弾き をクリアで解放）");
+  await page.getByRole("button", { name: "タイトルへ戻る" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "title");
+  expect(errors).toEqual([]);
+});

@@ -90,7 +90,7 @@ export class OrderSelectScene extends Phaser.Scene {
 
     // 注文一覧
     const list = h("div", { style: "width: 100%; max-width: 300px;" });
-    for (const order of data.orders) {
+    data.orders.forEach((order, index) => {
       const isUnlocked = unlocked.includes(order.id);
       const item = h("div", {
         "data-order-id": order.id,
@@ -111,29 +111,27 @@ export class OrderSelectScene extends Phaser.Scene {
             "width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;",
         });
         btn.append(h("span", {}, order.title));
-        // メダル表示 (簡易: 3指標の合計メダル数はまだ分からないので "???" または order ごとにハードコード)
-        // Issue #47 の完了条件「注文名・メダル」なのでメダル表示は必要
-        // とりあえず order ごとに決まっているメダル数を表示 (data になければ "—" )
-        const medals = this.estimateMedals(order);
-        btn.append(h("span", { style: "color: #f2b45a;" }, medals));
+        // メダルはまだ保存していないので欄ごと出さない (保存・表示は次版。Issue #70)
         btn.addEventListener("click", () => {
           this.selectOrder(order.id, data.orders);
         });
         item.append(btn);
       } else {
-        item.append(h("span", {}, `🔒 ${order.title} (解放済み: ---)`));
+        const prev = data.orders[index - 1];
+        const hint = prev ? `（${prev.title} をクリアで解放）` : "";
+        item.append(h("span", {}, `🔒 ${order.title}${hint}`));
       }
       list.append(item);
-    }
+    });
     ov.append(list);
 
-    // 工房に戻る (TitleScene へ)
+    // タイトルへ戻る (TitleScene へ)
     const back = h("button", {
       type: "button",
       class: "ws-btn",
       style: "margin-top: 16px;",
     });
-    back.textContent = "工房に戻る";
+    back.textContent = "タイトルへ戻る";
     back.addEventListener("click", () => {
       this.scene.start("title");
     });
@@ -181,12 +179,5 @@ export class OrderSelectScene extends Phaser.Scene {
 
     setQaBusy("transition", true);
     this.scene.start("workshop", { orderId });
-  }
-
-  /** メダル数を推定 (簡易)。実際の実行結果ではないのでダミー。 */
-  private estimateMedals(_order: Order): string {
-    // order の数や難易度によって決まるが、選択時はまだ実行していない
-    // Issue #47 の「メダル」はクリア後の結果なので、ここでは "---" にする
-    return "---";
   }
 }
