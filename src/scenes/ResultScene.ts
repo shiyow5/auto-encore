@@ -108,6 +108,10 @@ export class ResultScene extends Phaser.Scene {
       const allOrders = loadGameData().orders;
       const idx = allOrders.findIndex((o) => o.id === order.id);
       const nextOrder = allOrders[idx + 1];
+      // クリアした時点で次の注文を解放する（「工房にもどる」を選んでも解放は残す）
+      if (nextOrder && !unlocked.includes(nextOrder.id)) {
+        unlockStore.save([...unlocked, nextOrder.id]);
+      }
       if (nextOrder) {
         const nextBtn = h("button", {
           type: "button",
@@ -115,11 +119,9 @@ export class ResultScene extends Phaser.Scene {
         });
         nextBtn.textContent = "次の注文へ";
         nextBtn.addEventListener("click", () => {
-          if (!unlocked.includes(nextOrder.id)) {
-            unlockStore.save([...unlocked, nextOrder.id]);
-          }
           setQaBusy("transition", true);
-          this.scene.start("workshop", { placements, orderId: nextOrder.id });
+          // 前の注文の配置は盤・入口が違うので持ち込まない
+          this.scene.start("workshop", { orderId: nextOrder.id });
         });
         ov.append(nextBtn);
       }
