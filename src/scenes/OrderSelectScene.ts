@@ -19,10 +19,16 @@ const UNLOCK_STORE_KEY = "ae-order-unlocked";
 /** 解放済み注文IDの配列を保存・読み込みする Store。 */
 function getUnlockStore(): SaveStore<string[]> {
   // テスト環境 (SSR) では MemoryStorage を使う
-  const storage =
-    typeof localStorage !== "undefined"
-      ? localStorage
-      : (new MemoryStorage() as unknown as typeof localStorage);
+  // localStorage へのアクセス自体が拒否される環境でも落ちないよう try で包む
+  let storage: Storage;
+  try {
+    storage =
+      typeof localStorage !== "undefined"
+        ? localStorage
+        : (new MemoryStorage() as unknown as Storage);
+  } catch {
+    storage = new MemoryStorage() as unknown as Storage;
+  }
   return new SaveStore<string[]>(storage, UNLOCK_STORE_KEY, 1);
 }
 
@@ -49,6 +55,8 @@ export class OrderSelectScene extends Phaser.Scene {
 
   create(): void {
     document.getElementById("order-select-overlay")?.remove();
+    // Phaser は scene の shutdown() を自動で呼ばないので、イベントで明示的に登録する
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.shutdown());
 
     const data = loadGameData();
     const store = getUnlockStore();
