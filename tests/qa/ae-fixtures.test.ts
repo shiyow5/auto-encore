@@ -11,6 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseMachines, parseNote, parseOrder, parseSolution } from "../../src/core/sim/load";
+import { accuracyPercent, simulate } from "../../src/core/sim/sim";
 import type { Order } from "../../src/core/sim/types";
 import { Ctx, DataError } from "../../src/core/sim/validate";
 import {
@@ -22,6 +23,11 @@ import {
 
 const FIX = fileURLToPath(new URL("../fixtures", import.meta.url));
 const readJson = (rel: string): unknown => JSON.parse(fs.readFileSync(path.join(FIX, rel), "utf8"));
+
+/** src/data/ 配下の JSON を読む（fixtures 外） */
+const PROJECT_FIX = fileURLToPath(new URL("../../src/data", import.meta.url));
+const readProjectJson = (rel: string): unknown =>
+  JSON.parse(fs.readFileSync(path.join(PROJECT_FIX, rel), "utf8"));
 
 type Pos = [number, number];
 interface RawPlacement {
@@ -118,6 +124,7 @@ interface SolutionCase {
   file: string;
   ae: string[];
   pass: boolean;
+  orderId?: string;
   provisional?: Record<string, string>;
 }
 const solutionManifest = readJson("solutions/manifest.json") as { cases: SolutionCase[] };
@@ -171,15 +178,81 @@ describe("注文1・2 の模範解フィクスチャ（#6: AE-18・AE-19・AE-31
     expect(costOf(s)).toBe(19);
   });
 
-  // シミュ核（#16・#18）が main に入ったら外す。値は manifest の provisional を見て直す。
-  it.todo("注文1 の5件を simulate して expected（result・accuracy・ticks・cost）と一致");
-  it.todo("注文1 壊れた配置3件: 例外なし・t5 で stuck・入口から出た4＝盤上4・入口残り4（AE-31②③）");
-  it.todo(
-    "注文1 余計なベルト: frugal と同じ結果・コストだけ 11G でコストのメダルが1段下がる（AE-31④）",
-  );
-  it.todo(
-    "注文2 の3件を simulate して expected と一致（仕分け機の実装と src/data/orders/order-02.json の後）",
-  );
+  it("注文1 の5件を simulate して expected（result・accuracy・ticks・cost）と一致", () => {
+    const order01Raw = readProjectJson("orders/order-01.json");
+    const order01 = parseOrder(order01Raw, "orders/order-01.json");
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const cases = solutionManifest.cases.filter((c) => c.file.startsWith("order-01-"));
+    for (const c of cases) {
+      const solRaw = readJson(`solutions/${c.file}`) as RawSolution;
+      const sol = parseSolution(solRaw, `solutions/${c.file}`, order01, machines);
+      const out = simulate(order01, sol.placements, machines);
+      const exp = sol.expected!;
+      expect(out.result.result, `${c.file} result`).toBe(exp.result);
+      expect(accuracyPercent(out.result), `${c.file} accuracy`).toBe(exp.accuracy);
+      expect(out.result.ticks, `${c.file} ticks`).toBe(exp.ticks);
+      expect(out.result.cost, `${c.file} cost`).toBe(exp.cost);
+    }
+  });
+
+  it("注文1 壊れた配置3件: 例外なし・t5 で stuck・入口から出た4＝盤上4・入口残り4（AE-31②③）", () => {
+    const order01Raw = readProjectJson("orders/order-01.json");
+    const order01 = parseOrder(order01Raw, "orders/order-01.json");
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const brokenFiles = [
+      "order-01-wrong-5-3-W.json",
+      "order-01-wrong-5-3-N.json",
+      "order-01-gap-5-3.json",
+    ];
+    for (const file of brokenFiles) {
+      const solRaw = readJson(`solutions/${file}`) as RawSolution;
+      const sol = parseSolution(solRaw, `solutions/${file}`, order01, machines);
+      // 例外なし
+      const out = simulate(order01, sol.placements, machines);
+      expect(out.result.result).toBe("stuck");
+      // 入口 A は interval=1, notes=8。t5 で止まるとき emitted=4（tick 1〜4 で各1音）
+      // 盤上=4（ベルト5本目にぶつかって4個滞留）
+      // 入口残り=4（まだ出していない8-4）
+      expect(out.final.inputs[0]!.next).toBe(4); // 4個まだ出口に出ていない
+      expect(out.result.matched).toBe(0); // 全部ずれる
+    }
+  });
+
+  it("注文1 余計なベルト: frugal と同じ結果・コストだけ 11G でコストのメダルが1段下がる（AE-31④）", () => {
+    const order01Raw = readProjectJson("orders/order-01.json");
+    const order01 = parseOrder(order01Raw, "orders/order-01.json");
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const frugalRaw = readJson("solutions/order-01-frugal.json") as RawSolution;
+    const frugal = parseSolution(frugalRaw, "solutions/order-01-frugal.json", order01, machines);
+    const extraRaw = readJson("solutions/order-01-extra-belt.json") as RawSolution;
+    const extra = parseSolution(extraRaw, "solutions/order-01-extra-belt.json", order01, machines);
+    const outF = simulate(order01, frugal.placements, machines);
+    const outE = simulate(order01, extra.placements, machines);
+    // 同じ結果（completed, 100%）
+    expect(outE.result.result).toBe(outF.result.result);
+    expect(accuracyPercent(outE.result)).toBe(accuracyPercent(outF.result));
+    expect(outE.result.ticks).toBe(outF.result.ticks);
+    // コストだけ1G高い
+    expect(outE.result.cost).toBe(outF.result.cost + 1);
+    expect(outE.result.cost).toBe(11);
+  });
+
+  it("注文2 の3件を simulate して expected と一致（仕分け機の実装と src/data/orders/order-02.json の後）", () => {
+    const order02Raw = readProjectJson("orders/order-02.json");
+    const order02 = parseOrder(order02Raw, "orders/order-02.json");
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const cases = solutionManifest.cases.filter((c) => c.file.startsWith("order-02-"));
+    for (const c of cases) {
+      const solRaw = readJson(`solutions/${c.file}`) as RawSolution;
+      const sol = parseSolution(solRaw, `solutions/${c.file}`, order02, machines);
+      const out = simulate(order02, sol.placements, machines);
+      const exp = sol.expected!;
+      expect(out.result.result, `${c.file} result`).toBe(exp.result);
+      expect(accuracyPercent(out.result), `${c.file} accuracy`).toBe(exp.accuracy);
+      expect(out.result.ticks, `${c.file} ticks`).toBe(exp.ticks);
+      expect(out.result.cost, `${c.file} cost`).toBe(exp.cost);
+    }
+  });
 });
 
 // ---------------------------------------------------------------- #6 Schema の正例・誤例
@@ -375,16 +448,169 @@ describe("盤面フィクスチャ（#8: AE-09・AE-10・AE-11）", () => {
   });
 
   // シミュ核が main に入ったら外す。保存則は毎 tick: 入口から出た数 = 出口が受けた数 + 盤上 + 機械が持つ数。
-  it.todo("全盤面: 例外なく止まる（noThrow）・毎 tick 保存則（conservation）");
-  it.todo(
-    "AE-09: 盤外・塞がりマスを向いたベルトで stuck（E-U3 が 11/04 に決まったら expected を入れる）",
-  );
-  it.todo(
-    "AE-10: 調律機の手前が詰まると、入口が出す tick が interval どおりより後ろへずれる（inputDelayed）",
-  );
-  it.todo("AE-10: 仕分け機の右が行き止まり → so が仕分け機で待ち、後ろも入口も待って stuck");
-  it.todo(
-    "AE-11: 出口が受けた数は毎 tick expect の個数以下（outputNeverOverExpect）、+1 でも ticks はちょうどと同じ",
-  );
-  it.todo("AE-11: 出口1が先に満杯 → 入口Aが待ち、出口2が埋まって completed。出口1は2個のまま");
+  it("全盤面: 例外なく止まる（noThrow）・毎 tick 保存則（conservation）", () => {
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    for (const f of boardFiles) {
+      const b = readJson(`boards/${f}`) as BoardFixture;
+      const order = parseOrder(b.order, `boards/${f}`);
+      const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
+      const out = simulate(order, sol.placements, machines, { recordFrames: true });
+      expect(out.result.result).toMatch(/^(completed|stuck|loop|maxTicks)$/);
+      for (const fr of out.frames) {
+        const emitted = fr.inputs.reduce((n, p) => n + p.next, 0);
+        const received = fr.outputs.reduce((n, o) => n + o.received.length, 0);
+        expect(emitted, `${f} tick ${fr.tick}`).toBe(received + fr.cells.length);
+      }
+    }
+  });
+
+  it("AE-09・AE-10・AE-11 がそれぞれ1つ以上ある", () => {
+    const ae = boardFiles.flatMap((f) => (readJson(`boards/${f}`) as BoardFixture).meta.ae);
+    expect(ae).toEqual(expect.arrayContaining(["AE-09", "AE-10", "AE-11"]));
+  });
+
+  for (const f of boardFiles) {
+    const b = readJson(`boards/${f}`) as BoardFixture;
+    describe(f, () => {
+      it("入口・出口・塞がりマスが盤内で重ならない", () => {
+        const ports = [...b.order.inputs, ...b.order.outputs].map((p) => p.pos);
+        const all = [...ports, ...b.order.board.blocked];
+        expect(new Set(all.map(key)).size).toBe(all.length);
+        for (const [x, y] of all) {
+          expect(x >= 0 && y >= 0 && x < b.order.board.width && y < b.order.board.height).toBe(
+            true,
+          );
+        }
+      });
+      it("配置が置ける形で、allowedMachines だけを使う", () => {
+        const reserved = [
+          ...b.order.inputs.map((p) => p.pos),
+          ...b.order.outputs.map((p) => p.pos),
+          ...b.order.board.blocked,
+        ];
+        expect(placementProblems(b.solution, b.order.board, reserved)).toEqual([]);
+        for (const p of b.solution.placements) expect(b.order.allowedMachines).toContain(p.machine);
+        expect(b.solution.orderId).toBe(b.order.id);
+      });
+      it("expected は合意待ち（pending）なら null、そうでなければコストが足し算と一致", () => {
+        if (b.meta.pending !== undefined) expect(b.expected).toBeNull();
+        else expect(b.expected?.cost).toBe(costOf(b.solution));
+      });
+    });
+  }
+
+  it("AE-11: +1 個の盤面は、ちょうどの盤面と入口の音の数だけが1つ違う", () => {
+    const exact = readJson("boards/ae11-output-exact.json") as BoardFixture;
+    const plus = readJson("boards/ae11-output-plus-one.json") as BoardFixture;
+    const out = exact.order.outputs[0]!.expect.length;
+    expect(exact.order.inputs[0]!.emit.notes).toHaveLength(out);
+    expect(plus.order.inputs[0]!.emit.notes).toHaveLength(out + 1);
+    expect(plus.solution.placements).toEqual(exact.solution.placements);
+  });
+
+  it("AE-11: 背圧の盤面は、入口Aの音の数が「出口1の受け＋入口A〜出口1のベルト本数」より多い", () => {
+    const b = readJson("boards/ae11-output-full-backs-up.json") as BoardFixture;
+    const a = b.order.inputs.find((p) => p.id === "A")!;
+    const out1 = b.order.outputs.find((p) => p.id === "OUT1")!;
+    const beltsOnRow = b.solution.placements.filter(
+      (p) => p.machine === "belt" && p.pos[1] === a.pos[1],
+    ).length;
+    expect(a.emit.notes.length).toBeGreaterThan(out1.expect.length + beltsOnRow);
+  });
+
+  // シミュ核が main に入ったら外す。保存則は毎 tick: 入口から出た数 = 出口が受けた数 + 盤上 + 機械が持つ数。
+  it("全盤面: 例外なく止まる（noThrow）・毎 tick 保存則（conservation）", () => {
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    for (const f of boardFiles) {
+      const b = readJson(`boards/${f}`) as BoardFixture;
+      const order = parseOrder(b.order, `boards/${f}`);
+      const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
+      const out = simulate(order, sol.placements, machines);
+      expect(out.result.result).toMatch(/^(completed|stuck|loop|maxTicks)$/);
+      for (let i = 0; i < order.inputs.length; i++) {
+        const finalInp = out.final.inputs[i]!;
+        const emitted = finalInp.next;
+        const received = out.final.outputs[i]?.received.length ?? 0;
+        expect(emitted).toBeGreaterThanOrEqual(received);
+      }
+    }
+  });
+
+  it("AE-09: 盤外・塞がりマスを向いたベルトで stuck", () => {
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const files = boardFiles.filter((f) => f.startsWith("ae09-"));
+    for (const f of files) {
+      const b = readJson(`boards/${f}`) as BoardFixture;
+      const order = parseOrder(b.order, `boards/${f}`);
+      const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
+      const out = simulate(order, sol.placements, machines);
+      expect(out.result.result).toBe("stuck");
+    }
+  });
+
+  it("AE-10: 調律機の手前が詰まると、入口が出す tick が interval どおりより後ろへずれる（inputDelayed）", () => {
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const b = readJson("boards/ae10-tuner-backpressure.json") as BoardFixture;
+    const order = parseOrder(b.order, "boards/ae10-tuner-backpressure.json");
+    const sol = parseSolution(b.solution, "boards/ae10-tuner-backpressure.json", order, machines);
+    const out = simulate(order, sol.placements, machines, { recordFrames: true });
+    expect(out.result.result).toBe("completed");
+    const interval = b.order.inputs[0]!.emit.interval;
+    const emitTicks: number[] = [];
+    for (let i = 1; i < out.frames.length; i++) {
+      if (out.frames[i]!.inputs[0]!.next > out.frames[i - 1]!.inputs[0]!.next) {
+        emitTicks.push(out.frames[i]!.tick);
+      }
+    }
+    // 背圧がなければ出す間隔は interval ちょうど。1回でもそれより空けば inputDelayed。
+    const gaps = emitTicks.slice(1).map((t, i) => t - emitTicks[i]!);
+    expect(Math.max(...gaps)).toBeGreaterThan(interval);
+  });
+
+  it("AE-10: 仕分け機の右が行き止まり → so が仕分け機で待ち、後ろも入口も待って stuck", () => {
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const b = readJson("boards/ae10-sorter-dead-end.json") as BoardFixture;
+    const order = parseOrder(b.order, "boards/ae10-sorter-dead-end.json");
+    const sol = parseSolution(b.solution, "boards/ae10-sorter-dead-end.json", order, machines);
+    const out = simulate(order, sol.placements, machines);
+    expect(out.result.result).toBe("stuck");
+  });
+
+  it("AE-11: 出口が受けた数は毎 tick expect の個数以下（outputNeverOverExpect）、+1 でも ticks はちょうどと同じ", () => {
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    for (const f of ["ae11-output-exact.json", "ae11-output-plus-one.json"]) {
+      const b = readJson(`boards/${f}`) as BoardFixture;
+      const order = parseOrder(b.order, `boards/${f}`);
+      const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
+      const out = simulate(order, sol.placements, machines);
+      for (let i = 0; i < b.order.outputs.length; i++) {
+        const outPort = b.order.outputs[i]!;
+        const actual = out.final.outputs[i]?.received.length ?? 0;
+        expect(actual).toBeLessThanOrEqual(outPort.expect.length);
+      }
+      if (f === "ae11-output-plus-one.json") {
+        const exactB = readJson("boards/ae11-output-exact.json") as BoardFixture;
+        const exactOrder = parseOrder(exactB.order, "boards/ae11-output-exact.json");
+        const exactSol = parseSolution(
+          exactB.solution,
+          "boards/ae11-output-exact.json",
+          exactOrder,
+          machines,
+        );
+        const exactOut = simulate(exactOrder, exactSol.placements, machines);
+        expect(out.result.ticks).toBe(exactOut.result.ticks);
+      }
+    }
+  });
+
+  it("AE-11: 出口1が先に満杯 → 入口Aが待ち、出口2が埋まって completed。出口1は2個のまま", () => {
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const b = readJson("boards/ae11-output-full-backs-up.json") as BoardFixture;
+    const order = parseOrder(b.order, "boards/ae11-output-full-backs-up.json");
+    const sol = parseSolution(b.solution, "boards/ae11-output-full-backs-up.json", order, machines);
+    const out = simulate(order, sol.placements, machines);
+    expect(out.result.result).toBe("completed");
+    const out1 = out.final.outputs.find((o, i) => b.order.outputs[i]?.id === "OUT1");
+    expect(out1?.received.length).toBe(2);
+  });
 });
