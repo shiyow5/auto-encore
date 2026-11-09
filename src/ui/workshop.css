@@ -262,6 +262,30 @@
   font-size: 0.875rem;
 }
 
+/* 結果のグラフ（Lightweight Charts）とフッターの帰属表示（品質uplift §1.5） */
+.rs-chart {
+  margin: 1rem 0 0;
+}
+
+.rs-chart figcaption {
+  padding-bottom: 0.25rem;
+  color: var(--ae-text-weak);
+}
+
+.rs-chart-box {
+  height: 9rem;
+}
+
+.rs-footer {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--ae-text-weak);
+}
+
+.rs-footer a {
+  color: inherit;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ws-btn {
     transition: none;

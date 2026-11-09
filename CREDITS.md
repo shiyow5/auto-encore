@@ -11,12 +11,14 @@
 
 ## コード・ライブラリ
 
-| 名前                                                   | 作者                        | URL                                          | ライセンス                                           | 用途               |
-| ------------------------------------------------------ | --------------------------- | -------------------------------------------- | ---------------------------------------------------- | ------------------ |
-| Phaser 3                                               | Phaser Studio Inc.          | https://github.com/phaserjs/phaser           | MIT                                                  | ゲームエンジン     |
-| pixelfx (commit a841596)                               | patch-gg                    | https://github.com/patch-gg/pixelfx          | MIT（同梱の Patch Pixel フォントは対象外・使わない） | ドット絵エフェクト |
-| └ pixelfx が取り込んでいるコード（src/core/sim.js 等） | Hugo Duprez (Sprite Fusion) | https://www.spritefusion.com/pixel-art-vfx   | MIT                                                  | pixelfx 内部       |
-| └ pixelfx が取り込んでいるコード（src/core/act.js）    | rehan-remade (Hollow Crown) | https://github.com/rehan-remade/hollow-crown | MIT                                                  | pixelfx 内部       |
+| 名前                                                   | 作者                        | URL                                               | ライセンス                                                                                                                                                                                                     | 用途                    |
+| ------------------------------------------------------ | --------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Phaser 3                                               | Phaser Studio Inc.          | https://github.com/phaserjs/phaser                | MIT                                                                                                                                                                                                            | ゲームエンジン          |
+| pixelfx (commit a841596)                               | patch-gg                    | https://github.com/patch-gg/pixelfx               | MIT（同梱の Patch Pixel フォントは対象外・使わない）                                                                                                                                                           | ドット絵エフェクト      |
+| └ pixelfx が取り込んでいるコード（src/core/sim.js 等） | Hugo Duprez (Sprite Fusion) | https://www.spritefusion.com/pixel-art-vfx        | MIT                                                                                                                                                                                                            | pixelfx 内部            |
+| └ pixelfx が取り込んでいるコード（src/core/act.js）    | rehan-remade (Hollow Crown) | https://github.com/rehan-remade/hollow-crown      | MIT                                                                                                                                                                                                            | pixelfx 内部            |
+| TradingView Lightweight Charts 5.2.1                   | TradingView, Inc.           | https://github.com/tradingview/lightweight-charts | Apache-2.0（LICENSE・NOTICE を public/licenses/lightweight-charts/ に同梱。結果画面のフッターに「Powered by TradingView Lightweight Charts」と https://www.tradingview.com/ へのリンクを表示。rei 承認の例外） | 結果画面のグラフ        |
+| └ lightweight-charts の依存 fancy-canvas 2.1.0         | smakarov (TradingView)      | https://www.npmjs.com/package/fancy-canvas        | MIT                                                                                                                                                                                                            | lightweight-charts 内部 |
 
 ## 画像
 
