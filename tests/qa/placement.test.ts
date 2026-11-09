@@ -174,7 +174,7 @@ describe("検査の枠（おもちゃのシミュで実際に動かす）", () =
 // 本物のシミュ（src/core/sim/sim.ts の simulate）で検査。
 // ランダム配置が「例外なく止まる・終わり方が4種・保存則」を確認。
 
-const FIX = fileURLToPath(new URL("../../fixtures", import.meta.url));
+const _FIX = fileURLToPath(new URL("../../fixtures", import.meta.url));
 const readJson = (rel: string): unknown =>
   JSON.parse(fs.readFileSync(fileURLToPath(new URL(`../../${rel}`, import.meta.url)), "utf8"));
 
@@ -303,7 +303,7 @@ describe("本番検査（AE-24）", () => {
         if (checkOutcome(o).length > 0) {
           failures.push(o);
         }
-      } catch (e) {
+      } catch (_e) { // eslint-disable-line @typescript-eslint/no-unused-vars
         failures.push({
           result: "stuck" as SmokeOutcome["result"],
           emitted: 0,

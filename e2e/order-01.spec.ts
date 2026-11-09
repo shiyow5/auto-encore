@@ -9,6 +9,8 @@
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
+import { parseMachines, parseOrder, parseSolution } from "../../src/core/sim/load";
+import { simulate } from "../../src/core/sim/sim";
 
 /** Issue #13 のフック形。 */
 interface QaHooks {
@@ -67,9 +69,7 @@ test.describe("縦切り: 注文1 が機械で完成する（AE-17 前段）", (
   // AE-17（D6）: Node の simulate とブラウザの stateHash を比較。
   test("Node とブラウザで注文1 模範解の stateHash が一致する（AE-17 D6）", async ({ page }) => {
     // Node 側: order-01-frugal を simulate
-    const { parseMachines, parseOrder, parseSolution } = await import(
-      "../../src/core/sim/load"
-    );
+    const { parseMachines, parseOrder, parseSolution } = await import("../../src/core/sim/load");
     const { simulate } = await import("../../src/core/sim/sim");
     const nodesolRaw = JSON.parse(
       fs.readFileSync(
@@ -81,12 +81,14 @@ test.describe("縦切り: 注文1 が機械で完成する（AE-17 前段）", (
     );
     const orderRaw = JSON.parse(
       fs.readFileSync(
-        fileURLToPath(new URL("../../src/data/orders/order-01.json", import.meta.url)), "utf8",
+        fileURLToPath(new URL("../../src/data/orders/order-01.json", import.meta.url)),
+        "utf8",
       ),
     );
     const machinesRaw = JSON.parse(
       fs.readFileSync(
-        fileURLToPath(new URL("../../src/data/machines.json", import.meta.url)), "utf8",
+        fileURLToPath(new URL("../../src/data/machines.json", import.meta.url)),
+        "utf8",
       ),
     );
     const order = parseOrder(orderRaw, "orders/order-01.json");
@@ -105,8 +107,8 @@ test.describe("縦切り: 注文1 が機械で完成する（AE-17 前段）", (
     await page.getByRole("button", { name: "実行" }).click();
     await page.evaluate(() => (window as unknown as { __qa?: QaHooks }).__qa?.waitForIdle());
 
-    const browserHash = await page.evaluate(
-      () => (window as unknown as { __qa?: QaHooks }).__qa?.stateHash(),
+    const browserHash = await page.evaluate(() =>
+      (window as unknown as { __qa?: QaHooks }).__qa?.stateHash(),
     );
 
     expect(browserHash).toBe(nodeHash);

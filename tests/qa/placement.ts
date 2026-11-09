@@ -38,9 +38,7 @@ export interface GenInput {
 }
 
 /** GenPlacement[] を src/core/sim/types.Placement[] に変換する。 */
-export function toPlacement(
-  p: GenPlacement,
-): import("../../src/core/sim/types").Placement {
+export function toPlacement(p: GenPlacement): import("../../src/core/sim/types").Placement {
   return {
     machine: p.machine,
     pos: p.pos,
