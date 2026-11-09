@@ -11,8 +11,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseMachines, parseNote, parseOrder, parseSolution } from "../../src/core/sim/load";
-import { accuracyPercent, simulate } from "../../src/core/sim/sim";
-import type { Order } from "../../src/core/sim/types";
+import { accuracyPercent, simulate, type SimState } from "../../src/core/sim/sim";
+import { PITCH_NAMES, type Order } from "../../src/core/sim/types";
 import { Ctx, DataError } from "../../src/core/sim/validate";
 import {
   formatErrors,
@@ -447,7 +447,7 @@ describe("盤面フィクスチャ（#8: AE-09・AE-10・AE-11）", () => {
     expect(a.emit.notes.length).toBeGreaterThan(out1.expect.length + beltsOnRow);
   });
 
-  // シミュ核が main に入ったら外す。保存則は毎 tick: 入口から出た数 = 出口が受けた数 + 盤上 + 機械が持つ数。
+  // 保存則は毎 tick: 入口から出た数 = 出口が受けた数 + 盤上（機械が持つ音符も盤上のマスに載る）。
   it("全盤面: 例外なく止まる（noThrow）・毎 tick 保存則（conservation）", () => {
     const machines = parseMachines(readProjectJson("machines.json") as unknown);
     for (const f of boardFiles) {
@@ -464,153 +464,118 @@ describe("盤面フィクスチャ（#8: AE-09・AE-10・AE-11）", () => {
     }
   });
 
-  it("AE-09・AE-10・AE-11 がそれぞれ1つ以上ある", () => {
-    const ae = boardFiles.flatMap((f) => (readJson(`boards/${f}`) as BoardFixture).meta.ae);
-    expect(ae).toEqual(expect.arrayContaining(["AE-09", "AE-10", "AE-11"]));
-  });
-
-  for (const f of boardFiles) {
-    const b = readJson(`boards/${f}`) as BoardFixture;
-    describe(f, () => {
-      it("入口・出口・塞がりマスが盤内で重ならない", () => {
-        const ports = [...b.order.inputs, ...b.order.outputs].map((p) => p.pos);
-        const all = [...ports, ...b.order.board.blocked];
-        expect(new Set(all.map(key)).size).toBe(all.length);
-        for (const [x, y] of all) {
-          expect(x >= 0 && y >= 0 && x < b.order.board.width && y < b.order.board.height).toBe(
-            true,
-          );
-        }
-      });
-      it("配置が置ける形で、allowedMachines だけを使う", () => {
-        const reserved = [
-          ...b.order.inputs.map((p) => p.pos),
-          ...b.order.outputs.map((p) => p.pos),
-          ...b.order.board.blocked,
-        ];
-        expect(placementProblems(b.solution, b.order.board, reserved)).toEqual([]);
-        for (const p of b.solution.placements) expect(b.order.allowedMachines).toContain(p.machine);
-        expect(b.solution.orderId).toBe(b.order.id);
-      });
-      it("expected は合意待ち（pending）なら null、そうでなければコストが足し算と一致", () => {
-        if (b.meta.pending !== undefined) expect(b.expected).toBeNull();
-        else expect(b.expected?.cost).toBe(costOf(b.solution));
-      });
-    });
-  }
-
-  it("AE-11: +1 個の盤面は、ちょうどの盤面と入口の音の数だけが1つ違う", () => {
-    const exact = readJson("boards/ae11-output-exact.json") as BoardFixture;
-    const plus = readJson("boards/ae11-output-plus-one.json") as BoardFixture;
-    const out = exact.order.outputs[0]!.expect.length;
-    expect(exact.order.inputs[0]!.emit.notes).toHaveLength(out);
-    expect(plus.order.inputs[0]!.emit.notes).toHaveLength(out + 1);
-    expect(plus.solution.placements).toEqual(exact.solution.placements);
-  });
-
-  it("AE-11: 背圧の盤面は、入口Aの音の数が「出口1の受け＋入口A〜出口1のベルト本数」より多い", () => {
-    const b = readJson("boards/ae11-output-full-backs-up.json") as BoardFixture;
-    const a = b.order.inputs.find((p) => p.id === "A")!;
-    const out1 = b.order.outputs.find((p) => p.id === "OUT1")!;
-    const beltsOnRow = b.solution.placements.filter(
-      (p) => p.machine === "belt" && p.pos[1] === a.pos[1],
-    ).length;
-    expect(a.emit.notes.length).toBeGreaterThan(out1.expect.length + beltsOnRow);
-  });
-
-  // シミュ核が main に入ったら外す。保存則は毎 tick: 入口から出た数 = 出口が受けた数 + 盤上 + 機械が持つ数。
-  it("全盤面: 例外なく止まる（noThrow）・毎 tick 保存則（conservation）", () => {
+  /** 盤面フィクスチャを読んで simulate する（frames つき）。 */
+  const runBoard = (f: string) => {
     const machines = parseMachines(readProjectJson("machines.json") as unknown);
-    for (const f of boardFiles) {
-      const b = readJson(`boards/${f}`) as BoardFixture;
-      const order = parseOrder(b.order, `boards/${f}`);
-      const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
-      const out = simulate(order, sol.placements, machines);
-      expect(out.result.result).toMatch(/^(completed|stuck|loop|maxTicks)$/);
-      for (let i = 0; i < order.inputs.length; i++) {
-        const finalInp = out.final.inputs[i]!;
-        const emitted = finalInp.next;
-        const received = out.final.outputs[i]?.received.length ?? 0;
-        expect(emitted).toBeGreaterThanOrEqual(received);
+    const b = readJson(`boards/${f}`) as BoardFixture;
+    const order = parseOrder(b.order, `boards/${f}`);
+    const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
+    return { b, out: simulate(order, sol.placements, machines, { recordFrames: true }) };
+  };
+
+  /** 入口 index が音符を出した tick の一覧（next が増えた tick）。 */
+  const emitTicksOf = (frames: readonly SimState[], index: number): number[] => {
+    const ticks: number[] = [];
+    for (let i = 1; i < frames.length; i++) {
+      if (frames[i]!.inputs[index]!.next > frames[i - 1]!.inputs[index]!.next) {
+        ticks.push(frames[i]!.tick);
       }
     }
-  });
+    return ticks;
+  };
+
+  const gapsOf = (ticks: readonly number[]): number[] =>
+    ticks.slice(1).map((t, i) => t - ticks[i]!);
 
   it("AE-09: 盤外・塞がりマスを向いたベルトで stuck", () => {
-    const machines = parseMachines(readProjectJson("machines.json") as unknown);
     const files = boardFiles.filter((f) => f.startsWith("ae09-"));
+    expect(files.length).toBeGreaterThanOrEqual(3);
     for (const f of files) {
-      const b = readJson(`boards/${f}`) as BoardFixture;
-      const order = parseOrder(b.order, `boards/${f}`);
-      const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
-      const out = simulate(order, sol.placements, machines);
-      expect(out.result.result).toBe("stuck");
+      const { b, out } = runBoard(f);
+      expect(out.result.result, f).toBe("stuck");
+      // 音符はベルトの先へ進めず盤上に残り、出口は1個も受けていない。止まる前の tick から盤上は変わらない。
+      const last = out.frames.at(-1)!;
+      expect(last.cells.length, f).toBeGreaterThan(0);
+      expect(last.cells, f).toEqual(out.frames.at(-2)!.cells);
+      expect(last.outputs[0]!.received.length, f).toBeLessThan(b.order.outputs[0]!.expect.length);
+      // E-U3 が決まるまで盤外・塞がりマスの expected は null。決まったら result を突き合わせる。
+      if (b.expected !== null) expect(out.result.result, f).toBe(b.expected.result);
     }
   });
 
   it("AE-10: 調律機の手前が詰まると、入口が出す tick が interval どおりより後ろへずれる（inputDelayed）", () => {
-    const machines = parseMachines(readProjectJson("machines.json") as unknown);
-    const b = readJson("boards/ae10-tuner-backpressure.json") as BoardFixture;
-    const order = parseOrder(b.order, "boards/ae10-tuner-backpressure.json");
-    const sol = parseSolution(b.solution, "boards/ae10-tuner-backpressure.json", order, machines);
-    const out = simulate(order, sol.placements, machines, { recordFrames: true });
+    const { b, out } = runBoard("ae10-tuner-backpressure.json");
     expect(out.result.result).toBe("completed");
     const interval = b.order.inputs[0]!.emit.interval;
-    const emitTicks: number[] = [];
-    for (let i = 1; i < out.frames.length; i++) {
-      if (out.frames[i]!.inputs[0]!.next > out.frames[i - 1]!.inputs[0]!.next) {
-        emitTicks.push(out.frames[i]!.tick);
-      }
-    }
+    const emitTicks = emitTicksOf(out.frames, 0);
+    // 捨てずに待つので、入口の音はすべて出る。
+    expect(emitTicks).toHaveLength(b.order.inputs[0]!.emit.notes.length);
     // 背圧がなければ出す間隔は interval ちょうど。1回でもそれより空けば inputDelayed。
-    const gaps = emitTicks.slice(1).map((t, i) => t - emitTicks[i]!);
+    const gaps = gapsOf(emitTicks);
+    for (const g of gaps) expect(g).toBeGreaterThanOrEqual(interval);
     expect(Math.max(...gaps)).toBeGreaterThan(interval);
   });
 
   it("AE-10: 仕分け機の右が行き止まり → so が仕分け機で待ち、後ろも入口も待って stuck", () => {
-    const machines = parseMachines(readProjectJson("machines.json") as unknown);
-    const b = readJson("boards/ae10-sorter-dead-end.json") as BoardFixture;
-    const order = parseOrder(b.order, "boards/ae10-sorter-dead-end.json");
-    const sol = parseSolution(b.solution, "boards/ae10-sorter-dead-end.json", order, machines);
-    const out = simulate(order, sol.placements, machines);
+    const { b, out } = runBoard("ae10-sorter-dead-end.json");
     expect(out.result.result).toBe("stuck");
+    expect(out.result.result).toBe(b.expected!.result);
+    const sorter = b.solution.placements.find((p) => p.machine === "sorter")!;
+    const sorterKey = sorter.pos[1] * b.order.board.width + sorter.pos[0];
+    const last = out.frames.at(-1)!;
+    // so（pitch 2）が仕分け機のマスに残っている。
+    const onSorter = last.cells.find((c) => c.key === sorterKey);
+    expect(onSorter?.note.pitch).toBe(PITCH_NAMES.indexOf("so"));
+    // 入口は出し切れていない（後ろの do が詰まって入口も待つ）。
+    expect(last.inputs[0]!.next).toBeLessThan(b.order.inputs[0]!.emit.notes.length);
+    // 止まる直前の tick と最後の tick で、盤上も入口も変わっていない。
+    const prev = out.frames.at(-2)!;
+    expect(last.cells).toEqual(prev.cells);
+    expect(last.inputs[0]!.next).toBe(prev.inputs[0]!.next);
   });
 
   it("AE-11: 出口が受けた数は毎 tick expect の個数以下（outputNeverOverExpect）、+1 でも ticks はちょうどと同じ", () => {
-    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    const ticks: Record<string, number | null> = {};
     for (const f of ["ae11-output-exact.json", "ae11-output-plus-one.json"]) {
-      const b = readJson(`boards/${f}`) as BoardFixture;
-      const order = parseOrder(b.order, `boards/${f}`);
-      const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
-      const out = simulate(order, sol.placements, machines);
-      for (let i = 0; i < b.order.outputs.length; i++) {
-        const outPort = b.order.outputs[i]!;
-        const actual = out.final.outputs[i]?.received.length ?? 0;
-        expect(actual).toBeLessThanOrEqual(outPort.expect.length);
+      const { b, out } = runBoard(f);
+      expect(out.result.result, f).toBe("completed");
+      for (const fr of out.frames) {
+        b.order.outputs.forEach((o, i) => {
+          expect(
+            fr.outputs[i]!.received.length,
+            `${f} ${o.id} tick ${fr.tick}`,
+          ).toBeLessThanOrEqual(o.expect.length);
+        });
       }
-      if (f === "ae11-output-plus-one.json") {
-        const exactB = readJson("boards/ae11-output-exact.json") as BoardFixture;
-        const exactOrder = parseOrder(exactB.order, "boards/ae11-output-exact.json");
-        const exactSol = parseSolution(
-          exactB.solution,
-          "boards/ae11-output-exact.json",
-          exactOrder,
-          machines,
-        );
-        const exactOut = simulate(exactOrder, exactSol.placements, machines);
-        expect(out.result.ticks).toBe(exactOut.result.ticks);
-      }
+      b.order.outputs.forEach((o, i) => {
+        expect(out.frames.at(-1)!.outputs[i]!.received).toHaveLength(o.expect.length);
+      });
+      ticks[f] = out.result.ticks;
     }
+    expect(ticks["ae11-output-plus-one.json"]).toBe(ticks["ae11-output-exact.json"]);
   });
 
   it("AE-11: 出口1が先に満杯 → 入口Aが待ち、出口2が埋まって completed。出口1は2個のまま", () => {
-    const machines = parseMachines(readProjectJson("machines.json") as unknown);
-    const b = readJson("boards/ae11-output-full-backs-up.json") as BoardFixture;
-    const order = parseOrder(b.order, "boards/ae11-output-full-backs-up.json");
-    const sol = parseSolution(b.solution, "boards/ae11-output-full-backs-up.json", order, machines);
-    const out = simulate(order, sol.placements, machines);
+    const { b, out } = runBoard("ae11-output-full-backs-up.json");
     expect(out.result.result).toBe("completed");
-    const out1 = out.final.outputs.find((o, i) => b.order.outputs[i]?.id === "OUT1");
-    expect(out1?.received.length).toBe(2);
+    const iA = b.order.inputs.findIndex((p) => p.id === "A");
+    const i1 = b.order.outputs.findIndex((o) => o.id === "OUT1");
+    const i2 = b.order.outputs.findIndex((o) => o.id === "OUT2");
+    // 出口1は毎 tick 2個以下。満杯になってから最後まで2個のまま。
+    const full1 = out.frames.findIndex((fr) => fr.outputs[i1]!.received.length === 2);
+    expect(full1).toBeGreaterThan(-1);
+    for (const fr of out.frames) expect(fr.outputs[i1]!.received.length).toBeLessThanOrEqual(2);
+    for (const fr of out.frames.slice(full1)) expect(fr.outputs[i1]!.received).toHaveLength(2);
+    // 出口1が満杯になった後、入口Aは最後まで1個も出せずに待つ（捨てない）。出し切れていない。
+    const last = out.frames.at(-1)!;
+    const waitFrom = out.frames[full1 + 1]!.inputs[iA]!.next;
+    for (const fr of out.frames.slice(full1 + 1)) expect(fr.inputs[iA]!.next).toBe(waitFrom);
+    expect(waitFrom).toBeLessThan(b.order.inputs[iA]!.emit.notes.length);
+    // 出口2は expect の個数ちょうどで、出口2が埋まった tick に completed。
+    expect(last.outputs[i2]!.received).toHaveLength(b.order.outputs[i2]!.expect.length);
+    const full2 = out.frames.findIndex(
+      (fr) => fr.outputs[i2]!.received.length === b.order.outputs[i2]!.expect.length,
+    );
+    expect(out.frames[full2]!.tick).toBe(last.tick);
   });
 });
