@@ -255,6 +255,13 @@
   outline-offset: 2px;
 }
 
+/* 最初にずれた位置（spec-e §2） */
+.rs-fm {
+  margin: 0 0 1rem;
+  color: var(--ae-danger);
+  font-size: 0.875rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ws-btn {
     transition: none;
