@@ -157,10 +157,11 @@ export class WorkshopScene extends Phaser.Scene {
     super("workshop");
   }
 
-  create(init?: { placements?: readonly Placement[] }): void {
+  create(init?: { placements?: readonly Placement[]; orderId?: string }): void {
     const data = loadGameData();
-    const order = data.orders[0];
-    if (!order) throw new Error("注文データが1件も無い");
+    const orderId = init?.orderId ?? "order-01";
+    const order = data.orders.find((o) => o.id === orderId);
+    if (!order) throw new Error(`注文データが見つからない: ${orderId}`);
     this.order = order;
     this.machines = data.machines;
     // 棚は machines.json の全機械。注文で使えるかは「実行」時の検証で見る
@@ -560,6 +561,17 @@ export class WorkshopScene extends Phaser.Scene {
     card.append(h("h2", {}, this.order.title));
     const intro = this.order.texts["intro"];
     if (typeof intro === "string") card.append(h("p", {}, intro));
+    // Issue #48: tutorial 文を表示
+    const tutorial = this.order.texts["tutorial"];
+    if (typeof tutorial === "string") {
+      card.append(
+        h(
+          "p",
+          { class: "ws-tutorial", style: "font-size: 10px; color: #b0a0c0; margin: 6px 0;" },
+          tutorial,
+        ),
+      );
+    }
     const list = h("ul", {});
     for (const i of this.order.inputs)
       list.append(h("li", {}, `入口 ${i.id}: ${i.pos.x},${i.pos.y}`));
@@ -576,6 +588,14 @@ export class WorkshopScene extends Phaser.Scene {
     // 直前の操作（読み上げにも流す）
     this.status = h("p", { class: "ws-status", role: "status", "aria-live": "polite" });
     ov.append(this.status);
+
+    // Issue #48: 操作説明の常時1行
+    const helpLine = h("p", {
+      class: "ws-help-line",
+      style: "font-size: 9px; color: #8a8090; text-align: center; margin: 4px 0;",
+    });
+    helpLine.textContent = "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
+    ov.append(helpLine);
 
     // R キーはマス以外にフォーカスがあっても効くように（マウス操作中のホバー対象を回す）
     ov.addEventListener("keydown", (e) => {
