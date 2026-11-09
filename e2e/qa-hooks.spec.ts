@@ -10,13 +10,9 @@ async function placeStraightBelts(page: Page): Promise<void> {
 
 async function runAndHash(page: Page, url: string): Promise<string> {
   await page.goto(url);
-  // タイトル画面経由
+  // タイトル画面 → 注文選択 → 工房画面経由
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
-  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
-    timeout: 10_000,
-  });
-  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
     timeout: 10_000,
   });

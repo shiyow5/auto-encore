@@ -80,6 +80,10 @@ test("?fx=0: キーボードだけで置ける（矢印で移動・Enter で置�
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
+    timeout: 10_000,
+  });
+  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   const start = page.getByRole("button", { name: /^マス 1,3:/ });
   await start.focus();
   await page.keyboard.press("Enter");
@@ -108,6 +112,10 @@ test("?fx=0: ベルト10本 → 実行 → 結果に3指標が数値で出る �
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
+    timeout: 10_000,
+  });
+  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "実行" }).click();
 
@@ -123,10 +131,6 @@ test("?fx=0: ベルト10本 → 実行 → 結果に3指標が数値で出る �
   await expect(back).toBeFocused();
 
   await back.click();
-  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
-    timeout: 10_000,
-  });
-  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await expect(page.getByLabel("配置の合計")).toHaveText("機械 10台 / 10G");
   await expect(page.getByRole("button", { name: "マス 10,3: ベルト 東向き" })).toBeVisible();
@@ -137,6 +141,10 @@ test("?fx=0: 途中が切れていると詰まって「もう一歩」・速度�
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
+    timeout: 10_000,
+  });
+  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await placeStraightBelts(page);
   await page.getByRole("button", { name: "マス 6,3: ベルト 東向き" }).click({ button: "right" });
   await page.getByRole("button", { name: "実行" }).click();
@@ -177,10 +185,6 @@ test("演出あり: 実行すると音符を tick ごとに動かしてから結
 
   // もどってすぐスキップ
   await page.getByRole("button", { name: "工房にもどる" }).click();
-  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
-    timeout: 10_000,
-  });
-  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   await page.getByRole("button", { name: "実行" }).click();
   await page.getByRole("button", { name: "結果へスキップ" }).click();
@@ -194,6 +198,10 @@ test("?fx=0: マウス操作中の R はホバー中のマスを回し、矢印�
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
+    timeout: 10_000,
+  });
+  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   for (let x = 1; x <= 3; x++) {
     await page.getByRole("button", { name: `マス ${x},3: 空き` }).click();
   }
@@ -276,10 +284,6 @@ test("?fx=0: 棚の仕分け機・合流機・調律機・回収箱を置ける�
   // 注文1 では使えない機械 → 実行しても落ちずに検証エラーを出す
   await page.getByRole("button", { name: "実行" }).click();
   await expect(page.getByRole("status")).toHaveText(/^✕ 実行できない: .*置けない/);
-  await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
-    timeout: 10_000,
-  });
-  await page.getByRole("button", { name: "開店前の試し弾き" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
   expect(errors).toEqual([]);
 });
