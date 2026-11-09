@@ -454,6 +454,77 @@ describe("盤面フィクスチャ（#8: AE-09・AE-10・AE-11）", () => {
       const b = readJson(`boards/${f}`) as BoardFixture;
       const order = parseOrder(b.order, `boards/${f}`);
       const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
+      const out = simulate(order, sol.placements, machines, { recordFrames: true });
+      expect(out.result.result).toMatch(/^(completed|stuck|loop|maxTicks)$/);
+      for (const fr of out.frames) {
+        const emitted = fr.inputs.reduce((n, p) => n + p.next, 0);
+        const received = fr.outputs.reduce((n, o) => n + o.received.length, 0);
+        expect(emitted, `${f} tick ${fr.tick}`).toBe(received + fr.cells.length);
+      }
+    }
+  });
+
+  it("AE-09・AE-10・AE-11 がそれぞれ1つ以上ある", () => {
+    const ae = boardFiles.flatMap((f) => (readJson(`boards/${f}`) as BoardFixture).meta.ae);
+    expect(ae).toEqual(expect.arrayContaining(["AE-09", "AE-10", "AE-11"]));
+  });
+
+  for (const f of boardFiles) {
+    const b = readJson(`boards/${f}`) as BoardFixture;
+    describe(f, () => {
+      it("入口・出口・塞がりマスが盤内で重ならない", () => {
+        const ports = [...b.order.inputs, ...b.order.outputs].map((p) => p.pos);
+        const all = [...ports, ...b.order.board.blocked];
+        expect(new Set(all.map(key)).size).toBe(all.length);
+        for (const [x, y] of all) {
+          expect(x >= 0 && y >= 0 && x < b.order.board.width && y < b.order.board.height).toBe(
+            true,
+          );
+        }
+      });
+      it("配置が置ける形で、allowedMachines だけを使う", () => {
+        const reserved = [
+          ...b.order.inputs.map((p) => p.pos),
+          ...b.order.outputs.map((p) => p.pos),
+          ...b.order.board.blocked,
+        ];
+        expect(placementProblems(b.solution, b.order.board, reserved)).toEqual([]);
+        for (const p of b.solution.placements) expect(b.order.allowedMachines).toContain(p.machine);
+        expect(b.solution.orderId).toBe(b.order.id);
+      });
+      it("expected は合意待ち（pending）なら null、そうでなければコストが足し算と一致", () => {
+        if (b.meta.pending !== undefined) expect(b.expected).toBeNull();
+        else expect(b.expected?.cost).toBe(costOf(b.solution));
+      });
+    });
+  }
+
+  it("AE-11: +1 個の盤面は、ちょうどの盤面と入口の音の数だけが1つ違う", () => {
+    const exact = readJson("boards/ae11-output-exact.json") as BoardFixture;
+    const plus = readJson("boards/ae11-output-plus-one.json") as BoardFixture;
+    const out = exact.order.outputs[0]!.expect.length;
+    expect(exact.order.inputs[0]!.emit.notes).toHaveLength(out);
+    expect(plus.order.inputs[0]!.emit.notes).toHaveLength(out + 1);
+    expect(plus.solution.placements).toEqual(exact.solution.placements);
+  });
+
+  it("AE-11: 背圧の盤面は、入口Aの音の数が「出口1の受け＋入口A〜出口1のベルト本数」より多い", () => {
+    const b = readJson("boards/ae11-output-full-backs-up.json") as BoardFixture;
+    const a = b.order.inputs.find((p) => p.id === "A")!;
+    const out1 = b.order.outputs.find((p) => p.id === "OUT1")!;
+    const beltsOnRow = b.solution.placements.filter(
+      (p) => p.machine === "belt" && p.pos[1] === a.pos[1],
+    ).length;
+    expect(a.emit.notes.length).toBeGreaterThan(out1.expect.length + beltsOnRow);
+  });
+
+  // シミュ核が main に入ったら外す。保存則は毎 tick: 入口から出た数 = 出口が受けた数 + 盤上 + 機械が持つ数。
+  it("全盤面: 例外なく止まる（noThrow）・毎 tick 保存則（conservation）", () => {
+    const machines = parseMachines(readProjectJson("machines.json") as unknown);
+    for (const f of boardFiles) {
+      const b = readJson(`boards/${f}`) as BoardFixture;
+      const order = parseOrder(b.order, `boards/${f}`);
+      const sol = parseSolution(b.solution, `boards/${f}`, order, machines);
       const out = simulate(order, sol.placements, machines);
       expect(out.result.result).toMatch(/^(completed|stuck|loop|maxTicks)$/);
       for (let i = 0; i < order.inputs.length; i++) {
@@ -482,11 +553,18 @@ describe("盤面フィクスチャ（#8: AE-09・AE-10・AE-11）", () => {
     const b = readJson("boards/ae10-tuner-backpressure.json") as BoardFixture;
     const order = parseOrder(b.order, "boards/ae10-tuner-backpressure.json");
     const sol = parseSolution(b.solution, "boards/ae10-tuner-backpressure.json", order, machines);
-    const out = simulate(order, sol.placements, machines);
+    const out = simulate(order, sol.placements, machines, { recordFrames: true });
     expect(out.result.result).toBe("completed");
-    const notesLen = b.order.inputs[0]!.emit.notes.length;
     const interval = b.order.inputs[0]!.emit.interval;
-    expect(out.result.ticks! - notesLen * interval).toBeGreaterThanOrEqual(1);
+    const emitTicks: number[] = [];
+    for (let i = 1; i < out.frames.length; i++) {
+      if (out.frames[i]!.inputs[0]!.next > out.frames[i - 1]!.inputs[0]!.next) {
+        emitTicks.push(out.frames[i]!.tick);
+      }
+    }
+    // 背圧がなければ出す間隔は interval ちょうど。1回でもそれより空けば inputDelayed。
+    const gaps = emitTicks.slice(1).map((t, i) => t - emitTicks[i]!);
+    expect(Math.max(...gaps)).toBeGreaterThan(interval);
   });
 
   it("AE-10: 仕分け機の右が行き止まり → so が仕分け機で待ち、後ろも入口も待って stuck", () => {
