@@ -4,6 +4,7 @@ import type { Placement } from "../../src/core/sim/types";
 import {
   execute,
   metricRows,
+  throughputSeries,
   toSolution,
   verdictMessage,
   verdictOf,
@@ -83,5 +84,25 @@ describe("工房の実行（order-01）", () => {
       name: "player",
       placements: [belt(1, 3)],
     });
+  });
+});
+
+describe("結果画面のグラフ用の累計（throughputSeries）", () => {
+  it("模範解: tick 0 は 0 個、最後は注文の音符数。減らない", () => {
+    const ex = execute(order, data.machines, frugal.placements);
+    const s = throughputSeries(ex.frames);
+    expect(s).toHaveLength(ex.frames.length);
+    expect(s[0]).toEqual({ tick: 0, value: 0 });
+    expect(s.at(-1)).toEqual({ tick: ex.report.metrics.ticks, value: ex.report.metrics.total });
+    for (let i = 1; i < s.length; i++) {
+      expect(s[i]!.tick).toBe(s[i - 1]!.tick + 1);
+      expect(s[i]!.value).toBeGreaterThanOrEqual(s[i - 1]!.value);
+    }
+  });
+
+  it("途中が切れていると出口に届かない: 累計は 0 のまま", () => {
+    const placements = frugal.placements.filter((p) => p.pos.x !== 6);
+    const ex = execute(order, data.machines, placements);
+    expect(throughputSeries(ex.frames).every((p) => p.value === 0)).toBe(true);
   });
 });

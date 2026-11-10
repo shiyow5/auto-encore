@@ -4,6 +4,7 @@
  * - 中身は DOM（#rs-overlay）。表は <table>（caption「3指標」）なので読み上げで行ごとに読める
  * - 「工房にもどる」で配置を持ったまま工房へ戻る
  * - 演出（拍手・メダルのアニメ）は後。?fx=0 では最初から全部出す
+ * - 「出口に届いた音符（累計）」のグラフ（Lightweight Charts）とフッターの帰属表示（品質uplift §1.5）
  */
 import Phaser from "phaser";
 import type { ScoreReport } from "../core/score";
@@ -15,6 +16,9 @@ import { createSceneFx } from "../fx/scene-fx";
 import { fxEnabled } from "../ui/flags";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
+import { ATTRIBUTION_TEXT, TRADINGVIEW_URL, mountThroughputChart } from "../ui/resultChart";
+import { playSfx } from "../audio/player";
+import { sfxForReport } from "../audio/sounds";
 import {
   MEDAL_TEXT,
   STOP_TEXT,
@@ -22,6 +26,7 @@ import {
   metricRows,
   verdictMessage,
   verdictOf,
+  type ThroughputPoint,
 } from "./workshop/execute";
 
 export interface ResultData {
@@ -30,6 +35,8 @@ export interface ResultData {
   readonly placements: readonly Placement[];
   /** 最後の tick の状態（QA の stateHash 用）。 */
   readonly finalState?: SimState;
+  /** tick ごとの出口に届いた音符の累計（グラフ用）。無ければグラフとフッターを出さない。 */
+  readonly throughput?: readonly ThroughputPoint[];
 }
 
 function h<K extends keyof HTMLElementTagNameMap>(
@@ -41,6 +48,38 @@ function h<K extends keyof HTMLElementTagNameMap>(
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
   if (text !== undefined) e.textContent = text;
   return e;
+}
+
+/**
+ * グラフの枠とフッター（帰属表示）を ov の末尾に足し、グラフを描く要素を返す。
+ * 数値は表で読めるので、グラフ本体は role="img" + aria-label で一言にまとめる。
+ * ライブラリが差し込むロゴのリンク（#tv-attr-logo）は Tab で止まるので、aria-hidden にはしない。
+ */
+function appendChart(ov: HTMLElement): HTMLElement {
+  const fig = h("figure", { class: "rs-chart" });
+  fig.append(h("figcaption", {}, "出口に届いた音符（累計）"));
+  const box = h("div", {
+    class: "rs-chart-box",
+    role: "img",
+    "aria-label": "出口に届いた音符（累計）のグラフ。数値は上の表を参照",
+  });
+  fig.append(box);
+  ov.append(fig);
+
+  const footer = h("footer", { class: "rs-footer" });
+  footer.append(
+    h(
+      "a",
+      { href: TRADINGVIEW_URL, target: "_blank", rel: "noopener noreferrer" },
+      ATTRIBUTION_TEXT,
+    ),
+    " ・ ",
+    h("a", { href: "./licenses/lightweight-charts/LICENSE", target: "_blank" }, "LICENSE"),
+    " ・ ",
+    h("a", { href: "./licenses/lightweight-charts/NOTICE", target: "_blank" }, "NOTICE"),
+  );
+  ov.append(footer);
+  return box;
 }
 
 export class ResultScene extends Phaser.Scene {
@@ -151,8 +190,16 @@ export class ResultScene extends Phaser.Scene {
       }
     }
 
+    const chartBox = data.throughput ? appendChart(ov) : null;
+
     (document.getElementById("game") ?? document.body).append(ov);
     back.focus();
+
+    // autoSize は大きさの決まった要素が要るので、DOM に入れてから描く
+    if (chartBox && data.throughput) {
+      const dispose = mountThroughputChart(chartBox, data.throughput, report.metrics.total);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, dispose);
+    }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.overlay?.remove());
     setQaState(data.finalState ?? null);
@@ -165,6 +212,7 @@ export class ResultScene extends Phaser.Scene {
       this.cameras.main.fadeIn(200, 30, 23, 34);
     }
     this.playFx(report, verdict);
+    playSfx(sfxForReport(report));
     document.body.dataset.scene = "result";
     setQaBusy("transition", false);
   }
