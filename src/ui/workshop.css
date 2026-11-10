@@ -75,6 +75,20 @@
   width: calc(var(--u) * 68);
   max-height: calc(var(--u) * 112);
   overflow: auto;
+  scrollbar-color: var(--ae-surface-up) transparent;
+}
+
+/* 白いスクロールバー領域の背景（Issue #124） */
+.ws-order::-webkit-scrollbar {
+  width: 8px;
+}
+.ws-order::-webkit-scrollbar-track {
+  background: var(--ae-surface-up);
+  border-radius: 4px;
+}
+.ws-order::-webkit-scrollbar-thumb {
+  background: var(--ae-text-weak);
+  border-radius: 4px;
 }
 
 .ws-btn {
