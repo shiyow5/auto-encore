@@ -9,6 +9,7 @@ import Phaser from "phaser";
 
 import { TITLE } from "./BootScene";
 import "../ui/workshop.css";
+import { playSfx } from "../audio/player";
 
 function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -26,7 +27,7 @@ class TitleOverlay {
   private el!: HTMLDivElement;
   private modal: HTMLDivElement | null = null;
 
-  attach(parent: HTMLElement): void {
+  attach(parent: HTMLElement, onStart: () => void): void {
     document.getElementById("title-overlay")?.remove();
     const ov = h("div", { id: "title-overlay", "data-scene": "title" });
     ov.style.cssText = `
@@ -56,8 +57,9 @@ class TitleOverlay {
       cursor: pointer; margin: 4px;
     `;
     btnStart.addEventListener("click", () => {
+      playSfx("start");
       this.remove();
-      this.goToOrders();
+      onStart();
     });
     ov.append(btnStart);
 
@@ -77,14 +79,6 @@ class TitleOverlay {
 
     parent.append(ov);
     this.el = ov;
-  }
-
-  private goToOrders(): void {
-    const game = (window as unknown as { __game?: { scene: { start: (s: string) => void } } })
-      .__game;
-    if (game?.scene) {
-      game.scene.start("orders");
-    }
   }
 
   private toggleGuide(): void {
@@ -155,7 +149,7 @@ export class TitleScene extends Phaser.Scene {
     document.body.dataset.scene = "title";
 
     const gameEl = document.getElementById("game") ?? document.body;
-    this.overlay.attach(gameEl);
+    this.overlay.attach(gameEl, () => this.scene.start("orders"));
 
     // クリックでタイトル画面を閉じて orders へ
     this.input.on("pointerdown", () => {
