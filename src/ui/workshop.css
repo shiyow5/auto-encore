@@ -75,7 +75,7 @@
   width: calc(var(--u) * 68);
   max-height: calc(var(--u) * 112);
   overflow: auto;
-  scrollbar-color: var(--ae-surface-up) transparent;
+  scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
 }
 
 /* 白いスクロールバー領域の背景（Issue #124） */
