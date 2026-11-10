@@ -45,6 +45,49 @@ test.describe("spec-e §2: 最初にずれた位置", () => {
     expect(errors).toEqual([]);
   });
 
+  test("グラフとフッターの帰属表示（Lightweight Charts, Apache-2.0）が出る", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await openOrder01(page);
+    await placeBeltsAndRun(page, 10);
+    await expect(page.locator(".rs-chart-box canvas").first()).toBeVisible();
+    const credit = page.locator(".rs-footer").getByRole("link", {
+      name: "Powered by TradingView Lightweight Charts",
+    });
+    await expect(credit).toHaveAttribute("href", "https://www.tradingview.com/");
+    for (const f of ["LICENSE", "NOTICE"]) {
+      const href = await page
+        .locator(".rs-footer")
+        .getByRole("link", { name: f, exact: true })
+        .getAttribute("href");
+      const res = await page.request.get(new URL(href ?? "", page.url()).toString());
+      expect(res.status()).toBe(200);
+    }
+    expect(errors).toEqual([]);
+  });
+
+  test("グラフは role=img で名前があり、Tab で止まるロゴのリンクにも名前が付く", async ({
+    page,
+  }) => {
+    await openOrder01(page);
+    await placeBeltsAndRun(page, 10);
+    const box = page.locator(".rs-chart-box");
+    await expect(box).toHaveAttribute("role", "img");
+    await expect(box).toHaveAttribute("aria-label", /グラフ/);
+    await expect(box).not.toHaveAttribute("aria-hidden", /.*/);
+    const logo = page.locator("#tv-attr-logo");
+    await expect(logo).toBeAttached();
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press("Tab");
+      if (await logo.evaluate((el) => el === document.activeElement)) break;
+    }
+    await expect(logo).toBeFocused();
+    const name = await logo.evaluate(
+      (el) => el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent?.trim(),
+    );
+    expect(name).toBeTruthy();
+  });
+
   test("ベルトを1マス欠かすと「最初にずれた位置: 1音目」が出る", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
