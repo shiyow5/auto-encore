@@ -41,7 +41,7 @@ import {
   totalCost,
   type WorkshopRules,
 } from "./workshop/placements";
-import { execute, type Execution } from "./workshop/execute";
+import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
 import { duckBgm, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
@@ -269,6 +269,7 @@ export class WorkshopScene extends Phaser.Scene {
       report: ex.report,
       placements: this.placements,
       finalState: ex.frames[ex.frames.length - 1],
+      throughput: throughputSeries(ex.frames),
     };
     setQaBusy("transition", true); // 結果画面の create で外す。play を外す前に立てて隙間を作らない
     setQaBusy("play", false);
