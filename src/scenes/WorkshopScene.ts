@@ -25,7 +25,17 @@ import {
   type Placement,
 } from "../core/sim/types";
 import { loadGameData } from "../data";
-import { fxEnabled } from "../ui/flags";
+import { fxEnabled, flags } from "../ui/flags";
+import {
+  TUTORIAL_NEED_MACHINE,
+  TUTORIAL_TEXT,
+  initialStep,
+  isTutorialDone,
+  markTutorialDone,
+  reduce as tutorialReduce,
+  type TutorialEvent,
+  type TutorialStep,
+} from "./workshop/tutorial";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
 import {
@@ -149,6 +159,9 @@ export class WorkshopScene extends Phaser.Scene {
   private combo = 0;
   private overlay!: HTMLElement;
   private cells: HTMLButtonElement[] = [];
+  /** Issue #50: 注文1 のチュートリアル。出さないときは "done"。 */
+  private tutorial: TutorialStep = "done";
+  private tutorialPanel: HTMLDivElement | null = null;
   private status!: HTMLElement;
   private costText!: HTMLElement;
   private dirButton!: HTMLButtonElement;
@@ -183,6 +196,8 @@ export class WorkshopScene extends Phaser.Scene {
     this.fx.emit("ambient");
     this.combo = 0;
     this.gfx = this.add.graphics();
+    // ?seed= の QA 実行では出さない（押下を遮らない）
+    this.tutorial = flags().seed !== null ? "done" : initialStep(orderId, isTutorialDone());
     this.buildOverlay();
     this.redraw();
 
@@ -283,6 +298,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private showResult(ex: Execution): void {
+    this.tutorialEvent("ran");
     const data: ResultData = {
       order: this.order,
       report: ex.report,
@@ -316,6 +332,7 @@ export class WorkshopScene extends Phaser.Scene {
     }
     this.placements = res.placements;
     playSfx("place");
+    this.tutorialEvent("placed");
     const pitch = hasPitch ? `（音高 ${pitchLabel(this.nextPitchValue)}）` : "";
     this.say(
       `${MACHINE_NAME[this.selected]}を ${pos.x},${pos.y} に${DIR_NAME[this.nextDir]}向きで置いた${pitch}`,
@@ -349,6 +366,7 @@ export class WorkshopScene extends Phaser.Scene {
     if (pos && placementAt(this.placements, pos)) {
       this.placements = rotateAt(this.placements, pos);
       playSfx("rotate");
+      this.tutorialEvent("rotated");
       const p = placementAt(this.placements, pos);
       this.say(`${pos.x},${pos.y} を${DIR_NAME[p?.dir ?? "E"]}向きにした`);
       this.changed();
@@ -381,6 +399,53 @@ export class WorkshopScene extends Phaser.Scene {
   private changed(): void {
     this.redraw();
     this.refreshOverlay();
+  }
+
+  // ---- チュートリアル (Issue #50) ---------------------------------------
+
+  private tutorialEvent(event: TutorialEvent): void {
+    const next = tutorialReduce(this.tutorial, event);
+    if (next === this.tutorial) return;
+    this.tutorial = next;
+    if (next === "done") markTutorialDone();
+    this.renderTutorial();
+  }
+
+  /** 案内パネルと強調枠を今の手順に合わせる。 */
+  private renderTutorial(): void {
+    for (const e of this.overlay.querySelectorAll("[data-tutorial-focus]")) {
+      e.removeAttribute("data-tutorial-focus");
+    }
+    if (this.tutorial === "done") {
+      this.tutorialPanel?.remove();
+      return;
+    }
+    if (!this.tutorialPanel) return;
+    const text = this.tutorialPanel.querySelector(".ws-guide-text");
+    let msg = TUTORIAL_TEXT[this.tutorial];
+    if (this.tutorial === "rotate" && this.placements.length === 0) msg += TUTORIAL_NEED_MACHINE;
+    if (text) text.textContent = msg;
+    this.tutorialPanel.dataset.step = this.tutorial;
+    const target =
+      this.tutorial === "place"
+        ? this.overlay.querySelector(".ws-shelf")
+        : this.tutorial === "run"
+          ? this.runButton
+          : this.cells.find((b) => b.dataset.kind === "machine");
+    target?.setAttribute("data-tutorial-focus", "true");
+    this.overlay.dataset.tutorialStatic = String(!fxEnabled());
+  }
+
+  private buildTutorial(): void {
+    if (this.tutorial === "done") return;
+    const panel = h("div", { class: "ws-guide", "aria-live": "polite" });
+    panel.append(h("span", { class: "ws-guide-text" }));
+    const skip = h("button", { type: "button", class: "ws-guide-skip" }, "スキップ");
+    skip.addEventListener("click", () => this.tutorialEvent("skip"));
+    panel.append(skip);
+    this.overlay.append(panel);
+    this.tutorialPanel = panel;
+    this.renderTutorial();
   }
 
   private say(text: string, error = false): void {
@@ -630,6 +695,7 @@ export class WorkshopScene extends Phaser.Scene {
     });
     helpLine.textContent = "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
     ov.append(helpLine);
+    this.tutorialPanel = null;
 
     // R キーはマス以外にフォーカスがあっても効くように（マウス操作中のホバー対象を回す）
     ov.addEventListener("keydown", (e) => {
@@ -652,6 +718,8 @@ export class WorkshopScene extends Phaser.Scene {
     });
 
     (document.getElementById("game") ?? document.body).append(ov);
+    this.tutorialPanel = null;
+    this.buildTutorial();
     this.refreshOverlay();
   }
 
@@ -722,6 +790,7 @@ export class WorkshopScene extends Phaser.Scene {
       b.disabled = running;
     }
     this.cells.forEach((b) => b.setAttribute("aria-disabled", String(running)));
+    this.renderTutorial();
   }
 
   /** overlay を canvas の表示位置・大きさに合わせる。中身は内部解像度に対する % で置いてある。 */
