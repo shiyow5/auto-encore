@@ -10,7 +10,7 @@ export default defineConfig({
   use: { baseURL: url, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "npm run preview:e2e",
+    command: `npm run preview:e2e -- --port ${process.env.PW_PORT ?? 4173}`,
     url,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
