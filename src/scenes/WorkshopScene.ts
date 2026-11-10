@@ -55,6 +55,11 @@ export const PLAY_MS_PER_TICK = 110;
 export const CELL = 14;
 export const GRID_X = 76;
 export const GRID_Y = 26;
+/** 演出の帯（盤面の下）。盤面の下端からこの分だけ空けて、そこから高さ FX_BAND_H まで。 */
+const FX_BAND_GAP = 3;
+const FX_BAND_H = 37;
+/** 演出レイヤー全体の不透明度の上限（音符の流れを隠さない。rio の設計 #AE121） */
+const FX_ALPHA = 0.5;
 
 const COLOR = {
   floor: 0x1e1722,
@@ -155,6 +160,8 @@ export class WorkshopScene extends Phaser.Scene {
   private pitchButton!: HTMLButtonElement;
   private muteButton!: HTMLButtonElement;
   private runButton!: HTMLButtonElement;
+  /** 実行ボタンの下に出す「実行中…(tick n)」。実行中だけ見える */
+  private runStatus!: HTMLElement;
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => this.layout();
@@ -179,7 +186,13 @@ export class WorkshopScene extends Phaser.Scene {
     this.nextPitchValue = pitchChoices(data.machines, "sorter")[0] ?? 0;
     // audio.ts の共有設定 (ae-audio-enabled) を使用する
 
-    this.fx = createSceneFx(this, "fx-workshop");
+    // 演出は盤面の下の帯だけに出す。盤面・ヒント・右パネルには重ねない
+    const board = { x: GRID_X, y: GRID_Y + this.rules.height * CELL + FX_BAND_GAP };
+    this.fx = createSceneFx(this, "fx-workshop", {
+      band: { ...board, w: this.rules.width * CELL, h: FX_BAND_H },
+      frontSlots: 2, // 同時 3 本 = 背景 1 + 前景 2
+      alpha: FX_ALPHA,
+    });
     this.fx.emit("ambient");
     this.combo = 0;
     this.gfx = this.add.graphics();
@@ -237,12 +250,12 @@ export class WorkshopScene extends Phaser.Scene {
     });
     this.playing = { ex, frame: 0, timer };
     this.combo = 0;
-    this.fx?.emit("machineRun");
     playSfx("run");
     duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
     this.say("実行中…");
+    this.runStatus.textContent = "実行中…(tick 0)";
     this.changed();
   }
 
@@ -259,7 +272,7 @@ export class WorkshopScene extends Phaser.Scene {
       if (ev.tick !== p.frame) continue;
       this.combo++;
       this.fx?.emit("noteCombo", this.combo, { count: this.combo });
-      if (this.combo % 4 === 0) this.fx?.emit("comboMilestone", this.combo);
+      this.fx?.emit("noteArrive");
     }
     // bin に入った音符を鳴らす
     if (isAudioEnabled()) {
@@ -271,13 +284,13 @@ export class WorkshopScene extends Phaser.Scene {
     this.redraw();
     setQaState(p.ex.frames[p.frame] ?? null);
     this.overlay.dataset.tick = String(p.frame);
+    this.runStatus.textContent = `実行中…(tick ${p.frame})`;
   }
 
   private finishPlayback(): void {
     const p = this.playing;
     if (!p) return;
     p.timer.remove();
-    this.fx?.stop("machineRun");
     duckBgm(false);
     this.showResult(p.ex);
   }
@@ -613,7 +626,10 @@ export class WorkshopScene extends Phaser.Scene {
       list.append(h("li", {}, `出口 ${o.id} ${DIR_ARROW[o.dir]}（${DIR_NAME[o.dir]}向き）`));
     card.append(list);
     this.costText = h("p", { "aria-label": "配置の合計" });
-    card.append(this.costText);
+    // 実行中は同じ位置（実行ボタンの直上）に「実行中…(tick n)」を出す。配置の合計は実行中は隠す
+    this.runStatus = h("p", { class: "ws-run-status", "aria-hidden": "true" });
+    this.runStatus.hidden = true;
+    card.append(this.costText, this.runStatus);
     this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
     this.runButton.addEventListener("click", () => this.runSim());
     card.append(this.runButton);
@@ -718,6 +734,8 @@ export class WorkshopScene extends Phaser.Scene {
     const running = this.playing !== null;
     this.overlay.dataset.running = String(running);
     this.runButton.textContent = running ? "結果へスキップ" : "実行";
+    this.runStatus.hidden = !running;
+    this.costText.hidden = running;
     for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(".ws-shelf .ws-btn")) {
       b.disabled = running;
     }

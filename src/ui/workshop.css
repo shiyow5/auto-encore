@@ -168,6 +168,13 @@
   background: #f6c77f;
 }
 
+/* 実行中の「実行中…(tick n)」。実行ボタンの真下に出す（盤面・演出の帯には重ねない） */
+.ws-run-status {
+  margin: calc(var(--u) * 2) 0 0;
+  text-align: center;
+  color: var(--ae-text);
+}
+
 .ws-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

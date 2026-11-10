@@ -1,6 +1,14 @@
 import type { FxInstance, FxModule, FxOptions } from "pixelfx";
-import { FX_MAP } from "./fx-map";
-import type { FxEventName } from "./fx-map";
+import { FX_MAP, FX_PRIORITY, WORKSHOP_PALETTE } from "./fx-map";
+import type { FxEventName, FxSpec } from "./fx-map";
+
+/** エフェクトを描いてよい矩形（内部解像度のドット）。 */
+export interface Band {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 /** エフェクトを描く先（実体は PixelFxLayer。テストでは差し替える）。 */
 export interface FxSink {
@@ -14,48 +22,107 @@ export interface FxSinks {
   front: FxSink;
 }
 
+export interface FxDirectorOptions {
+  /** 帯（band 指定の spec の基準）。無ければ band 指定の spec は出さない。 */
+  band?: () => Band | null;
+  /** 前景（front）の同時本数の上限。省略なら無制限。背景は数えない。 */
+  frontSlots?: number;
+}
+
+interface Live {
+  name: FxEventName;
+  prio: number;
+  layer: "back" | "front";
+  fx: FxInstance;
+}
+
 /**
  * イベント名でエフェクトを呼ぶ窓口。
  * - enabled() が false（?fx=0 / 視差効果を減らす）なら何も再生しない
- * - stop(name) でループ系（機械稼働など）を止める
+ * - stop(name) でループ系を止める
+ * - 前景が上限に達したら、優先度の低いものから止める（同じか高い優先度は入れない）
  * - dispose() で再生中のものを止めて破棄する（背景エフェクトのリーク防止）
  */
 export class FxDirector {
   private disposed = false;
-  private readonly running = new Map<FxEventName, FxInstance[]>();
+  private live: Live[] = [];
 
   constructor(
     private readonly sinks: FxSinks | null,
     private readonly enabled: () => boolean,
+    private readonly opts: FxDirectorOptions = {},
   ) {}
 
   /** 1 つでも再生したら true。extra は全エフェクトに足すオプション（combo の count など）。 */
   emit(name: FxEventName, seed = 1, extra: FxOptions = {}): boolean {
-    if (this.disposed || !this.sinks || !this.enabled()) return false;
-    const specs = FX_MAP[name];
-    const list = this.running.get(name) ?? [];
-    specs.forEach((spec, i) => {
-      if (spec.exclusive) for (const f of list.splice(0)) f.stop();
-      const opts: FxOptions = { seed: seed + i, ...spec.options, ...extra };
-      if (spec.x !== undefined) opts.x = spec.x;
-      if (spec.y !== undefined) opts.y = spec.y;
-      const fx = this.sinks?.[spec.layer].play(spec.mod, opts, spec.ttl ?? null);
-      if (fx) list.push(fx);
+    const sinks = this.sinks;
+    if (this.disposed || !sinks || !this.enabled()) return false;
+    this.prune();
+    let played = false;
+    FX_MAP[name].forEach((spec: FxSpec, i) => {
+      if (spec.exclusive) this.stop(name);
+      const at = this.place(spec);
+      if (!at) return;
+      if (spec.layer === "front" && !this.admit(FX_PRIORITY[name])) return;
+      // palette は既定で工房トーン。spec / extra で上書きできる
+      const opts: FxOptions = {
+        seed: seed + i,
+        palette: WORKSHOP_PALETTE,
+        ...spec.options,
+        ...extra,
+      };
+      opts.x = at.x;
+      opts.y = at.y;
+      const fx = sinks[spec.layer].play(spec.mod, opts, spec.ttl ?? null);
+      this.live.push({ name, prio: FX_PRIORITY[name], layer: spec.layer, fx });
+      played = true;
     });
-    this.running.set(name, list);
-    return specs.length > 0;
+    return played;
   }
 
   /** そのイベントで再生中のものを止める（フェードアウトして消える）。 */
   stop(name: FxEventName): void {
-    for (const f of this.running.get(name)?.splice(0) ?? []) f.stop();
+    this.live = this.live.filter((l) => {
+      if (l.name !== name) return true;
+      l.fx.stop();
+      return false;
+    });
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.running.clear();
+    this.live = [];
     this.sinks?.back.destroy();
     this.sinks?.front.destroy();
+  }
+
+  /** 位置を決める。band 指定は帯の割合から、無ければ x / y。帯が無ければ null（出さない）。 */
+  private place(spec: FxSpec): { x: number; y: number } | null {
+    if (spec.band) {
+      const b = this.opts.band?.();
+      if (!b) return null;
+      return { x: b.x + b.w * spec.band.fx, y: b.y + b.h * spec.band.fy };
+    }
+    return { x: spec.x ?? 0, y: spec.y ?? 0 };
+  }
+
+  /** 前景に 1 本入れてよいか。上限なら優先度の低いものを止めて空ける。空けられなければ false。 */
+  private admit(prio: number): boolean {
+    const limit = this.opts.frontSlots;
+    if (limit === undefined) return true;
+    for (;;) {
+      const front = this.live.filter((l) => l.layer === "front");
+      if (front.length < limit) return true;
+      const lowest = front.reduce((a, b) => (b.prio < a.prio ? b : a));
+      if (lowest.prio >= prio) return false;
+      lowest.fx.stop();
+      this.live = this.live.filter((l) => l !== lowest);
+    }
+  }
+
+  /** 終わったものを一覧から外す。 */
+  private prune(): void {
+    this.live = this.live.filter((l) => !l.fx.done());
   }
 }
