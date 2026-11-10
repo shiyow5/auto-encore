@@ -6,6 +6,8 @@ import { ResultScene } from "./scenes/ResultScene";
 import { WorkshopScene } from "./scenes/WorkshopScene";
 import { GAME_HEIGHT, GAME_WIDTH } from "./config";
 import { installQa } from "./ui/qa";
+import { installClickSfx, startBgmOnFirstInput } from "./audio/player";
+import { installAudioToggle } from "./ui/audio-toggle";
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -30,3 +32,8 @@ declare global {
     __game?: Phaser.Game;
   }
 }
+
+// 音（ZzFX / ZzFXM）。ボタンのクリック音・最初の操作から流す BGM・音のオン/オフ。
+installClickSfx();
+startBgmOnFirstInput();
+installAudioToggle();

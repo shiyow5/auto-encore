@@ -9,6 +9,7 @@ import Phaser from "phaser";
 
 import { TITLE } from "./BootScene";
 import "../ui/workshop.css";
+import { playSfx } from "../audio/player";
 
 function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -56,6 +57,7 @@ class TitleOverlay {
       cursor: pointer; margin: 4px;
     `;
     btnStart.addEventListener("click", () => {
+      playSfx("start");
       this.remove();
       onStart();
     });

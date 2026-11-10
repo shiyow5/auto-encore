@@ -279,3 +279,27 @@
     transition: none;
   }
 }
+
+/* 音のオン/オフ（#game 直下。src/ui/audio-toggle.ts）。工房では棚のボタンを使うので隠す */
+.audio-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 200;
+  min-width: 44px;
+  min-height: 44px;
+  font-family: var(--ae-font);
+  font-size: 16px;
+  color: var(--ae-text);
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-amber);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.audio-toggle:focus-visible {
+  outline: 2px solid var(--ae-amber);
+  outline-offset: 2px;
+}
+body[data-scene="workshop"] .audio-toggle {
+  display: none;
+}
