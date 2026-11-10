@@ -11,6 +11,7 @@ import * as energyCore from "pixelfx/fx/scifi/energy-core";
 import * as glitch from "pixelfx/fx/scifi/glitch";
 import * as crtOff from "pixelfx/fx/transitions/crt-off";
 import type { FxModule, FxOptions } from "pixelfx";
+import type { SfxName } from "../audio/sounds";
 
 /**
  * 「ゲーム内イベント名 → pixelfx エフェクト」の対応表（唯一の置き場）。
@@ -24,6 +25,7 @@ export type FxEventName =
   | "comboMilestone"
   | "songComplete"
   | "medalEarned"
+  | "medalSilver"
   | "machineRun"
   | "placeError"
   | "runError"
@@ -59,6 +61,11 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
     { mod: coinSpin, x: 36, y: 100, ttl: 1.6, layer: "front" },
     { mod: heartPickup, x: 284, y: 100, ttl: 1.2, layer: "front" },
   ],
+  // 銀・銅メダルだけのとき（見た目は金と同じ。音だけ変える）
+  medalSilver: [
+    { mod: coinSpin, x: 36, y: 100, ttl: 1.6, layer: "front" },
+    { mod: heartPickup, x: 284, y: 100, ttl: 1.2, layer: "front" },
+  ],
   // 盤面の中央を覆うので、実行の開始時に 1 拍だけ見せる（音符の流れを隠さない）
   machineRun: [{ mod: energyCore, x: 160, y: 100, ttl: 1.2, layer: "front" }],
   placeError: [{ mod: glitch, x: 160, y: 90, ttl: 0.5, layer: "front" }],
@@ -70,4 +77,19 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
     { mod: achievement, x: 160, y: 12, layer: "front" },
     { mod: levelUp, x: 160, y: 118, layer: "front" },
   ],
+};
+
+/** 演出に付ける SE。「演出 → 音」の対応はここだけ（シーンは playSfx を呼ばず emit するだけ）。 */
+export interface FxSfx {
+  sfx: SfxName;
+  /** 演出の開始からの遅れ（ミリ秒）。結果画面の pass/encore（〜0.7秒）と重ならないようにずらす */
+  delayMs?: number;
+}
+
+export const FX_SFX: Readonly<Partial<Record<FxEventName, FxSfx>>> = {
+  comboMilestone: { sfx: "confetti" },
+  // 結果画面は pass / encore（最長 0.7 秒）が先に鳴るので、メダルはその後
+  medalEarned: { sfx: "medalGold", delayMs: 750 },
+  medalSilver: { sfx: "medalSilver", delayMs: 750 },
+  runError: { sfx: "runError" },
 };

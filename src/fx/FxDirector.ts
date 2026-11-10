@@ -1,6 +1,7 @@
 import type { FxInstance, FxModule, FxOptions } from "pixelfx";
-import { FX_MAP } from "./fx-map";
+import { FX_MAP, FX_SFX } from "./fx-map";
 import type { FxEventName } from "./fx-map";
+import type { SfxName } from "../audio/sounds";
 
 /** エフェクトを描く先（実体は PixelFxLayer。テストでは差し替える）。 */
 export interface FxSink {
@@ -23,15 +24,32 @@ export interface FxSinks {
 export class FxDirector {
   private disposed = false;
   private readonly running = new Map<FxEventName, FxInstance[]>();
+  private readonly timers = new Set<ReturnType<typeof setTimeout>>();
 
+  /** sfx は SE を鳴らす関数（本番は playSfx）。演出を切っていても（視差効果を減らす）音は鳴らす。 */
   constructor(
     private readonly sinks: FxSinks | null,
     private readonly enabled: () => boolean,
+    private readonly sfx: ((name: SfxName) => void) | null = null,
   ) {}
+
+  private playSfxFor(name: FxEventName): void {
+    const s = FX_SFX[name];
+    if (!s || !this.sfx) return;
+    const play = this.sfx;
+    if (!s.delayMs) return play(s.sfx);
+    const t = setTimeout(() => {
+      this.timers.delete(t);
+      if (!this.disposed) play(s.sfx);
+    }, s.delayMs);
+    this.timers.add(t);
+  }
 
   /** 1 つでも再生したら true。extra は全エフェクトに足すオプション（combo の count など）。 */
   emit(name: FxEventName, seed = 1, extra: FxOptions = {}): boolean {
-    if (this.disposed || !this.sinks || !this.enabled()) return false;
+    if (this.disposed) return false;
+    this.playSfxFor(name);
+    if (!this.sinks || !this.enabled()) return false;
     const specs = FX_MAP[name];
     const list = this.running.get(name) ?? [];
     specs.forEach((spec, i) => {
@@ -55,6 +73,8 @@ export class FxDirector {
     if (this.disposed) return;
     this.disposed = true;
     this.running.clear();
+    for (const t of this.timers) clearTimeout(t);
+    this.timers.clear();
     this.sinks?.back.destroy();
     this.sinks?.front.destroy();
   }
