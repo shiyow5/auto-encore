@@ -32,7 +32,7 @@ class TitleOverlay {
     ov.style.cssText = `
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: var(--ae-font);
+      background: rgba(15, 12, 20, 0.95); color: var(--ae-text); font-family: var(--ae-font);
       z-index: 100;
     `;
 
@@ -41,7 +41,7 @@ class TitleOverlay {
     ov.append(title);
 
     const subtitle = h("p", {}, "夜更けのオルゴール工房");
-    subtitle.style.cssText = "font-size: 12px; color: #8a8090; margin: 0 0 24px;";
+    subtitle.style.cssText = "font-size: 12px; color: var(--ae-text-weak); margin: 0 0 24px;";
     ov.append(subtitle);
 
     const btnStart = h("button", {
@@ -52,7 +52,7 @@ class TitleOverlay {
     btnStart.textContent = "はじめる";
     btnStart.style.cssText = `
       padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
-      background: #3a2f40; color: #e6e6e6; border: 1px solid #5c4a66;
+      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
       cursor: pointer; margin: 4px;
     `;
     btnStart.addEventListener("click", () => {
@@ -69,7 +69,7 @@ class TitleOverlay {
     btnGuide.textContent = "遊び方";
     btnGuide.style.cssText = `
       padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
-      background: #2a2530; color: #b0a0c0; border: 1px solid #3a2f40;
+      background: var(--ae-surface); color: var(--ae-text-weak); border: 1px solid #3a2f40;
       cursor: pointer; margin: 4px;
     `;
     btnGuide.addEventListener("click", () => this.toggleGuide());
@@ -100,8 +100,8 @@ class TitleOverlay {
     guide.style.cssText = `
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      background: #1e1722; border: 1px solid #5c4a66;
-      padding: 20px; max-width: 300px; color: #e6e6e6;
+      background: var(--ae-bg); border: 1px solid #5c4a66;
+      padding: 20px; max-width: 300px; color: var(--ae-text);
       font-size: 12px; line-height: 1.6;
     `;
 
@@ -126,7 +126,7 @@ class TitleOverlay {
     close.textContent = "閉じる";
     close.style.cssText = `
       margin-top: 12px; padding: 4px 16px; font-size: 12px;
-      background: #3a2f40; color: #e6e6e6; border: 1px solid #5c4a66;
+      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
       cursor: pointer;
     `;
     close.addEventListener("click", () => {
