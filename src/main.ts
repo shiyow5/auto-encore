@@ -18,11 +18,15 @@ const game = new Phaser.Game({
   scene: [BootScene, TitleScene, OrderSelectScene, WorkshopScene, ResultScene],
 });
 
-// E2E テストとデバッグ用。ゲームロジックはここから触らない。
+// E2E テスト用フック。DEV またはテスト用ビルド(--mode e2e)のときだけ公開する。
+// 本番ビルドでは条件が false に畳まれ、__qa / __game ごとバンドルから消える(#36)。
+if (import.meta.env.DEV || import.meta.env.MODE === "e2e") {
+  window.__game = game;
+  installQa();
+}
+
 declare global {
   interface Window {
     __game?: Phaser.Game;
   }
 }
-window.__game = game;
-installQa();
