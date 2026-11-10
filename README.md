@@ -48,6 +48,7 @@ npm run dev        # → 表示された http://localhost:5173 を開く
 | `npm run test:e2e`  | ブラウザテスト（Playwright）。初回は `npx playwright install chromium` |
 | `npm run typecheck` | 型チェック                                                             |
 | `npm run build`     | 本番ビルド → `dist/`                                                   |
+| `npm run build:e2e` | e2e 用ビルド(`__qa`/`__game` 公開) → `dist-e2e/`                       |
 
 ### フォルダ構成と設計方針
 
