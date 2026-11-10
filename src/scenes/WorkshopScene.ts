@@ -42,7 +42,8 @@ import {
   type WorkshopRules,
 } from "./workshop/placements";
 import { execute, type Execution } from "./workshop/execute";
-import { playNote, initAudio, isAudioEnabled, toggleAudio } from "../fx/audio";
+import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
+import { duckBgm, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
@@ -226,6 +227,8 @@ export class WorkshopScene extends Phaser.Scene {
       callback: () => this.advance(),
     });
     this.playing = { ex, frame: 0, timer };
+    playSfx("run");
+    duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
     this.say("実行中…");
@@ -256,6 +259,7 @@ export class WorkshopScene extends Phaser.Scene {
     const p = this.playing;
     if (!p) return;
     p.timer.remove();
+    duckBgm(false);
     this.showResult(p.ex);
   }
 
@@ -290,6 +294,7 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     this.placements = res.placements;
+    playSfx("place");
     const pitch = hasPitch ? `（音高 ${pitchLabel(this.nextPitchValue)}）` : "";
     this.say(
       `${MACHINE_NAME[this.selected]}を ${pos.x},${pos.y} に${DIR_NAME[this.nextDir]}向きで置いた${pitch}`,
@@ -303,6 +308,7 @@ export class WorkshopScene extends Phaser.Scene {
     const p = pos ? placementAt(this.placements, pos) : undefined;
     if (pos && p && pitchChoices(this.machines, p.machine).length > 0) {
       this.placements = cyclePitchAt(this.placements, this.machines, pos);
+      playSfx("pitch");
       const now = placementAt(this.placements, pos)?.config?.pitch;
       if (now !== undefined) this.say(`${pos.x},${pos.y} の音高を${pitchLabel(now)}にした`);
       this.changed();
@@ -311,6 +317,7 @@ export class WorkshopScene extends Phaser.Scene {
     const choices = pitchChoices(this.machines, "sorter");
     if (choices.length === 0) return;
     this.nextPitchValue = nextPitch(choices, this.nextPitchValue);
+    playSfx("pitch");
     this.say(`次に置く仕分け機の音高: ${pitchLabel(this.nextPitchValue)}`);
     this.changed();
   }
@@ -320,12 +327,14 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.playing) return;
     if (pos && placementAt(this.placements, pos)) {
       this.placements = rotateAt(this.placements, pos);
+      playSfx("rotate");
       const p = placementAt(this.placements, pos);
       this.say(`${pos.x},${pos.y} を${DIR_NAME[p?.dir ?? "E"]}向きにした`);
       this.changed();
       return;
     }
     this.nextDir = rotateCW(this.nextDir);
+    playSfx("rotate");
     this.say(`次に置く向き: ${DIR_NAME[this.nextDir]}`);
     this.changed();
   }
@@ -334,6 +343,7 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.playing) return;
     if (!placementAt(this.placements, pos)) return;
     this.placements = removeAt(this.placements, pos);
+    playSfx("remove");
     this.say(`${pos.x},${pos.y} の機械を消した`);
     this.changed();
   }
@@ -342,6 +352,7 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.playing) return;
     if (this.placements.length === 0) return;
     this.placements = [];
+    playSfx("clear");
     this.say("全部消した");
     this.changed();
   }
@@ -352,6 +363,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private say(text: string, error = false): void {
+    if (error) playSfx("error");
     this.status.textContent = text;
     this.status.classList.toggle("ws-error", error);
   }
@@ -567,7 +579,7 @@ export class WorkshopScene extends Phaser.Scene {
       card.append(
         h(
           "p",
-          { class: "ws-tutorial", style: "font-size: 10px; color: #b0a0c0; margin: 6px 0;" },
+          { class: "ws-tutorial", style: "font-size: 12px; color: #b0a0c0; margin: 6px 0;" },
           tutorial,
         ),
       );
@@ -592,7 +604,7 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: "font-size: 9px; color: #8a8090; text-align: center; margin: 4px 0;",
+      style: "font-size: 12px; color: #8a8090; text-align: center; margin: 4px 0;",
     });
     helpLine.textContent = "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
     ov.append(helpLine);
@@ -710,7 +722,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private toggleMute(): void {
-    const enabled = toggleAudio();
+    const enabled = toggleSound();
     this.muteButton.textContent = enabled ? "🔊" : "🔇";
     this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
     this.say(enabled ? "音をオンにした" : "音を切った");
@@ -719,6 +731,7 @@ export class WorkshopScene extends Phaser.Scene {
   private teardown(): void {
     this.playing?.timer.remove();
     this.playing = null;
+    duckBgm(false);
     setQaBusy("play", false);
     setQaBusy("fade", false);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);
