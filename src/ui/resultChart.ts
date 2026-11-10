@@ -18,6 +18,18 @@ const COLOR = {
   target: "#f3e9dc", // --ae-text
 } as const;
 
+/**
+ * 縦軸の範囲。price line（目標線）は autoscale の対象外なので、目標が必ず入るようにする。
+ * 累計が全部 0 で目標が 8 のようなときも、0〜目標が見える。
+ */
+export function targetAutoscale(
+  target: number,
+  base: () => { priceRange: { minValue: number; maxValue: number } | null } | null,
+): { priceRange: { minValue: number; maxValue: number } } {
+  const r = base()?.priceRange;
+  return { priceRange: { minValue: 0, maxValue: Math.max(target, r?.maxValue ?? 0) } };
+}
+
 export const TRADINGVIEW_URL = "https://www.tradingview.com/";
 export const ATTRIBUTION_TEXT = "Powered by TradingView Lightweight Charts";
 
@@ -51,6 +63,7 @@ export function mountThroughputChart(
   const series = chart.addSeries(LineSeries, {
     color: COLOR.line,
     lineWidth: 2,
+    autoscaleInfoProvider: (base: () => never) => targetAutoscale(target, base),
     // 個数なので整数。ロゴ用にあけた下の余白に出る負の目盛りは表示しない
     priceFormat: {
       type: "custom",

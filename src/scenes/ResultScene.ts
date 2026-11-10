@@ -49,12 +49,17 @@ function h<K extends keyof HTMLElementTagNameMap>(
 
 /**
  * グラフの枠とフッター（帰属表示）を ov の末尾に足し、グラフを描く要素を返す。
- * 数値は表で読めるので、グラフ本体は読み上げでは飛ばす（aria-hidden）。
+ * 数値は表で読めるので、グラフ本体は role="img" + aria-label で一言にまとめる。
+ * ライブラリが差し込むロゴのリンク（#tv-attr-logo）は Tab で止まるので、aria-hidden にはしない。
  */
 function appendChart(ov: HTMLElement): HTMLElement {
   const fig = h("figure", { class: "rs-chart" });
   fig.append(h("figcaption", {}, "出口に届いた音符（累計）"));
-  const box = h("div", { class: "rs-chart-box", "aria-hidden": "true" });
+  const box = h("div", {
+    class: "rs-chart-box",
+    role: "img",
+    "aria-label": "出口に届いた音符（累計）のグラフ。数値は上の表を参照",
+  });
   fig.append(box);
   ov.append(fig);
 

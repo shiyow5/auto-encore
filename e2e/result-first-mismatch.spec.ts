@@ -66,6 +66,28 @@ test.describe("spec-e §2: 最初にずれた位置", () => {
     expect(errors).toEqual([]);
   });
 
+  test("グラフは role=img で名前があり、Tab で止まるロゴのリンクにも名前が付く", async ({
+    page,
+  }) => {
+    await openOrder01(page);
+    await placeBeltsAndRun(page, 10);
+    const box = page.locator(".rs-chart-box");
+    await expect(box).toHaveAttribute("role", "img");
+    await expect(box).toHaveAttribute("aria-label", /グラフ/);
+    await expect(box).not.toHaveAttribute("aria-hidden", /.*/);
+    const logo = page.locator("#tv-attr-logo");
+    await expect(logo).toBeAttached();
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press("Tab");
+      if (await logo.evaluate((el) => el === document.activeElement)) break;
+    }
+    await expect(logo).toBeFocused();
+    const name = await logo.evaluate(
+      (el) => el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent?.trim(),
+    );
+    expect(name).toBeTruthy();
+  });
+
   test("ベルトを1マス欠かすと「最初にずれた位置: 1音目」が出る", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
