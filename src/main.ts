@@ -8,6 +8,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from "./config";
 import { installQa } from "./ui/qa";
 import { installClickSfx, startBgmOnFirstInput } from "./audio/player";
 import { installAudioToggle } from "./ui/audio-toggle";
+import { installRotateHint } from "./ui/rotate-hint";
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -37,3 +38,4 @@ declare global {
 installClickSfx();
 startBgmOnFirstInput();
 installAudioToggle();
+installRotateHint();
