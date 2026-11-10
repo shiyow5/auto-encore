@@ -1,5 +1,15 @@
 /* 工房の DOM（棚・マスのボタン・注文票）。仮の見た目。design-detail §1-2「閉店後のカラオケ工房」。
  * 大きさは --u（内部解像度 1 ドット = 何 px か）で決める。canvas と一緒に拡大縮小する。 */
+
+/* DotGothic16 フォント — SIL OFL 1.1 (Fontworks Inc.) */
+@font-face {
+  font-family: "DotGothic16";
+  src: url("/assets/font/DotGothic16-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --ae-bg: #1e1722;
   --ae-surface: #2a2030;
@@ -8,6 +18,8 @@
   --ae-text-weak: #c4b4c9;
   --ae-amber: #f2b45a;
   --ae-danger: #ff8a7a;
+  /* フォントは1か所で管理。Phaser の text もこの値を参照して「DotGothic16", monospace */
+  --ae-font: "DotGothic16", monospace;
 }
 
 #game {
@@ -17,7 +29,7 @@
 #ws-overlay {
   position: absolute;
   --u: 1px;
-  font-family: ui-monospace, "DotGothic16", monospace;
+  font-family: var(--ae-font);
   font-size: calc(var(--u) * 6);
   line-height: 1.35;
   color: var(--ae-text);
@@ -176,7 +188,7 @@
   max-height: 92vh;
   overflow: auto;
   padding: 1.25rem 1.5rem;
-  font-family: ui-monospace, "DotGothic16", monospace;
+  font-family: var(--ae-font);
   font-size: 1rem;
   line-height: 1.5;
   color: var(--ae-text);
@@ -266,4 +278,28 @@
   .ws-btn {
     transition: none;
   }
+}
+
+/* 音のオン/オフ（#game 直下。src/ui/audio-toggle.ts）。工房では棚のボタンを使うので隠す */
+.audio-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 200;
+  min-width: 44px;
+  min-height: 44px;
+  font-family: var(--ae-font);
+  font-size: 16px;
+  color: var(--ae-text);
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-amber);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.audio-toggle:focus-visible {
+  outline: 2px solid var(--ae-amber);
+  outline-offset: 2px;
+}
+body[data-scene="workshop"] .audio-toggle {
+  display: none;
 }

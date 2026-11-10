@@ -5,6 +5,10 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   base: "./",
   build: { target: "es2022", chunkSizeWarningLimit: 2000 },
+  preview: {
+    port: Number(process.env.PW_PORT ?? 4173),
+    strictPort: true,
+  },
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",

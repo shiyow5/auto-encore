@@ -11,6 +11,7 @@ import type { Order } from "../core/sim/types";
 import { loadGameData } from "../data";
 import { SaveStore, MemoryStorage } from "../core/save";
 import "../ui/workshop.css";
+import { playSfx } from "../audio/player";
 import { setQaBusy } from "../ui/qa";
 
 /** 解放状態の保存キー。 */
@@ -74,7 +75,7 @@ export class OrderSelectScene extends Phaser.Scene {
     ov.style.cssText = `
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: monospace;
+      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: var(--ae-font);
     `;
 
     // タイトル
@@ -82,7 +83,7 @@ export class OrderSelectScene extends Phaser.Scene {
     ov.append(
       h(
         "p",
-        { style: "font-size: 10px; color: #8a8090; margin: 0 0 20px;" },
+        { style: "font-size: 12px; color: #8a8090; margin: 0 0 20px;" },
         "夜更けのオルゴール工房",
       ),
     );
@@ -141,7 +142,7 @@ export class OrderSelectScene extends Phaser.Scene {
       h(
         "p",
         {
-          style: "font-size: 9px; color: #666; margin-top: 12px;",
+          style: "font-size: 12px; color: #666; margin-top: 12px;",
         },
         "クリアすると次の注文が解放されます",
       ),
@@ -177,6 +178,7 @@ export class OrderSelectScene extends Phaser.Scene {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
+    playSfx("confirm");
     setQaBusy("transition", true);
     this.scene.start("workshop", { orderId });
   }
