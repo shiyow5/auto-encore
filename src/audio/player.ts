@@ -53,6 +53,8 @@ export function playSfx(name: SfxName): void {
   if (!canPlay()) return;
   const params = SFX[name];
   const play = (e: Engine | null) => {
+    // 読み込み待ちの間に音を切られたら鳴らさない
+    if (!canPlay()) return;
     try {
       e?.zzfx(...params);
     } catch {
