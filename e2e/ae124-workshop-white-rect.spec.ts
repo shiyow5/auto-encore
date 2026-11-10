@@ -25,7 +25,7 @@ test("AE#124: workshop overlay has no white-background elements", async ({ page 
     const overlay = document.getElementById("ws-overlay");
     if (!overlay) return [];
     const elements = overlay.querySelectorAll("*");
-    const whiteElements: {tag: string; bg: string; text: string}[] = [];
+    const whiteElements: { tag: string; bg: string; text: string }[] = [];
     elements.forEach((el) => {
       const cs = window.getComputedStyle(el);
       const bg = cs.backgroundColor;
@@ -33,7 +33,8 @@ test("AE#124: workshop overlay has no white-background elements", async ({ page 
       if (
         bg === "rgb(255, 255, 255)" ||
         bg === "rgba(255, 255, 255, 1)" ||
-        (bg.startsWith("rgb(") || bg.startsWith("rgba("))
+        bg.startsWith("rgb(") ||
+        bg.startsWith("rgba(")
       ) {
         const nums = bg.match(/\d+/g);
         if (nums && nums.length >= 3) {
@@ -58,15 +59,11 @@ test("AE#124: workshop overlay has no white-background elements", async ({ page 
 
   // Verify specific panel backgrounds
   const wsOrder = page.locator(".ws-order");
-  const orderBg = await wsOrder.evaluate((el) =>
-    window.getComputedStyle(el).backgroundColor
-  );
+  const orderBg = await wsOrder.evaluate((el) => window.getComputedStyle(el).backgroundColor);
   expect(orderBg).not.toBe("rgb(255, 255, 255)");
 
   // Verify overlay itself is not white
-  const overlayBg = await overlay.evaluate((el) =>
-    window.getComputedStyle(el).backgroundColor
-  );
+  const overlayBg = await overlay.evaluate((el) => window.getComputedStyle(el).backgroundColor);
   // Overlay is transparent (rgba(0,0,0,0)) which is correct — canvas shows through
   expect(overlayBg).not.toBe("rgb(255, 255, 255)");
 });
@@ -92,12 +89,14 @@ test("AE#124: workshop no white rect at 1280×720", async ({ page }) => {
       const bg = cs.backgroundColor;
       const nums = bg.match(/\d+/g);
       if (nums && nums.length >= 3) {
-      const numsNum = nums.map(Number);
+        const numsNum = nums.map(Number);
         const r = numsNum[0] ?? 0;
         const g = numsNum[1] ?? 0;
         const b = numsNum[2] ?? 0;
         if (r > 240 && g > 240 && b > 240) {
-          result.push(`${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`);
+          result.push(
+            `${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`,
+          );
         }
       }
     });
@@ -127,12 +126,14 @@ test("AE#124: workshop no white rect at 844×390", async ({ page }) => {
       const bg = cs.backgroundColor;
       const nums = bg.match(/\d+/g);
       if (nums && nums.length >= 3) {
-      const numsNum = nums.map(Number);
+        const numsNum = nums.map(Number);
         const r = numsNum[0] ?? 0;
         const g = numsNum[1] ?? 0;
         const b = numsNum[2] ?? 0;
         if (r > 240 && g > 240 && b > 240) {
-          result.push(`${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`);
+          result.push(
+            `${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`,
+          );
         }
       }
     });
@@ -162,12 +163,14 @@ test("AE#124: workshop no white rect at 1920×1080", async ({ page }) => {
       const bg = cs.backgroundColor;
       const nums = bg.match(/\d+/g);
       if (nums && nums.length >= 3) {
-      const numsNum = nums.map(Number);
+        const numsNum = nums.map(Number);
         const r = numsNum[0] ?? 0;
         const g = numsNum[1] ?? 0;
         const b = numsNum[2] ?? 0;
         if (r > 240 && g > 240 && b > 240) {
-          result.push(`${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`);
+          result.push(
+            `${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`,
+          );
         }
       }
     });
