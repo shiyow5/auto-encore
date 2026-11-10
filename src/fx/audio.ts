@@ -7,6 +7,8 @@
  * - 音量は localStorage で保存。デフォルト on。
  */
 
+import { getVolume } from "../audio/volume";
+
 // ---------- 定数 ----------
 
 /** ピッチ (0=do, 1=mi, 2=so) を周波数 (Hz) に変換する純関数。 */
@@ -63,7 +65,12 @@ function getContext(): AudioContext | null {
 /** 現在のミュート状態に合わせて gain を設定する。 */
 function updateGain(): void {
   if (!gainNode) return;
-  gainNode.gain.value = getAudioEnabled() ? 1 : 0;
+  gainNode.gain.value = getAudioEnabled() ? getVolume("sfx") : 0;
+}
+
+/** 音量の設定が変わったときに、鳴らす音符の音量へ反映する。 */
+export function refreshNoteGain(): void {
+  updateGain();
 }
 
 // ---------- 再生 ----------

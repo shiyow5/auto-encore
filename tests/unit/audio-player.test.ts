@@ -38,4 +38,37 @@ describe("player", () => {
     await vi.dynamicImportSettled();
     expect(zzfx).toHaveBeenCalledTimes(1);
   });
+
+  it("SE は SE 音量をかけて鳴らす。0% なら鳴らさない", async () => {
+    const p = await import("../../src/audio/player");
+    const { SFX } = await import("../../src/audio/sounds");
+    p.setVolume("sfx", 50);
+    p.playSfx("click");
+    await vi.dynamicImportSettled();
+    expect(zzfx.mock.calls[0]![0]).toBeCloseTo(SFX.click[0]! * 0.5);
+    zzfx.mockClear();
+    p.setVolume("sfx", 0);
+    p.playSfx("click");
+    expect(zzfx).not.toHaveBeenCalled();
+  });
+
+  it("ミュートしていても音量を上げるとミュートが解ける。音量 0% とミュートは別の設定", async () => {
+    const p = await import("../../src/audio/player");
+    const a = await import("../../src/fx/audio");
+    expect(p.toggleSound()).toBe(false);
+    p.setVolume("sfx", 0);
+    expect(a.isAudioEnabled()).toBe(false);
+    p.setVolume("sfx", 30);
+    expect(a.isAudioEnabled()).toBe(true);
+  });
+
+  it("BGM も SE も 0% のとき「音を出す」で既定の音量に戻る", async () => {
+    const p = await import("../../src/audio/player");
+    const v = await import("../../src/audio/volume");
+    p.toggleSound(); // ミュート
+    v.setVolumePercent("bgm", 0);
+    v.setVolumePercent("sfx", 0);
+    expect(p.toggleSound()).toBe(true);
+    expect(v.getVolumePercent("sfx")).toBe(100);
+  });
 });
