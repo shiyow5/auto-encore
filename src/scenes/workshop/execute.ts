@@ -4,6 +4,7 @@
  * - simulate()（中で step() を止まるまで回す）→ score()（S3 の measure → judge）
  * - 画面に出す文（3指標・止まった理由・メダル）もここで作る（Phaser に依存しないのでユニットテストできる）
  * - binEvents: tick ごとの bin 入り音符（音出し用）。frames[t] の音符が tick t に bin に入ったもの。
+ * - throughputSeries: tick ごとの「出口に届いた音符の累計」（結果画面のグラフ用）。
  */
 import { score, type Medal, type ScoreReport } from "../../core/score";
 import { simulate, type SimState } from "../../core/sim/sim";
@@ -70,6 +71,20 @@ function computeBinEvents(frames: readonly SimState[]): BinEvent[] {
     }
   }
   return events;
+}
+
+/** 結果画面のグラフの1点。value は tick 時点で全出口に届いた音符の累計。 */
+export interface ThroughputPoint {
+  readonly tick: number;
+  readonly value: number;
+}
+
+/** frames から tick ごとの「出口に届いた音符の累計」を作る（frames[0] は tick 0 で 0 個）。 */
+export function throughputSeries(frames: readonly SimState[]): ThroughputPoint[] {
+  return frames.map((f) => ({
+    tick: f.tick,
+    value: f.outputs.reduce((sum, o) => sum + o.received.length, 0),
+  }));
 }
 
 export const STOP_TEXT: Record<StopReason, string> = {
