@@ -43,14 +43,17 @@ export interface FxSpec {
   layer: "back" | "front";
 }
 
+/** 盤面のある画面で、演出レイヤー全体に掛ける不透明度の上限（音符の流れを隠さない）。 */
+export const FX_BOARD_MAX_ALPHA = 0.5;
+
 export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   boot: [{ mod: glitch, x: 160, y: 90, ttl: 0.6, layer: "front" }],
   ambient: [
     { mod: aurora, x: 160, y: 180, layer: "back" },
     { mod: shootingStars, x: 160, y: 180, layer: "back" },
   ],
-  noteCombo: [{ mod: comboCounter, x: 160, y: 20, exclusive: true, layer: "front" }],
-  comboMilestone: [{ mod: confetti, x: 160, y: 100, layer: "front" }],
+  noteCombo: [{ mod: comboCounter, x: 160, y: 160, exclusive: true, layer: "front" }],
+  comboMilestone: [{ mod: confetti, x: 160, y: 156, layer: "front" }],
   songComplete: [
     { mod: confetti, x: 160, y: 100, layer: "front" },
     { mod: keyGlint, x: 284, y: 60, ttl: 2, layer: "front" },
@@ -59,8 +62,8 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
     { mod: coinSpin, x: 36, y: 100, ttl: 1.6, layer: "front" },
     { mod: heartPickup, x: 284, y: 100, ttl: 1.2, layer: "front" },
   ],
-  // 盤面の中央を覆うので、実行の開始時に 1 拍だけ見せる（音符の流れを隠さない）
-  machineRun: [{ mod: energyCore, x: 160, y: 100, ttl: 1.2, layer: "front" }],
+  // 盤面(y 26〜140)の外＝下端の帯に出す。盤面の上に重ねない（Issue #121）
+  machineRun: [{ mod: energyCore, x: 160, y: 190, ttl: 1.2, layer: "front" }],
   placeError: [{ mod: glitch, x: 160, y: 90, ttl: 0.5, layer: "front" }],
   runError: [
     { mod: glitch, x: 160, y: 90, ttl: 0.6, layer: "front" },

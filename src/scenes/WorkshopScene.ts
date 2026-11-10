@@ -41,7 +41,8 @@ import {
   totalCost,
   type WorkshopRules,
 } from "./workshop/placements";
-import { createSceneFx } from "../fx/scene-fx";
+import { createSceneFx, FX_BOARD_MAX_ALPHA } from "../fx/scene-fx";
+import { runningLabel } from "../ui/running-label";
 import type { FxDirector } from "../fx/FxDirector";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
@@ -179,7 +180,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.nextPitchValue = pitchChoices(data.machines, "sorter")[0] ?? 0;
     // audio.ts の共有設定 (ae-audio-enabled) を使用する
 
-    this.fx = createSceneFx(this, "fx-workshop");
+    this.fx = createSceneFx(this, "fx-workshop", { maxAlpha: FX_BOARD_MAX_ALPHA });
     this.fx.emit("ambient");
     this.combo = 0;
     this.gfx = this.add.graphics();
@@ -242,7 +243,7 @@ export class WorkshopScene extends Phaser.Scene {
     duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
-    this.say("実行中…");
+    this.say("");
     this.changed();
   }
 
@@ -271,6 +272,22 @@ export class WorkshopScene extends Phaser.Scene {
     this.redraw();
     setQaState(p.ex.frames[p.frame] ?? null);
     this.overlay.dataset.tick = String(p.frame);
+    this.updateRunButton();
+  }
+
+  /** 実行ボタン。実行中は同じ位置に「実行中…(tick n)」を出し、ボタン自体は「結果へスキップ」。 */
+  private updateRunButton(): void {
+    const p = this.playing;
+    if (!p) {
+      this.runButton.textContent = "実行";
+      this.runButton.removeAttribute("aria-label");
+      this.runButton.removeAttribute("title");
+      return;
+    }
+    // 見た目は「実行中…(tick n)」の1行（ボタンの高さを変えない）。押すと結果へスキップ
+    this.runButton.textContent = `${runningLabel(p.frame)}`;
+    this.runButton.setAttribute("aria-label", "結果へスキップ");
+    this.runButton.title = "結果へスキップ";
   }
 
   private finishPlayback(): void {
@@ -717,7 +734,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.overlay.dataset.placements = String(this.placements.length);
     const running = this.playing !== null;
     this.overlay.dataset.running = String(running);
-    this.runButton.textContent = running ? "結果へスキップ" : "実行";
+    this.updateRunButton();
     for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(".ws-shelf .ws-btn")) {
       b.disabled = running;
     }

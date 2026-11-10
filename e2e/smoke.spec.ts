@@ -187,6 +187,8 @@ test("演出あり: 実行すると音符を tick ごとに動かしてから結
   await expect(page.getByRole("button", { name: "結果へスキップ" })).toBeVisible();
   await expect(page.getByRole("button", { name: /ベルトを選ぶ/ })).toBeDisabled();
   await expect(overlay).toHaveAttribute("data-tick", /^[1-9]/);
+  // Issue #121: 実行中表示は実行ボタンの位置に出る
+  await expect(page.locator(".ws-run")).toHaveText(/^実行中…\(tick \d+\)$/);
   // 18 tick × 110ms ≒ 2秒で結果へ
   await expect(page.locator("body")).toHaveAttribute("data-scene", "result", { timeout: 10_000 });
   await expect(page.getByRole("heading", { name: "結果: アンコール！" })).toBeVisible();

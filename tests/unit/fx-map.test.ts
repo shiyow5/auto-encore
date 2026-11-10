@@ -3,6 +3,8 @@ import { FxDirector } from "../../src/fx/FxDirector";
 import type { FxSink } from "../../src/fx/FxDirector";
 import { FX_MAP } from "../../src/fx/fx-map";
 import type { FxEventName } from "../../src/fx/fx-map";
+import { FX_BOARD_MAX_ALPHA } from "../../src/fx/fx-map";
+import { runningLabel } from "../../src/ui/running-label";
 
 function fakeSink(): FxSink & { play: ReturnType<typeof vi.fn> } {
   return {
@@ -74,5 +76,29 @@ describe("FxDirector", () => {
     expect(front.destroy).toHaveBeenCalledTimes(1);
     expect(d.emit("ambient")).toBe(false);
     expect(back.play).not.toHaveBeenCalled();
+  });
+});
+
+describe("実行中の演出（Issue #121）", () => {
+  // 盤面は内部解像度 320×180 の y=26〜140（WorkshopScene の GRID_Y / 高さ）
+  const BOARD_TOP = 26;
+  const BOARD_BOTTOM = 140;
+
+  it("機械稼働・コンボ・紙吹雪は盤面の外（下端の帯）に出す", () => {
+    for (const n of ["machineRun", "comboMilestone", "noteCombo"] as const) {
+      for (const spec of FX_MAP[n]) {
+        expect(spec.y).toBeGreaterThanOrEqual(BOARD_BOTTOM);
+      }
+    }
+    expect(BOARD_TOP).toBeLessThan(BOARD_BOTTOM);
+  });
+
+  it("盤面のある画面の演出レイヤーは不透明度 50% 以下", () => {
+    expect(FX_BOARD_MAX_ALPHA).toBeLessThanOrEqual(0.5);
+    expect(FX_BOARD_MAX_ALPHA).toBeGreaterThan(0);
+  });
+
+  it("実行中表示は「実行中…(tick n)」", () => {
+    expect(runningLabel(3)).toBe("実行中…(tick 3)");
   });
 });
