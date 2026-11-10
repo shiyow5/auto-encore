@@ -14,7 +14,7 @@ async function waitForFont(): Promise<void> {
   try {
     await Promise.race([
       document.fonts.load('12px "DotGothic16"'),
-      // 5秒超时は失败时的回退（e2e をブロックしない）
+      // 5秒でタイムアウトしたら待たずに進む（e2e をブロックしない）
       new Promise<void>((_res) => setTimeout(_res, 5000)),
     ]);
   } catch {
@@ -35,8 +35,8 @@ export class BootScene extends Phaser.Scene {
     setQaBusy("transition", true); // 工房の create で外す
     this.game.events.emit("ready");
 
-    // フォント読み込みを非同期で待つ（5秒超时でフォールバック）
-    waitForFont();
+    // フォント読み込みを待つ（5秒でタイムアウトしたらフォールバック）
+    await waitForFont();
 
     if (!fxEnabled()) {
       this.scene.start("title");

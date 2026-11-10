@@ -41,7 +41,7 @@ class TitleOverlay {
     ov.append(title);
 
     const subtitle = h("p", {}, "夜更けのオルゴール工房");
-    subtitle.style.cssText = "font-size: 10px; color: #8a8090; margin: 0 0 24px;";
+    subtitle.style.cssText = "font-size: 12px; color: #8a8090; margin: 0 0 24px;";
     ov.append(subtitle);
 
     const btnStart = h("button", {
@@ -102,7 +102,7 @@ class TitleOverlay {
       transform: translate(-50%, -50%);
       background: #1e1722; border: 1px solid #5c4a66;
       padding: 20px; max-width: 300px; color: #e6e6e6;
-      font-size: 11px; line-height: 1.6;
+      font-size: 12px; line-height: 1.6;
     `;
 
     const title = h("h2", {}, "遊び方");
@@ -125,7 +125,7 @@ class TitleOverlay {
     const close = h("button", { type: "button", class: "ws-btn" });
     close.textContent = "閉じる";
     close.style.cssText = `
-      margin-top: 12px; padding: 4px 16px; font-size: 11px;
+      margin-top: 12px; padding: 4px 16px; font-size: 12px;
       background: #3a2f40; color: #e6e6e6; border: 1px solid #5c4a66;
       cursor: pointer;
     `;

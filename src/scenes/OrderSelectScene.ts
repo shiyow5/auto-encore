@@ -82,7 +82,7 @@ export class OrderSelectScene extends Phaser.Scene {
     ov.append(
       h(
         "p",
-        { style: "font-size: 10px; color: #8a8090; margin: 0 0 20px;" },
+        { style: "font-size: 12px; color: #8a8090; margin: 0 0 20px;" },
         "夜更けのオルゴール工房",
       ),
     );
@@ -141,7 +141,7 @@ export class OrderSelectScene extends Phaser.Scene {
       h(
         "p",
         {
-          style: "font-size: 9px; color: #666; margin-top: 12px;",
+          style: "font-size: 12px; color: #666; margin-top: 12px;",
         },
         "クリアすると次の注文が解放されます",
       ),
