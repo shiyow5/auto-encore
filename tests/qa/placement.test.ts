@@ -174,7 +174,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseMachines, parseOrder } from "../../src/core/sim/load";
 import { simulate } from "../../src/core/sim/sim";
-import type { Placement, MachineTable, Order, StopReason } from "../../src/core/sim/types";
+import type { Placement, MachineTable, Order } from "../../src/core/sim/types";
+import type { Point } from "../../src/core/grid";
+import type { SimState } from "../../src/core/sim/sim";
 
 const FIXTURES_DIR = fileURLToPath(new URL("../../", import.meta.url));
 const loadJson = <T>(rel: string): T =>
@@ -194,26 +196,29 @@ function toPlacements(gs: readonly GenPlacement[]): Placement[] {
   return gs as unknown as Placement[];
 }
 
-/** RunOutput.result (SimResult) を SmokeOutcome に変換 */
-function toSmoke(r: { result: StopReason; total: number; matched: number }): SmokeOutcome {
-  return {
-    result: r.result,
-    emitted: r.total,
-    received: r.matched,
-    remaining: r.total - r.matched,
-  };
+/** SimState (シミュ最終状態) から保存則の3数値を独立に実測する。 */
+function measureConservation(
+  s: SimState,
+): Pick<SmokeOutcome, "emitted" | "received" | "remaining"> {
+  const emitted = s.inputs.reduce((sum, st) => sum + st.next, 0);
+  const received = s.outputs.reduce((sum, o) => sum + o.received.length, 0);
+  return { emitted, received, remaining: s.cells.length };
 }
 
 describe("本番検査（本物 simulate）", () => {
+  // 回収箱(bin)は音符を意図的に消し、消えた数は SimState から読めない。
+  // 保存則（入口 = 出口 + 盤上）は bin を置かない盤で検査する。
+  const NO_BIN_INPUT: GenInput = { ...INPUT, machines: MACHINE_IDS.filter((m) => m !== "bin") };
   const sim = (placements: readonly GenPlacement[], _seed: string): SmokeOutcome => {
     const r = simulate(order01, toPlacements(placements), machines);
-    return toSmoke(r.result);
+    const m = measureConservation(r.final);
+    return { ...m, result: r.result.result };
   };
 
   it("本物のシミュ × order-01 の盤で N seed: 例外なし（AE-24）", () => {
     for (let i = 0; i < N; i++) {
       const seed = `ae24-${i}`;
-      const placements = generatePlacements(seed, INPUT);
+      const placements = generatePlacements(seed, NO_BIN_INPUT);
       // 例外なしで呼べることを確認
       expect(() => sim(placements, seed)).not.toThrow();
     }
@@ -223,7 +228,7 @@ describe("本番検査（本物 simulate）", () => {
     const results = new Set<string>();
     for (let i = 0; i < N; i++) {
       const seed = `ae24-${i}`;
-      const placements = generatePlacements(seed, INPUT);
+      const placements = generatePlacements(seed, NO_BIN_INPUT);
       const outcome = sim(placements, seed);
       expect(STOP_REASONS).toContain(outcome.result);
       results.add(outcome.result);
@@ -235,7 +240,7 @@ describe("本番検査（本物 simulate）", () => {
   it("本物のシミュ: 入口の音 = 出口で受けた音 + 盤上に残った音（保存則 AE-24）", () => {
     for (let i = 0; i < N; i++) {
       const seed = `ae24-${i}`;
-      const placements = generatePlacements(seed, INPUT);
+      const placements = generatePlacements(seed, NO_BIN_INPUT);
       const outcome = sim(placements, seed);
       const problems = checkOutcome(outcome);
       expect(problems).toEqual([]);
@@ -243,15 +248,21 @@ describe("本番検査（本物 simulate）", () => {
   });
 
   it("注文3相当（合流機・調律機あり）の盤・機械一覧でも同じ検査（AE-24）", () => {
+    // order-03 のポート（入口・出口）を reserved として予約する
+    const order03Ports: Point[] = [
+      ...order03.inputs.map((i) => i.pos),
+      ...order03.outputs.map((o) => o.pos),
+    ];
     const order01GenInput: GenInput = {
       board: { width: 12, height: 8, blocked: [] },
-      machines: ["belt", "merger", "tuner", "bin"],
+      machines: ["belt", "merger", "tuner"],
       maxPlacements: 20,
-      reserved: [],
+      reserved: order03Ports,
     };
     const sim03 = (placements: readonly GenPlacement[], _seed: string): SmokeOutcome => {
       const r = simulate(order03, toPlacements(placements), machines);
-      return toSmoke(r.result);
+      const m = measureConservation(r.final);
+      return { ...m, result: r.result.result };
     };
     for (let i = 0; i < N; i++) {
       const seed = `ae24-${i}`;
@@ -260,6 +271,27 @@ describe("本番検査（本物 simulate）", () => {
       expect(STOP_REASONS).toContain(outcome.result);
       const problems = checkOutcome(outcome);
       expect(problems).toEqual([]);
+    }
+  });
+
+  it("保存則: 壊した SimState を measureConservation に直接渡すと checkOutcome が違反を返す（AE-24）", () => {
+    const r = simulate(order03, toPlacements([]), machines);
+    const ok = checkOutcome({ result: r.result.result, ...measureConservation(r.final) });
+    expect(ok).toEqual([]);
+    // 受信を1つ減らす
+    const lost = {
+      ...r.final,
+      outputs: r.final.outputs.map((o, i) =>
+        i === 0 ? { ...o, received: o.received.slice(0, -1) } : o,
+      ),
+    } as SimState;
+    // 盤上に音符を1つ足す
+    const extra = { ...r.final, cells: [...r.final.cells, r.final.cells[0]] } as SimState;
+    const broken = [extra, ...(r.final.outputs[0]?.received.length ? [lost] : [])];
+    expect(broken.length).toBeGreaterThan(0);
+    for (const b of broken) {
+      const m = measureConservation(b);
+      expect(checkOutcome({ result: "completed", ...m }).length).toBeGreaterThan(0);
     }
   });
 });

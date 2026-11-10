@@ -41,8 +41,9 @@ import {
   totalCost,
   type WorkshopRules,
 } from "./workshop/placements";
-import { execute, type Execution } from "./workshop/execute";
-import { playNote, initAudio, isAudioEnabled, toggleAudio } from "../fx/audio";
+import { execute, throughputSeries, type Execution } from "./workshop/execute";
+import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
+import { duckBgm, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
@@ -226,6 +227,8 @@ export class WorkshopScene extends Phaser.Scene {
       callback: () => this.advance(),
     });
     this.playing = { ex, frame: 0, timer };
+    playSfx("run");
+    duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
     this.say("実行中…");
@@ -256,6 +259,7 @@ export class WorkshopScene extends Phaser.Scene {
     const p = this.playing;
     if (!p) return;
     p.timer.remove();
+    duckBgm(false);
     this.showResult(p.ex);
   }
 
@@ -265,6 +269,7 @@ export class WorkshopScene extends Phaser.Scene {
       report: ex.report,
       placements: this.placements,
       finalState: ex.frames[ex.frames.length - 1],
+      throughput: throughputSeries(ex.frames),
     };
     setQaBusy("transition", true); // 結果画面の create で外す。play を外す前に立てて隙間を作らない
     setQaBusy("play", false);
@@ -290,6 +295,7 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     this.placements = res.placements;
+    playSfx("place");
     const pitch = hasPitch ? `（音高 ${pitchLabel(this.nextPitchValue)}）` : "";
     this.say(
       `${MACHINE_NAME[this.selected]}を ${pos.x},${pos.y} に${DIR_NAME[this.nextDir]}向きで置いた${pitch}`,
@@ -303,6 +309,7 @@ export class WorkshopScene extends Phaser.Scene {
     const p = pos ? placementAt(this.placements, pos) : undefined;
     if (pos && p && pitchChoices(this.machines, p.machine).length > 0) {
       this.placements = cyclePitchAt(this.placements, this.machines, pos);
+      playSfx("pitch");
       const now = placementAt(this.placements, pos)?.config?.pitch;
       if (now !== undefined) this.say(`${pos.x},${pos.y} の音高を${pitchLabel(now)}にした`);
       this.changed();
@@ -311,6 +318,7 @@ export class WorkshopScene extends Phaser.Scene {
     const choices = pitchChoices(this.machines, "sorter");
     if (choices.length === 0) return;
     this.nextPitchValue = nextPitch(choices, this.nextPitchValue);
+    playSfx("pitch");
     this.say(`次に置く仕分け機の音高: ${pitchLabel(this.nextPitchValue)}`);
     this.changed();
   }
@@ -320,12 +328,14 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.playing) return;
     if (pos && placementAt(this.placements, pos)) {
       this.placements = rotateAt(this.placements, pos);
+      playSfx("rotate");
       const p = placementAt(this.placements, pos);
       this.say(`${pos.x},${pos.y} を${DIR_NAME[p?.dir ?? "E"]}向きにした`);
       this.changed();
       return;
     }
     this.nextDir = rotateCW(this.nextDir);
+    playSfx("rotate");
     this.say(`次に置く向き: ${DIR_NAME[this.nextDir]}`);
     this.changed();
   }
@@ -334,6 +344,7 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.playing) return;
     if (!placementAt(this.placements, pos)) return;
     this.placements = removeAt(this.placements, pos);
+    playSfx("remove");
     this.say(`${pos.x},${pos.y} の機械を消した`);
     this.changed();
   }
@@ -342,6 +353,7 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.playing) return;
     if (this.placements.length === 0) return;
     this.placements = [];
+    playSfx("clear");
     this.say("全部消した");
     this.changed();
   }
@@ -352,6 +364,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private say(text: string, error = false): void {
+    if (error) playSfx("error");
     this.status.textContent = text;
     this.status.classList.toggle("ws-error", error);
   }
@@ -573,10 +586,11 @@ export class WorkshopScene extends Phaser.Scene {
       );
     }
     const list = h("ul", {});
+    // Issue #49: 座標文字は出さず、マス目上の入口・出口の記号（矢印）で示す
     for (const i of this.order.inputs)
-      list.append(h("li", {}, `入口 ${i.id}: ${i.pos.x},${i.pos.y}`));
+      list.append(h("li", {}, `入口 ${i.id} ${DIR_ARROW[i.dir]}（${DIR_NAME[i.dir]}へ出す）`));
     for (const o of this.order.outputs)
-      list.append(h("li", {}, `出口 ${o.id}: ${o.pos.x},${o.pos.y}`));
+      list.append(h("li", {}, `出口 ${o.id} ${DIR_ARROW[o.dir]}（${DIR_NAME[o.dir]}向き）`));
     card.append(list);
     this.costText = h("p", { "aria-label": "配置の合計" });
     card.append(this.costText);
@@ -710,7 +724,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private toggleMute(): void {
-    const enabled = toggleAudio();
+    const enabled = toggleSound();
     this.muteButton.textContent = enabled ? "🔊" : "🔇";
     this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
     this.say(enabled ? "音をオンにした" : "音を切った");
@@ -719,6 +733,7 @@ export class WorkshopScene extends Phaser.Scene {
   private teardown(): void {
     this.playing?.timer.remove();
     this.playing = null;
+    duckBgm(false);
     setQaBusy("play", false);
     setQaBusy("fade", false);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);

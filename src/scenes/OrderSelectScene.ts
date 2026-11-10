@@ -11,6 +11,7 @@ import type { Order } from "../core/sim/types";
 import { loadGameData } from "../data";
 import { SaveStore, MemoryStorage } from "../core/save";
 import "../ui/workshop.css";
+import { playSfx } from "../audio/player";
 import { setQaBusy } from "../ui/qa";
 
 /** 解放状態の保存キー。 */
@@ -177,6 +178,7 @@ export class OrderSelectScene extends Phaser.Scene {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
+    playSfx("confirm");
     setQaBusy("transition", true);
     this.scene.start("workshop", { orderId });
   }

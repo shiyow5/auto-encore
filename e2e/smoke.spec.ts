@@ -40,6 +40,11 @@ test("?fx=0: 入口・出口が見え、ベルトを置く・回す・消す", a
   await expect(grid.getByRole("button")).toHaveCount(96);
   await expect(page.getByRole("button", { name: "マス 0,3: 入口 A" })).toBeVisible();
   await expect(page.getByRole("button", { name: "マス 11,3: 出口 OUT" })).toBeVisible();
+  // Issue #49: 注文票の入口・出口に座標文字（「0,3」など）を出さない
+  const orderCard = page.locator(".ws-order");
+  await expect(orderCard.getByText("入口 A", { exact: false })).toBeVisible();
+  await expect(orderCard.getByText("出口 OUT", { exact: false })).toBeVisible();
+  expect(await orderCard.innerText()).not.toMatch(/\d+\s*,\s*\d+/);
   await expect(page.getByRole("button", { name: /ベルトを選ぶ/ })).toHaveAttribute(
     "aria-pressed",
     "true",

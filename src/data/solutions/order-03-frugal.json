@@ -107,8 +107,8 @@
   "expected": {
     "result": "completed",
     "accuracy": 100,
-    "ticks": 33,
+    "ticks": 41,
     "cost": 42,
-    "finalHash": "c7f8d03515b14964"
+    "finalHash": "67809e04cf032879"
   }
 }
