@@ -37,7 +37,10 @@ test("AE#124: workshop overlay has no white-background elements", async ({ page 
       ) {
         const nums = bg.match(/\d+/g);
         if (nums && nums.length >= 3) {
-          const [r, g, b] = nums.map(Number);
+          const numsNum = nums.map(Number);
+          const r = numsNum[0] ?? 0;
+          const g = numsNum[1] ?? 0;
+          const b = numsNum[2] ?? 0;
           if (r > 240 && g > 240 && b > 240) {
             whiteElements.push({
               tag: el.tagName.toLowerCase(),
@@ -89,7 +92,10 @@ test("AE#124: workshop no white rect at 1280×720", async ({ page }) => {
       const bg = cs.backgroundColor;
       const nums = bg.match(/\d+/g);
       if (nums && nums.length >= 3) {
-        const [r, g, b] = nums.map(Number);
+      const numsNum = nums.map(Number);
+        const r = numsNum[0] ?? 0;
+        const g = numsNum[1] ?? 0;
+        const b = numsNum[2] ?? 0;
         if (r > 240 && g > 240 && b > 240) {
           result.push(`${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`);
         }
@@ -121,7 +127,10 @@ test("AE#124: workshop no white rect at 844×390", async ({ page }) => {
       const bg = cs.backgroundColor;
       const nums = bg.match(/\d+/g);
       if (nums && nums.length >= 3) {
-        const [r, g, b] = nums.map(Number);
+      const numsNum = nums.map(Number);
+        const r = numsNum[0] ?? 0;
+        const g = numsNum[1] ?? 0;
+        const b = numsNum[2] ?? 0;
         if (r > 240 && g > 240 && b > 240) {
           result.push(`${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`);
         }
@@ -153,7 +162,10 @@ test("AE#124: workshop no white rect at 1920×1080", async ({ page }) => {
       const bg = cs.backgroundColor;
       const nums = bg.match(/\d+/g);
       if (nums && nums.length >= 3) {
-        const [r, g, b] = nums.map(Number);
+      const numsNum = nums.map(Number);
+        const r = numsNum[0] ?? 0;
+        const g = numsNum[1] ?? 0;
+        const b = numsNum[2] ?? 0;
         if (r > 240 && g > 240 && b > 240) {
           result.push(`${el.tagName.toLowerCase()} bg=${bg} text="${el.textContent?.trim().substring(0, 30)}"`);
         }
