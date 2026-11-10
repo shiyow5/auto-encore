@@ -7,7 +7,7 @@
     "name": "小暮店長"
   },
   "texts": {
-    "intro": "ドとミと、ミを上げたソを、ド・ソ・ミ・ソの順で一本にまとめてほしいんだ。",
+    "intro": "ドとミと、ミを上げたソを、ド・ソ・ミ・ソの順で四回まとめて、そのあとソを八つ続けてほしいんだ。",
     "tutorial": "合流機は左右から受けた音を前へ出します。同時に来たら交互、片方だけならそのまま通します。調律機は音を1段上げます（ミ→ソ）。",
     "result": {
       "encore": "きれいに並んだ。これで開店できる。",
@@ -27,7 +27,7 @@
       "dir": "S",
       "emit": {
         "interval": 1,
-        "notes": ["do:short", "do:short", "do:short", "do:short", "do:short", "do:short"]
+        "notes": ["do:short", "do:short", "do:short", "do:short"]
       }
     },
     {
@@ -36,7 +36,7 @@
       "dir": "N",
       "emit": {
         "interval": 1,
-        "notes": ["mi:short", "mi:short", "mi:short", "mi:short", "mi:short", "mi:short"]
+        "notes": ["mi:short", "mi:short", "mi:short", "mi:short"]
       }
     },
     {
@@ -45,7 +45,16 @@
       "dir": "S",
       "emit": {
         "interval": 1,
-        "notes": ["mi:short", "mi:short", "mi:short", "mi:short", "mi:short", "mi:short"]
+        "notes": [
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short"
+        ]
       }
     },
     {
@@ -54,7 +63,16 @@
       "dir": "N",
       "emit": {
         "interval": 1,
-        "notes": ["mi:short", "mi:short", "mi:short", "mi:short", "mi:short", "mi:short"]
+        "notes": [
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short",
+          "mi:short"
+        ]
       }
     }
   ],
@@ -80,13 +98,13 @@
         "so:short",
         "mi:short",
         "so:short",
-        "do:short",
         "so:short",
-        "mi:short",
         "so:short",
-        "do:short",
         "so:short",
-        "mi:short",
+        "so:short",
+        "so:short",
+        "so:short",
+        "so:short",
         "so:short"
       ]
     }
@@ -103,13 +121,13 @@
       "unit": "percent"
     },
     "ticks": {
-      "gold": 30,
-      "silver": 33,
-      "bronze": 40
+      "gold": 33,
+      "silver": 41,
+      "bronze": 50
     },
     "cost": {
-      "gold": 38,
-      "silver": 45,
+      "gold": 42,
+      "silver": 49,
       "bronze": 55
     },
     "passRule": "all-bronze-or-better",

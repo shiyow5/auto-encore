@@ -41,11 +41,27 @@ suite("注文3（入口 A・B・C1・C2）の参照解（Issue #4）", () => {
     expect(count("solutions/order-03-speed.json")).toBe(2);
   });
 
-  it("手抜き型（調律機なし）は不合格（正確さ 50% < 銅 80%）", () => {
+  it("案A: 倹約型は tick 銀（41）・コスト金（42）、速度型は tick 金（33）・コスト銀（49）", () => {
+    const run = (ref: string) =>
+      simulate(order, load(join(SRC, ref), ref).placements, machines).result;
+    const frugal = run("solutions/order-03-frugal.json");
+    const speed = run("solutions/order-03-speed.json");
+    const t = order.scoring.ticks;
+    const c = order.scoring.cost;
+    expect(frugal.ticks).toBe(41);
+    expect(frugal.ticks).toBeLessThanOrEqual(t.silver);
+    expect(frugal.ticks).toBeGreaterThan(t.gold);
+    expect(frugal.cost).toBeLessThanOrEqual(c.gold);
+    expect(speed.ticks).toBeLessThanOrEqual(t.gold);
+    expect(speed.cost).toBeGreaterThan(c.gold);
+    expect(speed.cost).toBeLessThanOrEqual(c.silver);
+  });
+
+  it("手抜き型（調律機なし）は不合格（正確さ 33% < 銅 80%）", () => {
     const p = join(FIX, "solutions-fail/order-03-no-tuner.json");
     const sol = load(p, "order-03-no-tuner.json");
     const { result } = simulate(order, sol.placements, machines);
-    expect(accuracyPercent(result)).toBe(50);
+    expect(accuracyPercent(result)).toBe(33);
     expect(accuracyPercent(result)).toBeLessThan(order.scoring.accuracy.bronze);
   });
 
