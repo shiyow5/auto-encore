@@ -10,7 +10,12 @@ import { PixelFxLayer } from "./PixelFxLayer";
  * ?fx=0 のときは canvas も作らない。途中で「視差効果を減らす」にされたら再生中のものを止める。
  */
 export function createSceneFx(scene: Phaser.Scene, keyPrefix: string): FxDirector {
-  if (!fxEnabled()) return new FxDirector(null, fxEnabled, playSfx);
+  if (!fxEnabled()) {
+    // 音だけの FxDirector でも、シーンを離れたら予約中の SE（medal の遅延再生など）を止める
+    const soundOnly = new FxDirector(null, fxEnabled, playSfx);
+    scene.events.once("shutdown", () => soundOnly.dispose());
+    return soundOnly;
+  }
   const back = new PixelFxLayer(scene, `${keyPrefix}-back`, GAME_WIDTH, GAME_HEIGHT);
   back.sprite.setDepth(-10);
   const front = new PixelFxLayer(scene, `${keyPrefix}-front`, GAME_WIDTH, GAME_HEIGHT);

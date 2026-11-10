@@ -71,4 +71,17 @@ describe("player", () => {
     expect(p.toggleSound()).toBe(true);
     expect(v.getVolumePercent("sfx")).toBe(100);
   });
+
+  it("ミュートしていないのに BGM も SE も 0% なら、1回の操作で既定の音量に戻って鳴る", async () => {
+    const p = await import("../../src/audio/player");
+    const v = await import("../../src/audio/volume");
+    const a = await import("../../src/fx/audio");
+    v.setVolumePercent("bgm", 0);
+    v.setVolumePercent("sfx", 0);
+    expect(a.isAudioEnabled()).toBe(true);
+    expect(p.toggleSound()).toBe(true);
+    expect(a.isAudioEnabled()).toBe(true);
+    expect(v.getVolumePercent("bgm")).toBe(100);
+    expect(v.getVolumePercent("sfx")).toBe(100);
+  });
 });

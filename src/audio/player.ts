@@ -124,9 +124,11 @@ export function duckBgm(on: boolean): void {
 
 /** 音のオン/オフを切り替える。戻り値は切り替え後に音が出るか。 */
 export function toggleSound(): boolean {
-  const enabled = toggleAudio();
-  // 音量がどちらも 0% のまま「音を出す」にしても無音になるので、既定の音量に戻す
-  if (enabled && isSilentByVolume()) {
+  // ミュートしていないのに BGM/SE とも 0% なら、実際は無音。1回のクリックで既定の音量に戻して鳴る状態にする
+  // （そのまま切り替えるとミュートになり、2回押さないと鳴らない）
+  const silentByVolume = isAudioEnabled() && isSilentByVolume();
+  const enabled = silentByVolume ? true : toggleAudio();
+  if (silentByVolume || (enabled && isSilentByVolume())) {
     setVolumePercent("bgm", VOLUME_DEFAULT);
     setVolumePercent("sfx", VOLUME_DEFAULT);
   }
