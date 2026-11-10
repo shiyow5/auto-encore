@@ -68,12 +68,11 @@
    - PR 経由で main にマージ → deploy-pages.yml が自動的に再デプロイを実行
 
 2. **workflow_dispatch による再実行**
-   - 直前の正常な build artifact が残っている場合、deploy-pages.yml を `workflow_dispatch` で再実行
-   - 最新コミットから build し直す必要がある場合、revert 不要な場合もある
+   - deploy-pages.yml は `workflow_dispatch` で手動実行可能。main ブランチから再ビルド・再デプロイを実行する（ref 選択は不可）。ロールバックは主に revert PR 経由で行う
 
 ### Nightly 実行の再実行
 
-- nightly.yml の `workflow_dispatch` で手動再実行可能（seeds 入力も可选）
+- nightly.yml の `workflow_dispatch` で手動再実行可能（seeds 入力は任意）
 - cron での再実行を待つ必要はない
 
 ### main-guard について
