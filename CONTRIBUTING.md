@@ -1,5 +1,13 @@
 # 開発の進め方（運用ルール）
 
+## 手元の e2e 実行
+
+並行して別の preview を起動している場合（例: 別の作業ディレクトリで `npm run preview` が動いている）、ポートが被らないよう `PW_PORT` で e2e の preview ポートを変更してください。
+
+```
+PW_PORT=4611 npx playwright test
+```
+
 ## main への変更
 
 1. `main` から作業ブランチを切る（例: `feat/floor-1`, `fix/save-corrupt`）
