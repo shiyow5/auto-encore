@@ -83,7 +83,7 @@ v1.0 で 11/25〜12/01 に置いていた「表示・ドット絵の置き換え
 | shingo | SE・BGM（〜11/10）→ 中身の量・メダル保存（11/25〜）    |
 | toru   | レビュー・マージ、型の差とチュートリアル（11/18〜）    |
 | nodoka | #70（〜11/11）→ QA の残り（11/18〜）                   |
-| enishi | #36（〜11/11）→ 11/12〜 DuelMasters-AI へ移る |
+| enishi | #36（〜11/11）→ 11/12〜 DuelMasters-AI へ移る          |
 | nagi   | #44 セキュリティ（〜11/11）                            |
 
 DuelMasters-AI と人が重ならないよう、3プロジェクト共通の担当表（社内 `common_knowledge/shared/assignment-board.md`）で管理する。
