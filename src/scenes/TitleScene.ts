@@ -5,6 +5,7 @@
  * - 「はじめる」→ orders 画面へ遷移 (`this.scene.start("orders")`)
  * - 「遊び方」→ モーダルで操作説明を表示
  */
+import { createSceneFx } from "../fx/scene-fx";
 import Phaser from "phaser";
 
 import { TITLE } from "./BootScene";
@@ -80,9 +81,14 @@ class TitleOverlay {
   }
 
   private goToOrders(): void {
-    const game = (window as unknown as { __game?: { scene: { start: (s: string) => void } } })
-      .__game;
+    const game = (
+      window as unknown as {
+        __game?: { scene: { start: (s: string) => void; stop: (s: string) => void } };
+      }
+    ).__game;
     if (game?.scene) {
+      // title を止めないと背景の演出レイヤーが裏で動き続けて次の画面に透ける
+      game.scene.stop("title");
       game.scene.start("orders");
     }
   }
@@ -153,6 +159,7 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     document.body.dataset.scene = "title";
+    createSceneFx(this, "fx-title").emit("ambient");
 
     const gameEl = document.getElementById("game") ?? document.body;
     this.overlay.attach(gameEl);

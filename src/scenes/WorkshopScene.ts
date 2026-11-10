@@ -41,6 +41,8 @@ import {
   totalCost,
   type WorkshopRules,
 } from "./workshop/placements";
+import { createSceneFx } from "../fx/scene-fx";
+import type { FxDirector } from "../fx/FxDirector";
 import { execute, type Execution } from "./workshop/execute";
 import { playNote, initAudio, isAudioEnabled, toggleAudio } from "../fx/audio";
 import type { ResultData } from "./ResultScene";
@@ -141,6 +143,9 @@ export class WorkshopScene extends Phaser.Scene {
   private pointerPressing = false;
 
   private gfx!: Phaser.GameObjects.Graphics;
+  private fx?: FxDirector;
+  /** 再生中に bin へ入った音符の数（combo 表示用） */
+  private combo = 0;
   private overlay!: HTMLElement;
   private cells: HTMLButtonElement[] = [];
   private status!: HTMLElement;
@@ -173,6 +178,9 @@ export class WorkshopScene extends Phaser.Scene {
     this.nextPitchValue = pitchChoices(data.machines, "sorter")[0] ?? 0;
     // audio.ts の共有設定 (ae-audio-enabled) を使用する
 
+    this.fx = createSceneFx(this, "fx-workshop");
+    this.fx.emit("ambient");
+    this.combo = 0;
     this.gfx = this.add.graphics();
     this.buildOverlay();
     this.redraw();
@@ -212,6 +220,7 @@ export class WorkshopScene extends Phaser.Scene {
       ex = execute(this.order, this.machines, this.placements);
     } catch (e) {
       this.say(`✕ 実行できない: ${e instanceof Error ? e.message : String(e)}`, true);
+      this.fx?.emit("runError");
       return;
     }
     if (!fxEnabled() || ex.frames.length <= 1) {
@@ -226,6 +235,8 @@ export class WorkshopScene extends Phaser.Scene {
       callback: () => this.advance(),
     });
     this.playing = { ex, frame: 0, timer };
+    this.combo = 0;
+    this.fx?.emit("machineRun");
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
     this.say("実行中…");
@@ -240,6 +251,13 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     p.frame++;
+    // bin に入った音符を数えて combo 表示（4つごとに紙吹雪）
+    for (const ev of p.ex.binEvents) {
+      if (ev.tick !== p.frame) continue;
+      this.combo++;
+      this.fx?.emit("noteCombo", this.combo, { count: this.combo });
+      if (this.combo % 4 === 0) this.fx?.emit("comboMilestone", this.combo);
+    }
     // bin に入った音符を鳴らす
     if (isAudioEnabled()) {
       const events = p.ex.binEvents.filter((ev) => ev.tick === p.frame);
@@ -256,6 +274,7 @@ export class WorkshopScene extends Phaser.Scene {
     const p = this.playing;
     if (!p) return;
     p.timer.remove();
+    this.fx?.stop("machineRun");
     this.showResult(p.ex);
   }
 
@@ -287,6 +306,7 @@ export class WorkshopScene extends Phaser.Scene {
     );
     if (!res.ok) {
       this.say(`✕ ${res.error}`, true);
+      this.fx?.emit("placeError");
       return;
     }
     this.placements = res.placements;

@@ -11,6 +11,7 @@ import type { SimState } from "../core/sim/sim";
 import type { Order, Placement } from "../core/sim/types";
 import { loadGameData } from "../data";
 import { SaveStore, MemoryStorage } from "../core/save";
+import { createSceneFx } from "../fx/scene-fx";
 import { fxEnabled } from "../ui/flags";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
@@ -44,6 +45,19 @@ function h<K extends keyof HTMLElementTagNameMap>(
 
 export class ResultScene extends Phaser.Scene {
   private overlay?: HTMLElement;
+
+  /** 合格なら祝い、止まった（不合格）ならエラー演出。メダルが 1 つでもあれば取得演出。 */
+  private playFx(report: ScoreReport, verdict: string): void {
+    const fx = createSceneFx(this, "fx-result");
+    if (!report.passed) {
+      fx.emit("runError", verdict.length);
+      return;
+    }
+    fx.emit("result");
+    fx.emit("songComplete");
+    const medals = Object.values(report.medals);
+    if (medals.some((m) => m !== "none")) fx.emit("medalEarned");
+  }
 
   constructor() {
     super("result");
@@ -150,6 +164,7 @@ export class ResultScene extends Phaser.Scene {
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => setQaBusy("fade", false));
       this.cameras.main.fadeIn(200, 30, 23, 34);
     }
+    this.playFx(report, verdict);
     document.body.dataset.scene = "result";
     setQaBusy("transition", false);
   }
