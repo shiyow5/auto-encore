@@ -41,10 +41,12 @@ import {
   totalCost,
   type WorkshopRules,
 } from "./workshop/placements";
+import { createSceneFx } from "../fx/scene-fx";
+import type { FxDirector } from "../fx/FxDirector";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import { iconCanvas, portTexture, registerTextures } from "../art/sprites";
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
-import { duckBgm, playSfx, toggleSound } from "../audio/player";
+import { duckBgm, onSoundToggle, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
@@ -136,6 +138,9 @@ export class WorkshopScene extends Phaser.Scene {
   private gfx!: Phaser.GameObjects.Graphics;
   /** 盤面のドット絵（床・機械・入口/出口）。再描画のたびに作り直す。gfx（線・矢印・音符）より下に置く。 */
   private tiles: Phaser.GameObjects.Image[] = [];
+  private fx?: FxDirector;
+  /** 再生中に bin へ入った音符の数（combo 表示用） */
+  private combo = 0;
   private overlay!: HTMLElement;
   private cells: HTMLButtonElement[] = [];
   private status!: HTMLElement;
@@ -143,6 +148,7 @@ export class WorkshopScene extends Phaser.Scene {
   private dirButton!: HTMLButtonElement;
   private pitchButton!: HTMLButtonElement;
   private muteButton!: HTMLButtonElement;
+  private unsubSound: (() => void) | null = null;
   private runButton!: HTMLButtonElement;
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
@@ -169,6 +175,9 @@ export class WorkshopScene extends Phaser.Scene {
     // audio.ts の共有設定 (ae-audio-enabled) を使用する
 
     registerTextures(this.textures);
+    this.fx = createSceneFx(this, "fx-workshop");
+    this.fx.emit("ambient");
+    this.combo = 0;
     this.gfx = this.add.graphics().setDepth(5);
     this.buildOverlay();
     this.redraw();
@@ -208,6 +217,7 @@ export class WorkshopScene extends Phaser.Scene {
       ex = execute(this.order, this.machines, this.placements);
     } catch (e) {
       this.say(`✕ 実行できない: ${e instanceof Error ? e.message : String(e)}`, true);
+      this.fx?.emit("runError");
       return;
     }
     if (!fxEnabled() || ex.frames.length <= 1) {
@@ -222,6 +232,8 @@ export class WorkshopScene extends Phaser.Scene {
       callback: () => this.advance(),
     });
     this.playing = { ex, frame: 0, timer };
+    this.combo = 0;
+    this.fx?.emit("machineRun");
     playSfx("run");
     duckBgm(true);
     setQaBusy("play", true);
@@ -238,6 +250,13 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     p.frame++;
+    // bin に入った音符を数えて combo 表示（4つごとに紙吹雪）
+    for (const ev of p.ex.binEvents) {
+      if (ev.tick !== p.frame) continue;
+      this.combo++;
+      this.fx?.emit("noteCombo", this.combo, { count: this.combo });
+      if (this.combo % 4 === 0) this.fx?.emit("comboMilestone", this.combo);
+    }
     // bin に入った音符を鳴らす
     if (isAudioEnabled()) {
       const events = p.ex.binEvents.filter((ev) => ev.tick === p.frame);
@@ -254,6 +273,7 @@ export class WorkshopScene extends Phaser.Scene {
     const p = this.playing;
     if (!p) return;
     p.timer.remove();
+    this.fx?.stop("machineRun");
     duckBgm(false);
     this.showResult(p.ex);
   }
@@ -287,6 +307,7 @@ export class WorkshopScene extends Phaser.Scene {
     );
     if (!res.ok) {
       this.say(`✕ ${res.error}`, true);
+      this.fx?.emit("placeError");
       return;
     }
     this.placements = res.placements;
@@ -505,6 +526,8 @@ export class WorkshopScene extends Phaser.Scene {
     this.setMuteLabel(isAudioEnabled());
     this.muteButton.addEventListener("click", () => this.toggleMute());
     shelf.append(this.muteButton);
+    // スライダーでの自動ミュート解除など、このボタン以外で音のオン/オフが変わっても表示を合わせる
+    this.unsubSound = onSoundToggle((on) => this.syncMuteButton(on));
     const clear = h(
       "button",
       { type: "button", class: "ws-btn", "aria-label": "配置を全部消す" },
@@ -734,7 +757,14 @@ export class WorkshopScene extends Phaser.Scene {
     this.say(enabled ? "音をオンにした" : "音を切った");
   }
 
+  private syncMuteButton(enabled: boolean): void {
+    this.setMuteLabel(enabled);
+    this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
+  }
+
   private teardown(): void {
+    this.unsubSound?.();
+    this.unsubSound = null;
     this.playing?.timer.remove();
     this.playing = null;
     duckBgm(false);
