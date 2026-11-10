@@ -174,14 +174,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseMachines, parseOrder } from "../../src/core/sim/load";
 import { simulate } from "../../src/core/sim/sim";
-import type {
-  Placement,
-  MachineTable,
-  Order,
-  StopReason,
-  SimState,
-} from "../../src/core/sim/types";
+import type { Placement, MachineTable, Order, StopReason } from "../../src/core/sim/types";
 import type { Point } from "../../src/core/grid";
+import type { SimState } from "../../src/core/sim/sim";
 
 const FIXTURES_DIR = fileURLToPath(new URL("../../", import.meta.url));
 const loadJson = <T>(rel: string): T =>
@@ -203,8 +198,8 @@ function toPlacements(gs: readonly GenPlacement[]): Placement[] {
 
 /** SimState (シミュ最終状態) から保存則の数値を実測する。 */
 function measureConservation(s: SimState): SmokeOutcome {
-  const emitted = s.inputs.reduce((sum, st) => sum + st.next, 0);
-  const received = s.outputs.reduce((sum, o) => sum + o.received.length, 0);
+  const emitted = s.inputs.reduce((sum: number, st: { next: number }) => sum + st.next, 0);
+  const received = s.outputs.reduce((sum: number, o: { received: readonly unknown[] }) => sum + o.received.length, 0);
   return {
     result: "completed" as StopReason, // 呼ぶ側で result を上書きする
     emitted,
