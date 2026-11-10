@@ -199,7 +199,10 @@ function toPlacements(gs: readonly GenPlacement[]): Placement[] {
 /** SimState (シミュ最終状態) から保存則の数値を実測する。 */
 function measureConservation(s: SimState): SmokeOutcome {
   const emitted = s.inputs.reduce((sum: number, st: { next: number }) => sum + st.next, 0);
-  const received = s.outputs.reduce((sum: number, o: { received: readonly unknown[] }) => sum + o.received.length, 0);
+  const received = s.outputs.reduce(
+    (sum: number, o: { received: readonly unknown[] }) => sum + o.received.length,
+    0,
+  );
   return {
     result: "completed" as StopReason, // 呼ぶ側で result を上書きする
     emitted,
