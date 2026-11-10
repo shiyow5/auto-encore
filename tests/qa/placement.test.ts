@@ -174,7 +174,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseMachines, parseOrder } from "../../src/core/sim/load";
 import { simulate } from "../../src/core/sim/sim";
-import type { Placement, MachineTable, Order, StopReason } from "../../src/core/sim/types";
+import type {
+  Placement,
+  MachineTable,
+  Order,
+  StopReason,
+  SimState,
+} from "../../src/core/sim/types";
+import type { Point } from "../../src/core/grid";
 
 const FIXTURES_DIR = fileURLToPath(new URL("../../", import.meta.url));
 const loadJson = <T>(rel: string): T =>
@@ -194,20 +201,23 @@ function toPlacements(gs: readonly GenPlacement[]): Placement[] {
   return gs as unknown as Placement[];
 }
 
-/** RunOutput.result (SimResult) を SmokeOutcome に変換 */
-function toSmoke(r: { result: StopReason; total: number; matched: number }): SmokeOutcome {
+/** SimState (シミュ最終状態) から保存則の数値を実測する。 */
+function measureConservation(s: SimState): SmokeOutcome {
+  const emitted = s.inputs.reduce((sum, st) => sum + st.next, 0);
+  const received = s.outputs.reduce((sum, o) => sum + o.received.length, 0);
   return {
-    result: r.result,
-    emitted: r.total,
-    received: r.matched,
-    remaining: r.total - r.matched,
+    result: "completed" as StopReason, // 呼ぶ側で result を上書きする
+    emitted,
+    received,
+    remaining: emitted - received,
   };
 }
 
 describe("本番検査（本物 simulate）", () => {
   const sim = (placements: readonly GenPlacement[], _seed: string): SmokeOutcome => {
     const r = simulate(order01, toPlacements(placements), machines);
-    return toSmoke(r.result);
+    const m = measureConservation(r.final);
+    return { ...m, result: r.result.result };
   };
 
   it("本物のシミュ × order-01 の盤で N seed: 例外なし（AE-24）", () => {
@@ -243,15 +253,24 @@ describe("本番検査（本物 simulate）", () => {
   });
 
   it("注文3相当（合流機・調律機あり）の盤・機械一覧でも同じ検査（AE-24）", () => {
+    // order-03 のポート（入口・出口）を reserved として予約する
+    const order03Ports: Point[] = [
+      { x: 5, y: 0 }, // 入力A
+      { x: 5, y: 2 }, // 入力B
+      { x: 4, y: 1 }, // 入力C1
+      { x: 4, y: 7 }, // 入力C2
+      { x: 11, y: 4 }, // 出力OUT
+    ];
     const order01GenInput: GenInput = {
       board: { width: 12, height: 8, blocked: [] },
       machines: ["belt", "merger", "tuner", "bin"],
       maxPlacements: 20,
-      reserved: [],
+      reserved: order03Ports,
     };
     const sim03 = (placements: readonly GenPlacement[], _seed: string): SmokeOutcome => {
       const r = simulate(order03, toPlacements(placements), machines);
-      return toSmoke(r.result);
+      const m = measureConservation(r.final);
+      return { ...m, result: r.result.result };
     };
     for (let i = 0; i < N; i++) {
       const seed = `ae24-${i}`;
