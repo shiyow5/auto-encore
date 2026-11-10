@@ -606,10 +606,11 @@ export class WorkshopScene extends Phaser.Scene {
       );
     }
     const list = h("ul", {});
+    // Issue #49: 座標文字は出さず、マス目上の入口・出口の記号（矢印）で示す
     for (const i of this.order.inputs)
-      list.append(h("li", {}, `入口 ${i.id}: ${i.pos.x},${i.pos.y}`));
+      list.append(h("li", {}, `入口 ${i.id} ${DIR_ARROW[i.dir]}（${DIR_NAME[i.dir]}へ出す）`));
     for (const o of this.order.outputs)
-      list.append(h("li", {}, `出口 ${o.id}: ${o.pos.x},${o.pos.y}`));
+      list.append(h("li", {}, `出口 ${o.id} ${DIR_ARROW[o.dir]}（${DIR_NAME[o.dir]}向き）`));
     card.append(list);
     this.costText = h("p", { "aria-label": "配置の合計" });
     card.append(this.costText);

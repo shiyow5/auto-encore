@@ -75,7 +75,7 @@ export class OrderSelectScene extends Phaser.Scene {
     ov.style.cssText = `
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: var(--ae-font);
+      background: rgba(15, 12, 20, 0.95); color: var(--ae-text); font-family: var(--ae-font);
     `;
 
     // タイトル
@@ -83,7 +83,7 @@ export class OrderSelectScene extends Phaser.Scene {
     ov.append(
       h(
         "p",
-        { style: "font-size: 12px; color: #8a8090; margin: 0 0 20px;" },
+        { style: "font-size: 12px; color: var(--ae-text-weak); margin: 0 0 20px;" },
         "夜更けのオルゴール工房",
       ),
     );
@@ -142,7 +142,7 @@ export class OrderSelectScene extends Phaser.Scene {
       h(
         "p",
         {
-          style: "font-size: 12px; color: #666; margin-top: 12px;",
+          style: "font-size: 12px; color: var(--ae-text-weak); margin-top: 12px;",
         },
         "クリアすると次の注文が解放されます",
       ),

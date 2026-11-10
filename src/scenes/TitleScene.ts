@@ -28,13 +28,13 @@ class TitleOverlay {
   private el!: HTMLDivElement;
   private modal: HTMLDivElement | null = null;
 
-  attach(parent: HTMLElement): void {
+  attach(parent: HTMLElement, onStart: () => void): void {
     document.getElementById("title-overlay")?.remove();
     const ov = h("div", { id: "title-overlay", "data-scene": "title" });
     ov.style.cssText = `
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(11, 13, 18, 0.95); color: #e6e6e6; font-family: var(--ae-font);
+      background: rgba(15, 12, 20, 0.95); color: var(--ae-text); font-family: var(--ae-font);
       z-index: 100;
     `;
 
@@ -43,7 +43,7 @@ class TitleOverlay {
     ov.append(title);
 
     const subtitle = h("p", {}, "夜更けのオルゴール工房");
-    subtitle.style.cssText = "font-size: 12px; color: #8a8090; margin: 0 0 24px;";
+    subtitle.style.cssText = "font-size: 12px; color: var(--ae-text-weak); margin: 0 0 24px;";
     ov.append(subtitle);
 
     const btnStart = h("button", {
@@ -54,13 +54,13 @@ class TitleOverlay {
     btnStart.textContent = "はじめる";
     btnStart.style.cssText = `
       padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
-      background: #3a2f40; color: #e6e6e6; border: 1px solid #5c4a66;
+      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
       cursor: pointer; margin: 4px;
     `;
     btnStart.addEventListener("click", () => {
       playSfx("start");
       this.remove();
-      this.goToOrders();
+      onStart();
     });
     ov.append(btnStart);
 
@@ -72,7 +72,7 @@ class TitleOverlay {
     btnGuide.textContent = "遊び方";
     btnGuide.style.cssText = `
       padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
-      background: #2a2530; color: #b0a0c0; border: 1px solid #3a2f40;
+      background: var(--ae-surface); color: var(--ae-text-weak); border: 1px solid #3a2f40;
       cursor: pointer; margin: 4px;
     `;
     btnGuide.addEventListener("click", () => this.toggleGuide());
@@ -80,19 +80,6 @@ class TitleOverlay {
 
     parent.append(ov);
     this.el = ov;
-  }
-
-  private goToOrders(): void {
-    const game = (
-      window as unknown as {
-        __game?: { scene: { start: (s: string) => void; stop: (s: string) => void } };
-      }
-    ).__game;
-    if (game?.scene) {
-      // title を止めないと背景の演出レイヤーが裏で動き続けて次の画面に透ける
-      game.scene.stop("title");
-      game.scene.start("orders");
-    }
   }
 
   private toggleGuide(): void {
@@ -108,8 +95,8 @@ class TitleOverlay {
     guide.style.cssText = `
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      background: #1e1722; border: 1px solid #5c4a66;
-      padding: 20px; max-width: 300px; color: #e6e6e6;
+      background: var(--ae-bg); border: 1px solid #5c4a66;
+      padding: 20px; max-width: 300px; color: var(--ae-text);
       font-size: 12px; line-height: 1.6;
     `;
 
@@ -134,7 +121,7 @@ class TitleOverlay {
     close.textContent = "閉じる";
     close.style.cssText = `
       margin-top: 12px; padding: 4px 16px; font-size: 12px;
-      background: #3a2f40; color: #e6e6e6; border: 1px solid #5c4a66;
+      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
       cursor: pointer;
     `;
     close.addEventListener("click", () => {
@@ -164,7 +151,7 @@ export class TitleScene extends Phaser.Scene {
     createSceneFx(this, "fx-title").emit("ambient");
 
     const gameEl = document.getElementById("game") ?? document.body;
-    this.overlay.attach(gameEl);
+    this.overlay.attach(gameEl, () => this.scene.start("orders"));
 
     // クリックでタイトル画面を閉じて orders へ
     this.input.on("pointerdown", () => {
