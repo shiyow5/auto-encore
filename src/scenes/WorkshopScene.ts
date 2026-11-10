@@ -45,7 +45,7 @@ import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
-import { duckBgm, playSfx, toggleSound } from "../audio/player";
+import { duckBgm, onSoundToggle, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
@@ -154,6 +154,7 @@ export class WorkshopScene extends Phaser.Scene {
   private dirButton!: HTMLButtonElement;
   private pitchButton!: HTMLButtonElement;
   private muteButton!: HTMLButtonElement;
+  private unsubSound: (() => void) | null = null;
   private runButton!: HTMLButtonElement;
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
@@ -537,6 +538,8 @@ export class WorkshopScene extends Phaser.Scene {
     const mutePair = h("div", { class: "ws-tools" });
     mutePair.append(this.muteButton);
     shelf.append(mutePair);
+    // スライダーでの自動ミュート解除など、このボタン以外で音のオン/オフが変わっても表示を合わせる
+    this.unsubSound = onSoundToggle((on) => this.syncMuteButton(on));
     ov.append(shelf);
 
     // 全消しは棚から外し、盤面の右下に置く（#94）。押すと確認を出す
@@ -777,12 +780,17 @@ export class WorkshopScene extends Phaser.Scene {
 
   private toggleMute(): void {
     const enabled = toggleSound();
-    this.muteButton.textContent = enabled ? "🔊" : "🔇";
-    this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
     this.say(enabled ? "音をオンにした" : "音を切った");
   }
 
+  private syncMuteButton(enabled: boolean): void {
+    this.muteButton.textContent = enabled ? "🔊" : "🔇";
+    this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
+  }
+
   private teardown(): void {
+    this.unsubSound?.();
+    this.unsubSound = null;
     this.playing?.timer.remove();
     this.playing = null;
     duckBgm(false);

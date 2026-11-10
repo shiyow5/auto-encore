@@ -8,9 +8,17 @@
  *   toggleSound() に集め、BGM の停止・再開と画面のボタン表示の更新もここで行う。
  * - どこで失敗しても例外にしない（音が出ないだけ）。
  */
-import { isAudioEnabled, toggleAudio } from "../fx/audio";
+import { isAudioEnabled, refreshNoteGain, toggleAudio } from "../fx/audio";
 import { flags } from "../ui/flags";
 import { BGM_BPM, BGM_INSTRUMENTS, BGM_PATTERNS, BGM_SEQUENCE, SFX, type SfxName } from "./sounds";
+import {
+  VOLUME_DEFAULT,
+  type VolumeKind,
+  getVolume,
+  isSilentByVolume,
+  onVolumeChange,
+  setVolumePercent,
+} from "./volume";
 import { renderSong } from "./zzfxm";
 
 type Engine = typeof import("zzfx");
@@ -56,7 +64,9 @@ export function playSfx(name: SfxName): void {
     // 読み込み待ちの間に音を切られたら鳴らさない
     if (!canPlay()) return;
     try {
-      e?.zzfx(...params);
+      // 先頭が音量。SE の音量設定をかける（0% は鳴らさない）
+      const level = getVolume("sfx");
+      if (level > 0) e?.zzfx(params[0]! * level, ...params.slice(1));
     } catch {
       // 音が出ないだけ
     }
@@ -66,7 +76,7 @@ export function playSfx(name: SfxName): void {
 }
 
 function bgmGain(): number {
-  return ducked ? BGM_DUCKED : BGM_VOLUME;
+  return (ducked ? BGM_DUCKED : BGM_VOLUME) * getVolume("bgm");
 }
 
 function startBgmNow(e: Engine): void {
@@ -114,12 +124,36 @@ export function duckBgm(on: boolean): void {
 
 /** 音のオン/オフを切り替える。戻り値は切り替え後に音が出るか。 */
 export function toggleSound(): boolean {
-  const enabled = toggleAudio();
+  // ミュートしていないのに BGM/SE とも 0% なら、実際は無音。1回のクリックで既定の音量に戻して鳴る状態にする
+  // （そのまま切り替えるとミュートになり、2回押さないと鳴らない）
+  const silentByVolume = isAudioEnabled() && isSilentByVolume();
+  const enabled = silentByVolume ? true : toggleAudio();
+  if (silentByVolume || (enabled && isSilentByVolume())) {
+    setVolumePercent("bgm", VOLUME_DEFAULT);
+    setVolumePercent("sfx", VOLUME_DEFAULT);
+  }
   if (!enabled) stopBgmNow();
   else if (bgmWanted) startBgm();
   for (const l of listeners) l(enabled);
   return enabled;
 }
+
+/**
+ * 音量スライダーの変更を反映する。0% より大きくしたときにミュート中なら、ミュートを解く
+ * （「音量を上げたのに鳴らない」を避ける）。
+ */
+export function setVolume(kind: VolumeKind, percent: number): void {
+  const v = setVolumePercent(kind, percent);
+  if (v > 0 && !isAudioEnabled()) toggleSound();
+}
+
+/** 音量が変わったら、鳴っている BGM と音符の音量を更新する。 */
+onVolumeChange(() => {
+  const gain = (bgm as (AudioBufferSourceNode & { gainNode?: GainNode }) | null)?.gainNode;
+  if (gain && engine) gain.gain.value = engine.ZZFX.volume * bgmGain();
+  refreshNoteGain();
+  if (bgmWanted && !bgm && getVolume("bgm") > 0) startBgm();
+});
 
 /** 音のオン/オフが変わったときに呼ばれる。戻り値で解除。 */
 export function onSoundToggle(l: (enabled: boolean) => void): () => void {
@@ -152,7 +186,14 @@ export function installClickSfx(): void {
     "click",
     (e) => {
       const b = (e.target as Element | null)?.closest?.("button");
-      if (!b || b.disabled || b.closest(".ws-grid") || b.id === "audio-toggle") return;
+      if (
+        !b ||
+        b.disabled ||
+        b.closest(".ws-grid") ||
+        b.id === "audio-toggle" ||
+        b.id === "volume-toggle"
+      )
+        return;
       playSfx("click");
     },
     true,
