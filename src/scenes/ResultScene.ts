@@ -16,6 +16,8 @@ import { fxEnabled } from "../ui/flags";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
 import { ATTRIBUTION_TEXT, TRADINGVIEW_URL, mountThroughputChart } from "../ui/resultChart";
+import { playSfx } from "../audio/player";
+import { sfxForReport } from "../audio/sounds";
 import {
   MEDAL_TEXT,
   STOP_TEXT,
@@ -195,6 +197,7 @@ export class ResultScene extends Phaser.Scene {
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => setQaBusy("fade", false));
       this.cameras.main.fadeIn(200, 30, 23, 34);
     }
+    playSfx(sfxForReport(report));
     document.body.dataset.scene = "result";
     setQaBusy("transition", false);
   }

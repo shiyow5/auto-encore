@@ -11,14 +11,16 @@
 
 ## コード・ライブラリ
 
-| 名前                                                   | 作者                        | URL                                               | ライセンス                                                                                                                                                                                                     | 用途                    |
-| ------------------------------------------------------ | --------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| Phaser 3                                               | Phaser Studio Inc.          | https://github.com/phaserjs/phaser                | MIT                                                                                                                                                                                                            | ゲームエンジン          |
-| pixelfx (commit a841596)                               | patch-gg                    | https://github.com/patch-gg/pixelfx               | MIT（同梱の Patch Pixel フォントは対象外・使わない）                                                                                                                                                           | ドット絵エフェクト      |
-| └ pixelfx が取り込んでいるコード（src/core/sim.js 等） | Hugo Duprez (Sprite Fusion) | https://www.spritefusion.com/pixel-art-vfx        | MIT                                                                                                                                                                                                            | pixelfx 内部            |
-| └ pixelfx が取り込んでいるコード（src/core/act.js）    | rehan-remade (Hollow Crown) | https://github.com/rehan-remade/hollow-crown      | MIT                                                                                                                                                                                                            | pixelfx 内部            |
-| TradingView Lightweight Charts 5.2.1                   | TradingView, Inc.           | https://github.com/tradingview/lightweight-charts | Apache-2.0（LICENSE・NOTICE を public/licenses/lightweight-charts/ に同梱。結果画面のフッターに「Powered by TradingView Lightweight Charts」と https://www.tradingview.com/ へのリンクを表示。rei 承認の例外） | 結果画面のグラフ        |
-| └ lightweight-charts の依存 fancy-canvas 2.1.0         | smakarov (TradingView)      | https://www.npmjs.com/package/fancy-canvas        | MIT                                                                                                                                                                                                            | lightweight-charts 内部 |
+| 名前                                                     | 作者                        | URL                                               | ライセンス                                                                                                                                                                                                     | 用途                    |
+| -------------------------------------------------------- | --------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Phaser 3                                                 | Phaser Studio Inc.          | https://github.com/phaserjs/phaser                | MIT                                                                                                                                                                                                            | ゲームエンジン          |
+| pixelfx (commit a841596)                                 | patch-gg                    | https://github.com/patch-gg/pixelfx               | MIT（同梱の Patch Pixel フォントは対象外・使わない）                                                                                                                                                           | ドット絵エフェクト      |
+| └ pixelfx が取り込んでいるコード（src/core/sim.js 等）   | Hugo Duprez (Sprite Fusion) | https://www.spritefusion.com/pixel-art-vfx        | MIT                                                                                                                                                                                                            | pixelfx 内部            |
+| └ pixelfx が取り込んでいるコード（src/core/act.js）      | rehan-remade (Hollow Crown) | https://github.com/rehan-remade/hollow-crown      | MIT                                                                                                                                                                                                            | pixelfx 内部            |
+| ZzFX 1.4.0（npm `zzfx`）                                 | Frank Force                 | https://github.com/KilledByAPixel/ZzFX            | MIT                                                                                                                                                                                                            | 効果音・BGM の音源      |
+| ZzFXM 2.0.3（src/audio/zzfxm.ts に移植、commit cb07fa9） | Keith Clark, Frank Force    | https://github.com/keithclark/ZzFXM               | MIT                                                                                                                                                                                                            | BGM の再生              |
+| TradingView Lightweight Charts 5.2.1                     | TradingView, Inc.           | https://github.com/tradingview/lightweight-charts | Apache-2.0（LICENSE・NOTICE を public/licenses/lightweight-charts/ に同梱。結果画面のフッターに「Powered by TradingView Lightweight Charts」と https://www.tradingview.com/ へのリンクを表示。rei 承認の例外） | 結果画面のグラフ        |
+| └ lightweight-charts の依存 fancy-canvas 2.1.0           | smakarov (TradingView)      | https://www.npmjs.com/package/fancy-canvas        | MIT                                                                                                                                                                                                            | lightweight-charts 内部 |
 
 ## 画像
 
@@ -28,9 +30,13 @@
 
 ## 音声・BGM・効果音
 
-| 名前         | 作者 | URL | ライセンス | 使用箇所 |
-| ------------ | ---- | --- | ---------- | -------- |
-| （まだ無い） |      |     |            |          |
+音声ファイルは置かない。ZzFX / ZzFXM のパラメータ（src/audio/sounds.ts）からその場で鳴らす。
+実行中の「ド・ミ・ソ」の音符は Web Audio の発振器（src/fx/audio.ts、自作）。
+
+| 名前                                  | 作者               | URL | ライセンス | 使用箇所                                                               |
+| ------------------------------------- | ------------------ | --- | ---------- | ---------------------------------------------------------------------- |
+| 効果音 13種（ZzFX 用）                | 開発チーム（自作） | -   | 自作       | ボタン・注文選択・機械の配置/回転/音高/削除/全消し・実行・エラー・結果 |
+| BGM「夜更けのオルゴール」（ZzFXM 用） | 開発チーム（自作） | -   | 自作       | 全画面（最初の操作から再生、ループ。実行中は小さくする）               |
 
 ## フォント
 
