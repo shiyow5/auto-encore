@@ -324,6 +324,43 @@
   outline: 2px solid var(--ae-amber);
   outline-offset: 2px;
 }
-body[data-scene="workshop"] .audio-toggle {
+body[data-scene="workshop"] #audio-toggle {
   display: none;
+}
+/* 音量（♪ の左隣。パネルはその下に開く） */
+.volume-toggle {
+  right: 60px;
+}
+.volume-panel {
+  position: absolute;
+  top: 60px;
+  right: 8px;
+  z-index: 200;
+  display: grid;
+  gap: 4px;
+  padding: 8px 12px;
+  font-family: var(--ae-font);
+  font-size: 14px;
+  color: var(--ae-text);
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-amber);
+  border-radius: 6px;
+}
+.volume-panel[hidden] {
+  display: none;
+}
+.volume-row {
+  display: grid;
+  grid-template-columns: 4.5em 120px 3em;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.volume-row input[type="range"] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--ae-amber);
+}
+.volume-row output {
+  text-align: right;
 }
