@@ -95,7 +95,8 @@ export class ResultScene extends Phaser.Scene {
     fx.emit("result");
     fx.emit("songComplete");
     const medals = Object.values(report.medals);
-    if (medals.some((m) => m !== "none")) fx.emit("medalEarned");
+    if (medals.includes("gold")) fx.emit("medalEarned");
+    else if (medals.some((m) => m !== "none")) fx.emit("medalSilver");
   }
 
   constructor() {
@@ -212,7 +213,9 @@ export class ResultScene extends Phaser.Scene {
       this.cameras.main.fadeIn(200, 30, 23, 34);
     }
     this.playFx(report, verdict);
-    playSfx(sfxForReport(report));
+    // 不合格は runError の音（0.23秒）が先に鳴るので、結果の音はその後にずらす
+    if (report.passed) playSfx(sfxForReport(report));
+    else this.time.delayedCall(260, () => playSfx(sfxForReport(report)));
     document.body.dataset.scene = "result";
     setQaBusy("transition", false);
   }

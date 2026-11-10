@@ -1,5 +1,6 @@
 import type Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
+import { playSfx } from "../audio/player";
 import { fxEnabled, onReducedMotion } from "../ui/flags";
 import { FxDirector } from "./FxDirector";
 import { PixelFxLayer } from "./PixelFxLayer";
@@ -9,12 +10,17 @@ import { PixelFxLayer } from "./PixelFxLayer";
  * ?fx=0 のときは canvas も作らない。途中で「視差効果を減らす」にされたら再生中のものを止める。
  */
 export function createSceneFx(scene: Phaser.Scene, keyPrefix: string): FxDirector {
-  if (!fxEnabled()) return new FxDirector(null, fxEnabled);
+  if (!fxEnabled()) {
+    // 音だけの FxDirector でも、シーンを離れたら予約中の SE（medal の遅延再生など）を止める
+    const soundOnly = new FxDirector(null, fxEnabled, playSfx);
+    scene.events.once("shutdown", () => soundOnly.dispose());
+    return soundOnly;
+  }
   const back = new PixelFxLayer(scene, `${keyPrefix}-back`, GAME_WIDTH, GAME_HEIGHT);
   back.sprite.setDepth(-10);
   const front = new PixelFxLayer(scene, `${keyPrefix}-front`, GAME_WIDTH, GAME_HEIGHT);
   front.sprite.setDepth(10);
-  const director = new FxDirector({ back, front }, fxEnabled);
+  const director = new FxDirector({ back, front }, fxEnabled, playSfx);
   const tick = (_t: number, delta: number) => {
     back.update(delta / 1000);
     front.update(delta / 1000);
