@@ -567,7 +567,7 @@ export class WorkshopScene extends Phaser.Scene {
       card.append(
         h(
           "p",
-          { class: "ws-tutorial", style: "font-size: 10px; color: #b0a0c0; margin: 6px 0;" },
+          { class: "ws-tutorial", style: "font-size: 12px; color: #b0a0c0; margin: 6px 0;" },
           tutorial,
         ),
       );
@@ -592,7 +592,7 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: "font-size: 9px; color: #8a8090; text-align: center; margin: 4px 0;",
+      style: "font-size: 12px; color: #8a8090; text-align: center; margin: 4px 0;",
     });
     helpLine.textContent = "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
     ov.append(helpLine);
