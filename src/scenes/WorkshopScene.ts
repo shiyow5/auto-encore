@@ -496,6 +496,8 @@ export class WorkshopScene extends Phaser.Scene {
     // 棚（左）
     const shelf = h("section", { class: "ws-shelf", "aria-label": "パーツ棚" });
     shelf.append(h("h2", {}, "棚"));
+    const tools = h("div", { class: "ws-tools" });
+    shelf.append(tools);
     for (const id of Object.keys(this.machines) as MachineId[]) {
       const cost = this.order.machineCost[id] ?? this.machines[id].cost;
       const allowed = this.order.allowedMachines.includes(id);
@@ -507,19 +509,23 @@ export class WorkshopScene extends Phaser.Scene {
         "data-machine": id,
         "data-allowed": String(allowed),
       });
-      b.textContent = `${MACHINE_NAME[id]} ${cost}G`;
+      b.append(h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]));
+      b.append(h("span", { class: "ws-tool-cost" }, `${cost}G`));
       b.addEventListener("click", () => {
         this.selected = id;
         this.refreshOverlay();
       });
-      shelf.append(b);
+      tools.append(b);
     }
+    // 向き・音高は横並び（#94）
+    const pair = h("div", { class: "ws-tools" });
+    shelf.append(pair);
     this.dirButton = h("button", { type: "button", class: "ws-btn" });
     this.dirButton.addEventListener("click", () => this.rotate(null));
-    shelf.append(this.dirButton);
+    pair.append(this.dirButton);
     this.pitchButton = h("button", { type: "button", class: "ws-btn ws-pitch" });
     this.pitchButton.addEventListener("click", () => this.cyclePitch(null));
-    shelf.append(this.pitchButton);
+    pair.append(this.pitchButton);
     // ミュートボタン (audio.ts の共有設定を使用)
     this.muteButton = h("button", {
       type: "button",
@@ -528,15 +534,41 @@ export class WorkshopScene extends Phaser.Scene {
     });
     this.muteButton.textContent = isAudioEnabled() ? "🔊" : "🔇";
     this.muteButton.addEventListener("click", () => this.toggleMute());
-    shelf.append(this.muteButton);
+    const mutePair = h("div", { class: "ws-tools" });
+    mutePair.append(this.muteButton);
+    shelf.append(mutePair);
+    ov.append(shelf);
+
+    // 全消しは棚から外し、盤面の右下に置く（#94）。押すと確認を出す
     const clear = h(
       "button",
-      { type: "button", class: "ws-btn", "aria-label": "配置を全部消す" },
+      { type: "button", class: "ws-btn ws-clear", "aria-label": "配置を全部消す" },
       "全消し",
     );
-    clear.addEventListener("click", () => this.clearAll());
-    shelf.append(clear);
-    ov.append(shelf);
+    const confirm = h("div", {
+      class: "ws-confirm",
+      role: "alertdialog",
+      "aria-label": "全消しの確認",
+      hidden: "",
+    });
+    const yes = h("button", { type: "button", class: "ws-btn ws-danger" }, "はい");
+    const no = h("button", { type: "button", class: "ws-btn" }, "やめる");
+    confirm.append(h("p", {}, "全部消します。よろしいですか？"), yes, no);
+    clear.addEventListener("click", () => {
+      if (this.playing || this.placements.length === 0) return;
+      confirm.hidden = false;
+      no.focus();
+    });
+    yes.addEventListener("click", () => {
+      confirm.hidden = true;
+      this.clearAll();
+      clear.focus();
+    });
+    no.addEventListener("click", () => {
+      confirm.hidden = true;
+      clear.focus();
+    });
+    ov.append(clear, confirm);
 
     // グリッド（中央）
     const grid = h("div", {
@@ -626,7 +658,7 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: "font-size: 12px; color: #8a8090; text-align: center; margin: 4px 0;",
+      style: "color: #8a8090;",
     });
     helpLine.textContent = "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
     ov.append(helpLine);
