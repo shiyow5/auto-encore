@@ -59,7 +59,8 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
     { mod: coinSpin, x: 36, y: 100, ttl: 1.6, layer: "front" },
     { mod: heartPickup, x: 284, y: 100, ttl: 1.2, layer: "front" },
   ],
-  machineRun: [{ mod: energyCore, x: 160, y: 100, layer: "front" }],
+  // 盤面の中央を覆うので、実行の開始時に 1 拍だけ見せる（音符の流れを隠さない）
+  machineRun: [{ mod: energyCore, x: 160, y: 100, ttl: 1.2, layer: "front" }],
   placeError: [{ mod: glitch, x: 160, y: 90, ttl: 0.5, layer: "front" }],
   runError: [
     { mod: glitch, x: 160, y: 90, ttl: 0.6, layer: "front" },
