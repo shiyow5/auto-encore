@@ -38,7 +38,13 @@ class TitleOverlay {
       z-index: 100;
     `;
 
-    const title = h("h1", {}, TITLE);
+    // 狭い画面では「夜更け」と「のオルゴール工房」の間で折れないよう、後半を nowrap にまとめる
+    const title = h("h1", {});
+    const [titleHead, titleTail] = TITLE.split(" ― ");
+    title.append(`${titleHead} ― `);
+    const titleNoWrap = h("span", {}, titleTail);
+    titleNoWrap.style.whiteSpace = "nowrap";
+    title.append(titleNoWrap);
     title.style.cssText =
       "font-size: 32px; line-height: 32px; color: #f2b45a; margin: 0 0 24px; text-align: center; padding: 0 16px;";
     ov.append(title);
