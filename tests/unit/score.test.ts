@@ -170,6 +170,38 @@ describe("judge（閾値は引数で受けるだけ）", () => {
     expect([r.passed, r.encore]).toEqual([false, false]);
   });
 
+  it("失敗: 正確さ 0/8・未完走ならコストが閾値内でも none", () => {
+    const r = judge(m({ result: "stuck", ticks: null, matched: 0, cost: 0 }), scoring);
+    expect(r.medals).toEqual({ accuracy: "none", ticks: "none", cost: "none" });
+    expect([r.passed, r.encore]).toEqual([false, false]);
+  });
+
+  it("失敗: 正確さ none でも完走していればコストは none", () => {
+    const r = judge(m({ matched: 0, cost: 3 }), scoring);
+    expect(r.medals.accuracy).toBe("none");
+    expect(r.medals.cost).toBe("none");
+    expect([r.passed, r.encore]).toEqual([false, false]);
+  });
+
+  it("失敗: 正確さ十分でも完走しなければコストは none", () => {
+    const r = judge(m({ result: "stuck", ticks: null, cost: 3 }), scoring);
+    expect(r.medals.cost).toBe("none");
+  });
+
+  it.each([
+    [5, "gold", true, true],
+    [10, "silver", true, true],
+    [15, "bronze", true, true],
+    [16, "none", false, false],
+  ] as const)(
+    "成功: cost=%i → %s（従来通り, passed=%s encore=%s）",
+    (cost, medal, passed, encore) => {
+      const r = judge(m({ ticks: 10, cost }), scoring);
+      expect(r.medals.cost).toBe(medal);
+      expect([r.passed, r.encore]).toEqual([passed, encore]);
+    },
+  );
+
   it("同じ結果でも閾値を変えればメダルが変わる（値を持っていない）", () => {
     const strict: Scoring = { ...scoring, cost: th(9, 9, 9) };
     expect(judge(m({}), scoring).medals.cost).toBe("silver");
