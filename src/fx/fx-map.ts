@@ -1,6 +1,5 @@
 import * as aurora from "pixelfx/fx/weather/aurora";
 import * as shootingStars from "pixelfx/fx/weather/shooting-stars";
-import * as achievement from "pixelfx/fx/ui/achievement";
 import * as comboCounter from "pixelfx/fx/ui/combo-counter";
 import * as confetti from "pixelfx/fx/ui/confetti";
 import * as levelUp from "pixelfx/fx/ui/level-up";
@@ -113,10 +112,9 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
     { mod: glitch, band: { fx: 0.5, fy: 0.5 }, ttl: 0.6, layer: "front" },
     { mod: crtOff, x: 0, y: 0, layer: "front" },
   ],
-  result: [
-    { mod: achievement, x: 160, y: 12, layer: "front" },
-    { mod: levelUp, x: 160, y: 118, layer: "front" },
-  ],
+  // 結果は日本語のカードが主役。pixelfx の文字は英数字のみ（日本語不可）で、ACHIEVEMENT バナーは
+  // 画面上端で切れてカードに重なっていたので外した（AE#128）。メダル演出は medalEarned が担う。
+  result: [{ mod: levelUp, x: 160, y: 118, layer: "front" }],
 };
 
 /** 演出に付ける SE。「演出 → 音」の対応はここだけ（シーンは playSfx を呼ばず emit するだけ）。 */
