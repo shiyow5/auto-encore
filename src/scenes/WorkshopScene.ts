@@ -562,7 +562,7 @@ export class WorkshopScene extends Phaser.Scene {
         this.add
           .image(x + 2, y + 2, key)
           .setOrigin(0, 0)
-          .setDepth(3),
+          .setDepth(6), // gfx（矢印）depth 5 より上。scene-fx front(10) より下
       );
     }
   }
