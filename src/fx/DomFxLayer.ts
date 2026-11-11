@@ -68,6 +68,9 @@ export class DomFxLayer implements FxSink {
 
   /** dt は秒。 */
   update(dt: number): void {
+    // 演出が無いときは、毎フレームの位置合わせ・描画（getBoundingClientRect / putImageData）を省く。
+    // 最後の演出が終わったフレームで空の絵に描き直されるので、消し残しは出ない。
+    if (this.active.length === 0) return;
     this.fit();
     clearFrame(this.frame);
     for (let i = this.active.length - 1; i >= 0; i--) {
