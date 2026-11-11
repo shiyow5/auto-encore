@@ -11,6 +11,7 @@ import Phaser from "phaser";
 import { TITLE } from "./BootScene";
 import "../ui/workshop.css";
 import { playSfx } from "../audio/player";
+import { setQaBusy } from "../ui/qa";
 
 function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -151,6 +152,8 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     document.body.dataset.scene = "title";
+    // 結果画面の「タイトル」から来た場合の遷移フラグを外す（waitForIdle が止まらないように）
+    setQaBusy("transition", false);
     createSceneFx(this, "fx-title").emit("ambient");
 
     const gameEl = document.getElementById("game") ?? document.body;
