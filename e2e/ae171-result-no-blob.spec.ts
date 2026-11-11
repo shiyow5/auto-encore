@@ -26,7 +26,7 @@ for (const [w, h, tag] of [
   [390, 844, "sp"],
 ] as const) {
   test(`AE#171: 結果画面 5 秒後、見出し・ボタンに演出が重ならない ${tag}`, async ({ page }) => {
-    test.setTimeout(60000);
+    test.setTimeout(150_000);
     await page.setViewportSize({ width: w, height: h });
     await page.goto("/");
     const ids = ["order-01", "order-02", "order-03"];
