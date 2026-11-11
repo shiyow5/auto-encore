@@ -716,3 +716,10 @@ body[data-scene="workshop"] #audio-toggle {
 .volume-row output {
   text-align: right;
 }
+
+/* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
+#audio-toggle .ae-icon {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+}

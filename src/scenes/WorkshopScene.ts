@@ -56,7 +56,13 @@ import {
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
-import { iconCanvas, portTexture, registerTextures } from "../art/sprites";
+import {
+  activeTexture,
+  iconCanvas,
+  noteTexture,
+  portTexture,
+  registerTextures,
+} from "../art/sprites";
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
 import { duckBgm, onSoundToggle, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
@@ -568,7 +574,13 @@ export class WorkshopScene extends Phaser.Scene {
 
     for (const p of this.placements) {
       const { x, y } = this.cellXY(p.pos);
-      put(`ae-${p.machine}`, p.pos);
+      const running = this.playing && p.machine !== "belt";
+      put(
+        running
+          ? activeTexture(this.textures, p.machine, (this.playing?.frame ?? 0) % 2 === 0 ? 0 : 1)
+          : `ae-${p.machine}`,
+        p.pos,
+      );
       this.arrow(x, y, p.dir, COLOR.arrow);
       // 仕分け機は右下に音高の色の点（ド・ミ・ソ = 音符と同じ色）
       if (p.config) {
@@ -595,11 +607,17 @@ export class WorkshopScene extends Phaser.Scene {
     const { width } = this.rules;
     for (const c of frame.cells) {
       const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
-      const r = Math.round(((c.note.length === 1 ? 4 : 3) * this.cell) / CELL);
-      this.gfx.fillStyle(0x000000, 0.5);
-      this.gfx.fillCircle(x + this.cell / 2 + 1, y + this.cell / 2 + 1.5, r);
-      this.gfx.fillStyle(NOTE_COLOR[c.note.pitch], 1);
-      this.gfx.fillCircle(x + this.cell / 2 + 0.5, y + this.cell / 2 + 0.5, r);
+      const key = noteTexture(
+        this.textures,
+        c.note.length === 1 ? "short" : "long",
+        NOTE_COLOR[c.note.pitch],
+      );
+      this.tiles.push(
+        this.add
+          .image(x + 2, y + 2, key)
+          .setOrigin(0, 0)
+          .setDepth(6), // gfx（矢印）depth 5 より上。scene-fx front(10) より下
+      );
     }
   }
 
