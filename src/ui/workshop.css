@@ -54,7 +54,7 @@
 .ws-shelf,
 .ws-order {
   position: absolute;
-  top: calc(var(--u) * 26);
+  top: calc(var(--u) * 10);
   box-sizing: border-box;
   padding: calc(var(--u) * 3);
   background: var(--ae-surface);
@@ -64,10 +64,99 @@
 
 .ws-shelf {
   left: calc(var(--u) * 4);
-  width: calc(var(--u) * 66);
+  width: calc(var(--u) * 50);
   display: flex;
   flex-direction: column;
+  gap: calc(var(--u) * 2);
+}
+
+.ws-shelf h2 {
+  margin: 0;
+  font-size: calc(var(--u) * 5);
+}
+
+/* 機械ボタンは 2 列。1280×720 で 96×44px（#94） */
+.ws-palette,
+.ws-actions {
+  display: grid;
+  grid-template-columns: repeat(2, calc(var(--u) * 24));
+  gap: calc(var(--u) * 2);
+}
+
+.ws-palette .ws-btn,
+.ws-actions .ws-btn {
+  box-sizing: border-box;
+  height: calc(var(--u) * 11);
+  padding: 0 calc(var(--u) * 2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: calc(var(--u) * 4);
+  line-height: 1.1;
+}
+
+.ws-tool-cost {
+  font-size: calc(var(--u) * 3);
+  color: var(--ae-text-weak);
+}
+
+.ws-clear,
+.ws-confirm {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.ws-clear {
+  box-sizing: border-box;
+  left: calc(var(--u) * 214);
+  top: calc(var(--u) * 141);
+  width: calc(var(--u) * 30);
+  height: calc(var(--u) * 11);
+  font-size: calc(var(--u) * 4);
+  text-align: center;
+  border: calc(var(--u) * 0.5) solid #7a6888;
+}
+
+.ws-confirm {
+  left: calc(var(--u) * 76);
+  top: calc(var(--u) * 60);
+  width: calc(var(--u) * 168);
+  z-index: 10;
+  box-sizing: border-box;
+  padding: calc(var(--u) * 4);
+  display: flex;
+  align-items: center;
   gap: calc(var(--u) * 3);
+  background: var(--ae-surface);
+  border: calc(var(--u) * 0.5) solid var(--ae-danger);
+  font-size: calc(var(--u) * 4.5);
+}
+
+.ws-confirm[hidden] {
+  display: none;
+}
+
+.ws-confirm p {
+  flex: 1;
+  margin: 0;
+}
+
+.ws-confirm .ws-btn {
+  font-size: calc(var(--u) * 4);
+}
+
+.ws-danger {
+  border-color: var(--ae-danger);
+}
+
+.ws-help-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--u) * 2);
+  margin: 0;
+  text-align: center;
+  font-size: calc(var(--u) * 4);
 }
 
 .ws-order {
@@ -145,7 +234,7 @@
   position: absolute;
   left: calc(var(--u) * 76);
   top: calc(var(--u) * 142);
-  width: calc(var(--u) * 168);
+  width: calc(var(--u) * 134);
   min-height: 1.35em;
 }
 
@@ -168,6 +257,13 @@
   background: #f6c77f;
 }
 
+/* 実行中の「実行中…(tick n)」。実行ボタンの真下に出す（盤面・演出の帯には重ねない） */
+.ws-run-status {
+  margin: calc(var(--u) * 2) 0 0;
+  text-align: center;
+  color: var(--ae-text);
+}
+
 .ws-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -175,6 +271,179 @@
 
 #ws-overlay[data-running="true"] .ws-cell {
   cursor: progress;
+}
+
+/* 横持ち・PC: 機械ボタンも操作ボタンも 2 列の格子（上の .ws-palette/.ws-actions）。「消す」ボタンは縦持ち専用 */
+.ws-erase {
+  display: none;
+}
+
+/* ---- 縦持ち（スマホ幅, Issue #95）----
+ * canvas を画面の CSS ピクセルと同じ大きさにしてあるので --u は 1px。文字はすべて 16px 以上、
+ * 押す所は 44×44px 以上。上から: ヒント(y=8) → 盤面(y=56) → 操作の列 → 機械の横スクロール → 注文票 → 実行ボタン(下固定)。 */
+#ws-overlay.ws-portrait {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+#ws-overlay.ws-portrait h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+#ws-overlay.ws-portrait p,
+#ws-overlay.ws-portrait ul {
+  margin: 0 0 8px;
+}
+
+#ws-overlay.ws-portrait ul {
+  padding-left: 24px;
+}
+
+.ws-portrait .ws-shelf,
+.ws-portrait .ws-order {
+  display: contents;
+}
+
+.ws-portrait .ws-shelf > h2 {
+  display: none;
+}
+
+.ws-portrait .ws-help-line {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  height: 40px;
+  max-width: 100%;
+  padding: 0 12px;
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px !important;
+  color: var(--ae-text-weak) !important;
+  line-height: 20px;
+  text-align: center !important;
+}
+
+.ws-portrait .ws-actions {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 8px);
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  padding: 0 12px;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-actions .ws-btn {
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ws-portrait .ws-erase {
+  display: block;
+}
+
+/* 縦持ちの全消しは操作の列の一員（横持ちの右下固定を打ち消す）。確認は盤面の上に出す */
+.ws-portrait .ws-actions .ws-clear {
+  position: static;
+  width: auto;
+  height: auto;
+}
+
+.ws-portrait .ws-confirm .ws-btn {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-confirm {
+  left: 16px;
+  right: 16px;
+  top: calc(var(--grid-y-px) + 40px);
+  width: auto;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-palette {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 60px);
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  height: 64px;
+  padding: 4px 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  pointer-events: auto;
+  /* 左右 16px のフェードで「続きがある」ことを見せる */
+  background:
+    linear-gradient(to right, var(--ae-surface), transparent 16px),
+    linear-gradient(to left, var(--ae-surface), transparent 16px);
+}
+
+.ws-portrait .ws-palette .ws-btn,
+.ws-portrait .ws-actions .ws-btn,
+.ws-portrait .ws-tool-cost {
+  font-size: 16px;
+}
+
+.ws-portrait .ws-palette .ws-btn {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-width: 64px;
+  height: 56px;
+  padding: 0 6px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.ws-portrait .ws-order-body {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 132px);
+  left: 0;
+  right: 0;
+  bottom: calc(52px + 56px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  padding: 0 16px;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-tutorial {
+  font-size: 16px !important;
+  margin: 0 0 8px !important;
+}
+
+.ws-portrait .ws-status {
+  left: 16px;
+  right: 16px;
+  top: auto;
+  bottom: calc(52px + 20px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  min-height: 0;
+  margin: 0;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-run {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  height: 52px;
+  margin: 0;
+  font-size: 18px;
+  pointer-events: auto;
 }
 
 /* ---- 結果画面（K4。仮の見た目。数値が読めることを優先） ---- */
@@ -208,6 +477,7 @@
 }
 
 .rs-table {
+  table-layout: fixed;
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1rem;
@@ -222,7 +492,10 @@
 
 .rs-table th,
 .rs-table td {
-  padding: 0.375rem 0.5rem;
+  box-sizing: border-box;
+  white-space: nowrap;
+  height: 40px;
+  padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--ae-surface-up);
 }
@@ -230,6 +503,19 @@
 .rs-table thead th {
   font-weight: normal;
   color: var(--ae-text-weak);
+}
+
+.rs-table th:nth-child(1) {
+  width: 40%;
+}
+
+.rs-table th:nth-child(2) {
+  width: 40%;
+}
+
+.rs-table th:nth-child(3) {
+  width: 20%;
+  min-width: 5em;
 }
 
 .rs-table th:nth-child(2),
@@ -270,8 +556,13 @@
 /* 最初にずれた位置（spec-e §2） */
 .rs-fm {
   margin: 0 0 1rem;
+  color: var(--ae-text-weak);
+  font-size: 1rem;
+}
+
+.rs-fm strong {
   color: var(--ae-danger);
-  font-size: 0.875rem;
+  font-weight: normal;
 }
 
 /* 結果のグラフ（Lightweight Charts）とフッターの帰属表示（品質uplift §1.5） */
@@ -324,6 +615,111 @@
   outline: 2px solid var(--ae-amber);
   outline-offset: 2px;
 }
-body[data-scene="workshop"] .audio-toggle {
+body[data-scene="workshop"] #audio-toggle {
   display: none;
+}
+
+/* ドット絵アイコン（12〜14px の絵を拡大。ぼかさない）。画面が小さいときは縮める */
+.ae-icon {
+  width: clamp(16px, calc(var(--u, 1px) * 7), 28px);
+  height: clamp(16px, calc(var(--u, 1px) * 7), 28px);
+  flex: none;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 0.5em;
+}
+.ws-btn:has(.ae-icon) {
+  display: flex;
+  align-items: center;
+}
+
+/* Issue #50: 注文1 のチュートリアル。盤面の上の帯。押せるのはスキップだけ */
+.ws-guide {
+  position: absolute;
+  left: calc(var(--u) * 76);
+  top: calc(var(--u) * 2);
+  width: calc(var(--u) * 168);
+  box-sizing: border-box;
+  padding: calc(var(--u) * 2) calc(var(--u) * 3);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+  background: var(--ae-surface);
+  border: calc(var(--u) * 1) solid var(--ae-amber);
+}
+.ws-guide-text {
+  flex: 1;
+}
+.ws-guide-skip {
+  pointer-events: auto;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ae-text);
+  background: transparent;
+  border: 1px solid var(--ae-amber);
+  cursor: pointer;
+}
+[data-tutorial-focus] {
+  outline: calc(var(--u) * 1) solid var(--ae-amber);
+  outline-offset: calc(var(--u) * -1);
+  animation: ws-tutorial-blink 1s steps(2, jump-none) infinite;
+}
+/* ?fx=0 / 視差効果を減らす のときは点滅せず静的な枠線だけ */
+#ws-overlay[data-tutorial-static="true"] [data-tutorial-focus] {
+  animation: none;
+}
+@keyframes ws-tutorial-blink {
+  50% {
+    outline-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-tutorial-focus] {
+    animation: none;
+  }
+}
+
+/* 音量（♪ の左隣。パネルはその下に開く） */
+.volume-toggle {
+  right: 60px;
+}
+.volume-panel {
+  position: absolute;
+  top: 60px;
+  right: 8px;
+  z-index: 200;
+  display: grid;
+  gap: 4px;
+  padding: 8px 12px;
+  font-family: var(--ae-font);
+  font-size: 14px;
+  color: var(--ae-text);
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-amber);
+  border-radius: 6px;
+}
+.volume-panel[hidden] {
+  display: none;
+}
+.volume-row {
+  display: grid;
+  grid-template-columns: 4.5em 120px 3em;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.volume-row input[type="range"] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--ae-amber);
+}
+.volume-row output {
+  text-align: right;
+}
+
+/* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
+#audio-toggle .ae-icon {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
 }
