@@ -2,7 +2,6 @@ import * as aurora from "pixelfx/fx/weather/aurora";
 import * as shootingStars from "pixelfx/fx/weather/shooting-stars";
 import * as comboCounter from "pixelfx/fx/ui/combo-counter";
 import * as confetti from "pixelfx/fx/ui/confetti";
-import * as levelUp from "pixelfx/fx/ui/level-up";
 import * as coinSpin from "pixelfx/fx/pickups/coin-spin";
 import * as heartPickup from "pixelfx/fx/pickups/heart-pickup";
 import * as keyGlint from "pixelfx/fx/pickups/key-glint";
@@ -87,20 +86,6 @@ export const FX_PRIORITY: Readonly<Record<FxEventName, number>> = {
   result: 0,
 };
 
-/**
- * LEVEL UP! の origin（内部ドット）。画面の大きさで選ぶ（結果画面のカードの文字・バッジに重ならない位置。Issue #132）。
- * 文字は origin の左右に約 ±47 ドット（canvas 幅 320 ドット）に広がるので、canvas 内に収まる x を選ぶ。
- * - 広い画面（幅1000px以上、1280x720 など）: 左寄り x:52。中央（x:160）は数値に重なる。
- * - 横長の狭い画面（844x390）: x:268, y:196。表の右側の空き（表の右端〜canvas 右端）に置き、文字は表の下・ボタンの上の高さに収める。柱は「音量」ボタン・表に触れない（不透明度 50% 超で計測）。
- * - 縦長（390x844）: x:110, y:177（見出しの火花を避けて y を 5 下げた）。canvas がカードの下半分（ボタン・グラフ）の上に重なるので、グラフ左側の空いた枠内（見出しの下・折れ線の上）に置く。
- *   右側の「目標」ラベル・目盛り、「工房にもどる」ボタン、見出しの文字には重ならない。
- */
-export function levelUpOrigin(viewportW: number, viewportH: number): { x: number; y: number } {
-  if (viewportW >= 1000) return { x: 52, y: 118 };
-  if (viewportH > viewportW) return { x: 110, y: 177 };
-  return { x: 268, y: 196 };
-}
-
 export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   boot: [{ mod: glitch, x: 160, y: 90, ttl: 0.6, layer: "front" }],
   ambient: [
@@ -131,10 +116,10 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
     { mod: glitch, band: { fx: 0.5, fy: 0.5 }, ttl: 0.6, layer: "front" },
     { mod: crtOff, x: 0, y: 0, layer: "front" },
   ],
-  // 結果は日本語のカードが主役。pixelfx の文字は英数字のみ（日本語不可）で、ACHIEVEMENT バナーは
-  // 画面上端で切れてカードに重なっていたので外した（AE#128）。メダル演出は medalEarned が担う。
-  // LEVEL UP! はカード（DOM）の後ろに隠れないよう overlay。文言・座標はそのまま（Issue #132 案A）
-  result: [{ mod: levelUp, x: 160, y: 118, layer: "overlay", originFor: levelUpOrigin }],
+  // 結果は日本語のカードが主役。pixelfx の LEVEL UP!（幅約94ドット・英語固定）は、カードの左余白（80ドット）に
+  // 収まらず、どの位置でも表の見出し・ボタンに重なる（スマホでは崩れかけの "UP!" が残る）ので出さない（Issue #171）。
+  // 祝いは songComplete（紙吹雪）とメダル演出が担う。イベント名は ResultScene から呼ばれるので空のまま残す。
+  result: [],
 };
 
 /** 演出に付ける SE。「演出 → 音」の対応はここだけ（シーンは playSfx を呼ばず emit するだけ）。 */
