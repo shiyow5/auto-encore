@@ -600,7 +600,12 @@ export class WorkshopScene extends Phaser.Scene {
     const lw = Math.min(14 * k, this.gridX + gridW - lx);
     g.fillStyle(0xf6c77f, 1);
     g.fillRect(lx, this.gridY - 3, lw, 2);
-    g.fillRect(this.gridX + gridW - (lx - this.gridX) - lw, this.gridY + height * this.cell + 1, lw, 2);
+    g.fillRect(
+      this.gridX + gridW - (lx - this.gridX) - lw,
+      this.gridY + height * this.cell + 1,
+      lw,
+      2,
+    );
     const here = new Set(frame.cells.map((c) => c.key));
     for (const c of prev?.cells ?? []) {
       if (here.has(c.key)) continue;
