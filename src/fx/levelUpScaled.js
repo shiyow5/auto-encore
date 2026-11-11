@@ -116,6 +116,11 @@ const STRANDS = Array.from({ length: 9 }, (_, i) => ({
   end: 0.5 + rand(i, 7) * 0.42,
 }));
 
+// the text band (LEVEL UP! の文字帯, y in dots) and its fade: 1 until 0.5s, then 0.35 at 1.0s (ease-out)
+const BAND_T = -74,
+  BAND_B = -48;
+const bandK = (t) => 1 - 0.65 * ease.outQuad(seg(t, 0.5, 1.0));
+
 // half-width of the pillar at time t
 const widthAt = (t) =>
   t < REL
@@ -131,8 +136,18 @@ function column(p, C, t) {
     bot = -TOP * ease.inCubic(seg(t, RET, GONE)),
     W = widthAt(t),
     k = 1 - smooth(RET, GONE, t);
-  p.glowLine(0, top, 0, Math.min(bot, -34), W * 1.6 + 6, C[5], 0.2 * k + 0.06);
-  p.glowLine(0, top, 0, Math.min(bot, -40), 5, WHITE, 0.18 * k);
+  // the text band: from 0.5s the light there fades toward 0.35 (rio's spec); the rest of the pillar is untouched
+  const kb = bandK(t);
+  const glowSplit = (end, w, col, al) => {
+    for (const [y0, y1, m] of [
+      [top, Math.min(end, BAND_T), 1],
+      [Math.max(top, BAND_T), Math.min(end, BAND_B), kb],
+      [Math.max(top, BAND_B), end, 1],
+    ])
+      if (y1 > y0) p.glowLine(0, y0, 0, y1, w, col, al * m);
+  };
+  glowSplit(Math.min(bot, -34), W * 1.6 + 6, C[5], 0.2 * k + 0.06);
+  glowSplit(Math.min(bot, -40), 5, WHITE, 0.18 * k);
   if (a < 0.04) {
     for (let y = Math.floor(top); y < bot; y++) {
       const wr = W * 0.55 * (1 - 0.3 * (-y / TOP));
@@ -143,7 +158,8 @@ function column(p, C, t) {
   }
   for (let y = Math.ceil(top); y < Math.ceil(bot); y++) {
     const h = -y / TOP,
-      fade = clamp((y + TOP) / 16) * (t < RET ? 1 : clamp((bot - y) / 10)),
+      inBand = y >= BAND_T && y <= BAND_B,
+      fade = clamp((y + TOP) / 16) * (t < RET ? 1 : clamp((bot - y) / 10)) * (inBand ? kb : 1),
       head = y - top < 3 && a < 0.16;
     const wr = W * (1 - 0.3 * h) + 0.9 * noise2(y * 0.2, t * 12, 3);
     for (const s of [-1, 1]) {
@@ -156,8 +172,11 @@ function column(p, C, t) {
     p.dot(0, y, WHITE, fade * 1.6);
     p.dot(-1, y, noise2(y * 0.3, t * 14, 5) > -0.2 ? WHITE : C[6], fade * 1.3);
     if (noise2(y * 0.25, t * 9, 8) > 0.25) p.dot(1, y, C[6], fade * 1.2);
-    for (const S of STRANDS) {
+    for (let si = 0; si < STRANDS.length; si++) {
+      const S = STRANDS[si];
       if (h > S.end) continue;
+      // in the text band only a share of the strands stays, matching the fade
+      if (inBand && (si + 1) / STRANDS.length > kb) continue;
       const ph = fract((y + t * S.sp) / S.per + S.ph);
       if (ph > S.duty) continue;
       const u = ph / S.duty;
@@ -394,19 +413,22 @@ export function create(o) {
       if (t > REL && t < RET + 0.1 && R.chance(0.5)) {
         const s = R.sign();
         const y = R.range(-4, -60),
-          vy = -R.range(140, 260);
-        spawn(
-          P.MOTE,
-          s * R.range(0.75, 1.6) * W,
-          y,
-          0,
-          vy,
-          Math.min(R.range(0.16, 0.32), (y + 96) / -vy),
-          R.chance(0.5) ? C[7] : C[6],
-          R.range(0.6, 1),
-          0,
-          R.chance(0.5) ? PF.BACK : 0,
-        );
+          vy = -R.range(140, 260),
+          // from 0.5s the streaks stop short of the text band (-46), so they never cross the letters
+          life = t < 0.5 ? Math.min(R.range(0.16, 0.32), (y + 96) / -vy) : (y + 46) / -vy;
+        if (life > 0.02)
+          spawn(
+            P.MOTE,
+            s * R.range(0.75, 1.6) * W,
+            y,
+            0,
+            vy,
+            life,
+            R.chance(0.5) ? C[7] : C[6],
+            R.range(0.6, 1),
+            0,
+            R.chance(0.5) ? PF.BACK : 0,
+          );
       }
       // motes rise from the floor while the light lasts
       if (t > REL && t < 2.4 && R.chance(0.14 * (1 - seg(t, 1.6, 2.4)))) {
