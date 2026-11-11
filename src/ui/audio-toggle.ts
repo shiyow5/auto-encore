@@ -6,6 +6,7 @@
  * ?fx=0 では音を鳴らさないので出さない。
  */
 import { isAudioEnabled } from "../fx/audio";
+import { iconCanvas } from "../art/sprites";
 import { audioAvailable, onSoundToggle, playSfx, setVolume, toggleSound } from "../audio/player";
 import { VOLUME_STEP, getVolumePercent, isSilentByVolume, onVolumeChange } from "../audio/volume";
 import type { VolumeKind } from "../audio/volume";
@@ -68,7 +69,7 @@ export function installAudioToggle(): void {
   const render = () => {
     // ミュート中、または BGM も SE も 0% のときは「音が出ない」表示
     const on = isAudioEnabled() && !isSilentByVolume();
-    b.textContent = on ? "♪" : "♪✕";
+    b.replaceChildren(iconCanvas(on ? "note-on" : "note-off"));
     b.setAttribute("aria-label", label(on));
     b.setAttribute("aria-pressed", on ? "false" : "true");
     b.title = label(on);

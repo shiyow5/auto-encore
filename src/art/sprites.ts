@@ -43,7 +43,9 @@ export type SpriteName =
   | "bin"
   | "speaker-on"
   | "speaker-off"
-  | "lock";
+  | "lock"
+  | "note-on"
+  | "note-off";
 
 /** 盤面のマスの大きさ（WorkshopScene.CELL と同じ）。 */
 export const TILE = 14;
@@ -195,6 +197,35 @@ export const SPRITES: Readonly<Record<SpriteName, readonly string[]>> = {
     "....w.......",
     "............",
   ],
+  // 音符アイコン（音のオン/オフ。♪ボタン用）
+  "note-on": [
+    "............",
+    "......wwww..",
+    "......wwww..",
+    "......w..w..",
+    "......w..w..",
+    "......w..w..",
+    "......w.ww..",
+    "...www.www..",
+    "..wwww......",
+    "..www.......",
+    "............",
+    "............",
+  ],
+  "note-off": [
+    "............",
+    "......wwww..",
+    "......wwww..",
+    "x.....w..w.x",
+    ".x....w.x.x.",
+    "..x...w.x...",
+    "...x..w.x...",
+    "...wxw.x.w..",
+    "..wwxxx.....",
+    "..www.x.x...",
+    "...........x",
+    "............",
+  ],
   lock: [
     "............",
     "....aaaa....",
@@ -309,4 +340,93 @@ export function iconCanvas(name: SpriteName, className = "ae-icon"): HTMLCanvasE
   const ctx = c.getContext("2d");
   if (ctx) drawRows(ctx, rows);
   return c;
+}
+
+/** 音符（長さ1=大 / 2以上=小）。c=音高色 h=ハイライト d=輪郭。10x10。 */
+const NOTE_ROWS: Readonly<Record<"short" | "long", readonly string[]>> = {
+  short: [
+    "..dddddd..",
+    ".dccccccd.",
+    "dcchhccccd",
+    "dchhcccccd",
+    "dcccccccdd",
+    "dcccccccdd",
+    "dccccccdd.",
+    ".dccccccd.",
+    "..dddddd..",
+    "..........",
+  ],
+  long: [
+    "..........",
+    "...dddd...",
+    "..dcchcd..",
+    ".dcchccdd.",
+    ".dcccccdd.",
+    ".dcccccdd.",
+    "..dcccdd..",
+    "...dddd...",
+    "..........",
+    "..........",
+  ],
+};
+export const NOTE_SIZE = 10;
+
+function hex(n: number): string {
+  return `#${n.toString(16).padStart(6, "0")}`;
+}
+
+export function drawNote(
+  ctx: CanvasRenderingContext2D,
+  length: "short" | "long",
+  color: number,
+): void {
+  NOTE_ROWS[length].forEach((row, y) => {
+    [...row].forEach((ch, x) => {
+      if (ch === ".") return;
+      ctx.fillStyle = ch === "d" ? "#140f18" : ch === "h" ? "#ffffff" : hex(color);
+      ctx.fillRect(x, y, 1, 1);
+    });
+  });
+}
+
+/** 音符テクスチャのキー（なければ作る）。 */
+export function noteTexture(
+  textures: Phaser.Textures.TextureManager,
+  length: "short" | "long",
+  color: number,
+): string {
+  const key = `ae-note-${length}-${color.toString(16)}`;
+  if (textures.exists(key)) return key;
+  const tex = textures.createCanvas(key, NOTE_SIZE, NOTE_SIZE);
+  if (tex) {
+    drawNote(tex.getContext(), length, color);
+    tex.refresh();
+  }
+  return key;
+}
+
+/** 稼働ランプ付きの機械テクスチャ。frame 0/1 で左上/右上のランプが交互に灯る（2フレーム）。 */
+export function activeTexture(
+  textures: Phaser.Textures.TextureManager,
+  machine: SpriteName,
+  frame: 0 | 1,
+): string {
+  const key = `ae-${machine}-on${frame}`;
+  if (textures.exists(key)) return key;
+  const rows = SPRITES[machine];
+  const tex = textures.createCanvas(key, rows[0]?.length ?? TILE, rows.length);
+  if (tex) {
+    const ctx = tex.getContext();
+    drawRows(ctx, rows);
+    const lamp = (x: number, lit: boolean) => {
+      ctx.fillStyle = "#140f18";
+      ctx.fillRect(x - 1, 1, 4, 4);
+      ctx.fillStyle = lit ? (PALETTE.a ?? "#f2b45a") : "#3a2f40";
+      ctx.fillRect(x, 2, 2, 2);
+    };
+    lamp(1, frame === 0);
+    lamp(TILE - 3, frame === 1);
+    tex.refresh();
+  }
+  return key;
 }
