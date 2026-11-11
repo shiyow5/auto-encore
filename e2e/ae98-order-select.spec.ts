@@ -36,6 +36,15 @@ for (const vp of [
         ),
       };
     });
+    // クリックを受けるのは行内の button。行いっぱい（44px 以上）であること
+    const btn = await page.evaluate(() => {
+      const b = document.querySelector<HTMLElement>("#order-select-overlay .os-row-btn");
+      const r = b!.closest<HTMLElement>(".os-row")!.getBoundingClientRect();
+      const br = b!.getBoundingClientRect();
+      return { w: br.width, h: br.height, rowW: r.width, rowH: r.height };
+    });
+    expect(btn.h).toBeGreaterThanOrEqual(44);
+    expect(btn.w).toBeGreaterThanOrEqual(btn.rowW - 6);
     expect(info.minFont).toBeGreaterThanOrEqual(16);
     expect(info.opacity).toBe("1");
     expect(info.color).toBe("rgb(154, 136, 168)"); // #9A88A8

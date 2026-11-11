@@ -821,9 +821,19 @@ body[data-scene="workshop"] #audio-toggle {
   border-color: var(--ae-amber);
 }
 
-.os-row-btn {
-  width: 100%;
+/* 押せるのは行全体（ボタンが行いっぱい。44px 以上） */
+.os-row:not(.os-row-locked) {
   padding: 0;
+}
+
+.os-row-btn {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
   font: inherit;
   text-align: left;
   color: var(--ae-text);
