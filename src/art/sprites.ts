@@ -31,6 +31,16 @@ export const PALETTE: Readonly<Record<string, string>> = {
   a: "#f2b45a",
   w: "#f3e9dc",
   x: "#ff6b5e",
+  // メダル（金/銀/銅）: 1=本体 2=ハイライト 3=影
+  "1": "#f2b45a",
+  "2": "#fff1c2",
+  "3": "#b7762a",
+  "4": "#c9cfdc",
+  "5": "#f4f6fb",
+  "6": "#7d8497",
+  "7": "#d98f5f",
+  "8": "#f2c19c",
+  "9": "#8f5430",
 };
 
 export type SpriteName =
@@ -44,6 +54,9 @@ export type SpriteName =
   | "speaker-on"
   | "speaker-off"
   | "lock"
+  | "medal-gold"
+  | "medal-silver"
+  | "medal-bronze"
   | "note-on"
   | "note-off";
 
@@ -169,6 +182,48 @@ export const SPRITES: Readonly<Record<SpriteName, readonly string[]>> = {
     "..............",
   ],
   // 小アイコン（12x12）。音量・鍵
+  "medal-gold": [
+    "...dddddd...",
+    "..d111111d..",
+    ".d12211113d.",
+    ".d12111113d.",
+    "d1111111113d",
+    "d1111111113d",
+    "d1111111113d",
+    "d1111111113d",
+    ".d11111113d.",
+    ".d11111133d.",
+    "..d333333d..",
+    "...dddddd...",
+  ],
+  "medal-silver": [
+    "...dddddd...",
+    "..d444444d..",
+    ".d45544446d.",
+    ".d45444446d.",
+    "d4444444446d",
+    "d4444444446d",
+    "d4444444446d",
+    "d4444444446d",
+    ".d44444446d.",
+    ".d44444466d.",
+    "..d666666d..",
+    "...dddddd...",
+  ],
+  "medal-bronze": [
+    "...dddddd...",
+    "..d777777d..",
+    ".d78877779d.",
+    ".d78777779d.",
+    "d7777777779d",
+    "d7777777779d",
+    "d7777777779d",
+    "d7777777779d",
+    ".d77777779d.",
+    ".d77777799d.",
+    "..d999999d..",
+    "...dddddd...",
+  ],
   "speaker-on": [
     "............",
     "....w.......",
