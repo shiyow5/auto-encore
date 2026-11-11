@@ -152,6 +152,8 @@ export class OrderSelectScene extends Phaser.Scene {
     });
 
     document.body.dataset.scene = "order-select";
+    // 結果画面の「注文選択」から来た場合の遷移フラグを外す（waitForIdle が止まらないように）
+    setQaBusy("transition", false);
   }
 
   shutdown(): void {

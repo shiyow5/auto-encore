@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { loadGameData } from "../../src/data";
 import type { Placement } from "../../src/core/sim/types";
 import {
+  allClearMessage,
   execute,
+  isAllCleared,
   metricRows,
   throughputSeries,
   toSolution,
@@ -104,5 +106,28 @@ describe("結果画面のグラフ用の累計（throughputSeries）", () => {
     const placements = frugal.placements.filter((p) => p.pos.x !== 6);
     const ex = execute(order, data.machines, placements);
     expect(throughputSeries(ex.frames).every((p) => p.value === 0)).toBe(true);
+  });
+});
+
+describe("全クリア判定（#137）", () => {
+  const ids = data.orders.map((o) => o.id);
+  const last = ids[ids.length - 1]!;
+  it("最後の注文を合格し、他が解放済みなら true", () => {
+    expect(isAllCleared(data.orders, last, true, ids)).toBe(true);
+  });
+  it("不合格・最後でない注文・未解放が残るときは false", () => {
+    expect(isAllCleared(data.orders, last, false, ids)).toBe(false);
+    expect(isAllCleared(data.orders, ids[0]!, true, ids)).toBe(false);
+    expect(isAllCleared(data.orders, last, true, [ids[0]!])).toBe(false);
+    expect(isAllCleared([], last, true, ids)).toBe(false);
+  });
+  it("締めの一文は注文3 だけが持つ", () => {
+    expect(allClearMessage(data.orders.find((o) => o.id === last)!)).toBe(
+      "これで開店できるね。ありがとう、ミスズさん。",
+    );
+    expect(allClearMessage(data.orders[0]!)).toBeNull();
+  });
+  it("依頼人: 注文1=小暮店長 / 注文2=ひなた / 注文3=ミスズ師匠", () => {
+    expect(data.orders.map((o) => o.client?.name)).toEqual(["小暮店長", "ひなた", "ミスズ師匠"]);
   });
 });
