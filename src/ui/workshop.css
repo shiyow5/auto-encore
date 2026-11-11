@@ -795,6 +795,76 @@ body[data-scene="workshop"] #audio-toggle {
   text-align: right;
 }
 
+/* 注文選択の行（#98）。ロックは opacity ではなく色指定（#9A88A8）。選択中は枠2px琥珀＋地#3A2D42の1重 */
+.os-list {
+  width: 100%;
+  max-width: 300px;
+}
+
+.os-row {
+  box-sizing: border-box;
+  min-height: 56px;
+  margin: 8px 0;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--ae-surface);
+  border: 2px solid #3a2d42;
+  border-radius: 4px;
+}
+
+.os-row:hover,
+.os-row:focus-within {
+  background: #3a2d42;
+  border-color: var(--ae-amber);
+}
+
+/* 押せるのは行全体（ボタンが行いっぱい。44px 以上） */
+.os-row:not(.os-row-locked) {
+  padding: 0;
+}
+
+.os-row-btn {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  font: inherit;
+  text-align: left;
+  color: var(--ae-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.os-row-btn:focus-visible {
+  outline: none; /* 枠は行（:focus-within）が担う */
+}
+
+.os-row-locked {
+  color: #9a88a8;
+}
+
+.os-row-locked:hover {
+  background: var(--ae-surface);
+  border-color: #3a2d42;
+}
+
+.os-lock-title,
+.os-lock-cond > span {
+  white-space: nowrap;
+}
+
+.os-lock-cond {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
 #audio-toggle .ae-icon {
   width: 24px;
