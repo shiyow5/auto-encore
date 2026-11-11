@@ -55,7 +55,13 @@ import {
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
-import { activeTexture, iconCanvas, noteTexture, portTexture, registerTextures } from "../art/sprites";
+import {
+  activeTexture,
+  iconCanvas,
+  noteTexture,
+  portTexture,
+  registerTextures,
+} from "../art/sprites";
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
 import { duckBgm, onSoundToggle, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
@@ -552,7 +558,12 @@ export class WorkshopScene extends Phaser.Scene {
         c.note.length === 1 ? "short" : "long",
         NOTE_COLOR[c.note.pitch],
       );
-      this.tiles.push(this.add.image(x + 2, y + 2, key).setOrigin(0, 0).setDepth(3));
+      this.tiles.push(
+        this.add
+          .image(x + 2, y + 2, key)
+          .setOrigin(0, 0)
+          .setDepth(3),
+      );
     }
   }
 

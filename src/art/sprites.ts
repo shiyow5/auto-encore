@@ -421,7 +421,7 @@ export function activeTexture(
     const lamp = (x: number, lit: boolean) => {
       ctx.fillStyle = "#140f18";
       ctx.fillRect(x - 1, 1, 4, 4);
-      ctx.fillStyle = lit ? PALETTE.a ?? "#f2b45a" : "#3a2f40";
+      ctx.fillStyle = lit ? (PALETTE.a ?? "#f2b45a") : "#3a2f40";
       ctx.fillRect(x, 2, 2, 2);
     };
     lamp(1, frame === 0);
