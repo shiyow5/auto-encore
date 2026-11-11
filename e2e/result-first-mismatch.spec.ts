@@ -2,7 +2,7 @@
  * spec-e §2: 結果画面に「最初にずれた位置」が表示されることを確認する。
  *
  * - 模範解（ずれなし）: data-first-mismatch の行が出ない
- * - ベルトを1マス欠かす（音が届かない）: 「最初にずれた位置: 1音目」が出る
+ * - ベルトを1マス欠かす（音が届かない）: 「最初にずれたのは 1音目」が出る
  *
  * タイトル → 注文選択 → 工房 → マスをクリックして配置 → 実行、の流れでテストする。
  */
@@ -88,14 +88,44 @@ test.describe("spec-e §2: 最初にずれた位置", () => {
     expect(name).toBeTruthy();
   });
 
-  test("ベルトを1マス欠かすと「最初にずれた位置: 1音目」が出る", async ({ page }) => {
+  test("ベルトを1マス欠かすと「最初にずれたのは 1音目」が出る", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await openOrder01(page);
     await placeBeltsAndRun(page, 9);
     const fm = page.locator("[data-first-mismatch]");
     await expect(fm).toHaveAttribute("data-first-mismatch", "1");
-    await expect(fm).toContainText("最初にずれた位置: 1音目");
+    await expect(fm).toHaveText("最初にずれたのは 1音目");
     expect(errors).toEqual([]);
   });
+
+  for (const vp of [
+    { width: 1280, height: 720 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`#96: 失敗時の表は折り返さず二重表記もない (${vp.width}×${vp.height})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(vp);
+      await openOrder01(page);
+      await placeBeltsAndRun(page, 9);
+      const cells = page.locator(".rs-table th, .rs-table td");
+      const n = await cells.count();
+      for (let i = 0; i < n; i++) {
+        const c = await cells.nth(i).evaluate((el) => ({
+          clipped: el.scrollWidth > el.clientWidth,
+          lines: Math.round(
+            el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight || "24"),
+          ),
+        }));
+        expect(c.clipped).toBe(false);
+        expect(c.lines).toBeLessThanOrEqual(2); // padding 込みで 1 行 = 40px 前後
+      }
+      for (const th of await page.locator(".rs-table thead th").all()) {
+        expect((await th.boundingBox())?.height ?? 99).toBeLessThanOrEqual(44);
+      }
+      await expect(page.locator(".rs-table")).not.toContainText("最初にずれた");
+      await expect(page.locator(".rs-fm")).toHaveCount(1);
+    });
+  }
 });

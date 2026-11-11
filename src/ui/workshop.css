@@ -215,6 +215,7 @@
 }
 
 .rs-table {
+  table-layout: fixed;
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1rem;
@@ -229,7 +230,10 @@
 
 .rs-table th,
 .rs-table td {
-  padding: 0.375rem 0.5rem;
+  box-sizing: border-box;
+  white-space: nowrap;
+  height: 40px;
+  padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--ae-surface-up);
 }
@@ -237,6 +241,19 @@
 .rs-table thead th {
   font-weight: normal;
   color: var(--ae-text-weak);
+}
+
+.rs-table th:nth-child(1) {
+  width: 40%;
+}
+
+.rs-table th:nth-child(2) {
+  width: 40%;
+}
+
+.rs-table th:nth-child(3) {
+  width: 20%;
+  min-width: 5em;
 }
 
 .rs-table th:nth-child(2),
@@ -277,8 +294,13 @@
 /* 最初にずれた位置（spec-e §2） */
 .rs-fm {
   margin: 0 0 1rem;
+  color: var(--ae-text-weak);
+  font-size: 1rem;
+}
+
+.rs-fm strong {
   color: var(--ae-danger);
-  font-size: 0.875rem;
+  font-weight: normal;
 }
 
 /* 結果のグラフ（Lightweight Charts）とフッターの帰属表示（品質uplift §1.5） */
