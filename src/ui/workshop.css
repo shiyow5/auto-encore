@@ -97,7 +97,7 @@
 }
 
 .ws-tool-cost {
-  font-size: calc(var(--u) * 3);
+  font-size: 12px; /* #99: 脚注扱い（12px は .ae-footnote のみ） */
   color: var(--ae-text-weak);
 }
 
@@ -139,6 +139,7 @@
 
 .ws-confirm p {
   flex: 1;
+  font-size: 16px; /* #99 */
   margin: 0;
 }
 

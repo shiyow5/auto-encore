@@ -667,7 +667,7 @@ export class WorkshopScene extends Phaser.Scene {
       b.append(
         iconCanvas(id),
         h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
-        h("span", { class: "ws-tool-cost" }, `${cost}G`),
+        h("span", { class: "ws-tool-cost ae-footnote" }, `${cost}G`),
       );
       b.addEventListener("click", () => {
         this.selected = id;
