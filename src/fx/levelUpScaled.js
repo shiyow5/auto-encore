@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions -- 元の pixelfx のコード形（(a = b), (c = d) の代入）をそのまま残すため */
-/* Vendored from pixelfx 0.3.0 (MIT, Copyright (c) 2026 Hugo Duprez) src/fx/ui/level-up.js. Local change: text scale option textScale (default 1; 0.8 for 844x390 Issue #132 (b)). Imports point to pixelfx package exports. */
+/* Vendored from pixelfx 0.3.0 (MIT, Copyright (c) 2026 Hugo Duprez) src/fx/ui/level-up.js. Local changes: (1) text scale option textScale (default 1; 0.7 on narrow landscape screens such as 844x390, Issue #132 (b)); (2) the pillar and centre glow over the text band (BAND_T to BAND_B) fade out between 0.5s and 0.8s; (3) spark lifetime capped at 0.2s; (4) rush streaks from 0.5s on stop short of the text band; (5) imports point to pixelfx package exports. Behaviour otherwise unchanged. License: public/licenses/pixelfx/. */
 // The pillar's strands of light and the rings climbing it adapt Sprite Fusion's open-source holy light
 // (https://www.spritefusion.com/pixel-art-vfx/holy-light), and the streaks rushing in its power-up
 // (https://www.spritefusion.com/pixel-art-vfx/power-up), MIT License, Copyright (c) 2026 Hugo Duprez.
