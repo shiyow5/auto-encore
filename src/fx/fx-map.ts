@@ -88,13 +88,16 @@ export const FX_PRIORITY: Readonly<Record<FxEventName, number>> = {
 };
 
 /**
- * LEVEL UP! の origin（内部ドット）。画面幅で選ぶ（結果画面のカードの文字に重ならない位置。Issue #132）。
- * - 広い画面（1280x720 など）: 左寄り x:52。中央（x:160）は数値に重なる。
- * - 狭い・横長の画面（844x390 / 390x844）: x:268。x:52 は見出し・「指標」行や音符の見出しに重なる。
- * y は演出の柱（高さ約100px）があるため動かさない。
+ * LEVEL UP! の origin（内部ドット）。画面の大きさで選ぶ（結果画面のカードの文字・バッジに重ならない位置。Issue #132）。
+ * - 広い画面（幅1000px以上、1280x720 など）: 左寄り x:52。中央（x:160）は数値に重なる。
+ * - 横長の狭い画面（844x390）: 右の余白側 x:292。パネルの外に置き、「メダル」見出しに被せない。
+ * - 縦長（390x844）: x:268, y:70。柱の下端がグラフの「目標」バッジに届かない高さに上げる。
+ *   上げすぎると canvas の上端で切れるので、これより上には動かさない。
  */
-export function levelUpOrigin(viewportW: number, _viewportH: number): { x: number; y: number } {
-  return { x: viewportW >= 1000 ? 52 : 268, y: 118 };
+export function levelUpOrigin(viewportW: number, viewportH: number): { x: number; y: number } {
+  if (viewportW >= 1000) return { x: 52, y: 118 };
+  if (viewportH > viewportW) return { x: 268, y: 70 };
+  return { x: 292, y: 118 };
 }
 
 export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
