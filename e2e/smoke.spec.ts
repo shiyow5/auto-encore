@@ -314,6 +314,8 @@ test("?fx=0: 注文選択のロック表示と「タイトルへ戻る」", asyn
   await expect(overlay).toContainText(
     "ロック中: 高い音と低い音（開店前の試し弾き をクリアで解放）",
   );
+  // #102 で 🔒 絵文字をドット絵の鍵アイコン(canvas)に置き換えた
+  await expect(overlay.locator("canvas.ae-icon").first()).toBeVisible();
   await page.getByRole("button", { name: "タイトルへ戻る" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title");
   expect(errors).toEqual([]);

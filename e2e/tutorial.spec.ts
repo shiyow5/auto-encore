@@ -53,3 +53,25 @@ test("チュートリアル: スキップすると次回以降も出ない", asy
   await openOrder01(page);
   await expect(page.locator(".ws-guide")).toHaveCount(0);
 });
+
+test.describe("タッチ端末 (Issue #140)", () => {
+  test.use({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
+
+  test("チュートリアル手順2: 置いたベルトを再タップで回って手順3へ進む", async ({ page }) => {
+    await page.goto("/?fx=0");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await openOrder01(page);
+
+    const panel = page.locator(".ws-guide");
+    await page.getByRole("button", { name: "マス 1,3: 空き" }).tap();
+    await expect(panel).toContainText("手順2/3");
+    await expect(panel).toContainText("タップして向きを回します");
+    await expect(panel).not.toContainText("R で");
+    await page.getByRole("button", { name: "マス 1,3: ベルト 東向き" }).tap();
+    await expect(panel).toContainText("手順3/3");
+    await expect(page.getByRole("button", { name: /マス 1,3: ベルト/ })).not.toHaveAccessibleName(
+      "マス 1,3: ベルト 東向き",
+    );
+  });
+});

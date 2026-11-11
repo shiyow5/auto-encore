@@ -14,6 +14,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { rotateCW } from "../core/grid";
+import { isHoverNone, shouldRotateOnTap } from "./workshop/tap";
 import type { Dir, Point } from "../core/grid";
 import type { SimState } from "../core/sim/sim";
 import {
@@ -28,7 +29,7 @@ import { loadGameData } from "../data";
 import { fxEnabled, flags } from "../ui/flags";
 import {
   TUTORIAL_NEED_MACHINE,
-  TUTORIAL_TEXT,
+  tutorialText,
   initialStep,
   isTutorialDone,
   markTutorialDone,
@@ -418,7 +419,7 @@ export class WorkshopScene extends Phaser.Scene {
     }
     if (!this.tutorialPanel) return;
     const text = this.tutorialPanel.querySelector(".ws-guide-text");
-    let msg = TUTORIAL_TEXT[this.tutorial];
+    let msg = tutorialText(this.tutorial, isHoverNone());
     if (this.tutorial === "rotate" && this.placements.length === 0) msg += TUTORIAL_NEED_MACHINE;
     if (text) text.textContent = msg;
     this.tutorialPanel.dataset.step = this.tutorial;
@@ -606,7 +607,7 @@ export class WorkshopScene extends Phaser.Scene {
     const grid = h("div", {
       class: "ws-grid",
       role: "group",
-      "aria-label": `工房 ${this.rules.width}×${this.rules.height}（クリックで置く・R で回す・P か Shift+クリックで仕分け機の音高・右クリックか Delete で消す）`,
+      "aria-label": `工房 ${this.rules.width}×${this.rules.height}（${isHoverNone() ? "タップで置く・置いた機械をタップで回す" : "クリックで置く・R で回す"}・P か Shift+クリックで仕分け機の音高・右クリックか Delete で消す）`,
     });
     grid.style.setProperty("--cols", String(this.rules.width));
     grid.style.setProperty("--rows", String(this.rules.height));
@@ -615,9 +616,20 @@ export class WorkshopScene extends Phaser.Scene {
       for (let x = 0; x < this.rules.width; x++) {
         const pos = { x, y };
         const b = h("button", { type: "button", class: "ws-cell", tabindex: "-1" });
+        let tapType: string | undefined; // 直近の pointerdown の入力種別（キーボード由来の click では undefined）
         b.addEventListener("click", (e) => {
           if (e.shiftKey) this.cyclePitch(pos);
-          else this.placeAt(pos);
+          else if (
+            shouldRotateOnTap(
+              tapType,
+              placementAt(this.placements, pos),
+              this.selected,
+              this.nextPitchValue,
+            )
+          ) {
+            this.rotate(pos);
+          } else this.placeAt(pos);
+          tapType = undefined;
         });
         b.addEventListener("contextmenu", (e) => {
           e.preventDefault();
@@ -634,7 +646,8 @@ export class WorkshopScene extends Phaser.Scene {
           if (this.hover && this.hover.x === x && this.hover.y === y) this.hover = null;
           this.redraw();
         });
-        b.addEventListener("pointerdown", () => {
+        b.addEventListener("pointerdown", (e) => {
+          tapType = e.pointerType;
           this.pointerPressing = true;
         });
         b.addEventListener("pointerup", () => {

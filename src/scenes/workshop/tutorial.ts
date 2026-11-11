@@ -21,6 +21,14 @@ export const TUTORIAL_TEXT: Record<Exclude<TutorialStep, "done">, string> = {
   run: "手順3/3: 「実行」で音を流してみましょう。失敗しても置き直せます。",
 };
 
+/** タッチ端末（ホバー無し）向けの手順2。R もカーソルも無いので、タップで回す。 */
+export const TUTORIAL_ROTATE_TOUCH = "手順2/3: 置いたベルトをタップして向きを回します。";
+
+/** 手順の案内文。touch 端末では手順2だけ文言を差し替える。 */
+export function tutorialText(step: Exclude<TutorialStep, "done">, touch: boolean): string {
+  return step === "rotate" && touch ? TUTORIAL_ROTATE_TOUCH : TUTORIAL_TEXT[step];
+}
+
 /** 機械がまだ無いときに手順2へ添える一言。 */
 export const TUTORIAL_NEED_MACHINE = "（まず1台置いてください）";
 
