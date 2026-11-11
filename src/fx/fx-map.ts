@@ -61,8 +61,8 @@ export interface FxSpec {
   ttl?: number;
   /** true なら、同じイベントの前回分を止めてから再生する（combo の表示を重ねない） */
   exclusive?: boolean;
-  /** back = 画面の背景側レイヤー / front = 手前 */
-  layer: "back" | "front";
+  /** back = 画面の背景側レイヤー / front = 手前 / overlay = DOM のカードよりさらに手前（透明 canvas） */
+  layer: "back" | "front" | "overlay";
 }
 
 /**
@@ -115,7 +115,8 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   ],
   result: [
     { mod: achievement, x: 160, y: 12, layer: "front" },
-    { mod: levelUp, x: 160, y: 118, layer: "front" },
+    // カード（DOM）の後ろに隠れないよう overlay。文言・座標はそのまま（Issue #132 案A）
+    { mod: levelUp, x: 160, y: 118, layer: "overlay" },
   ],
 };
 

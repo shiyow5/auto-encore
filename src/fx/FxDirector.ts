@@ -21,6 +21,8 @@ export interface FxSink {
 export interface FxSinks {
   back: FxSink;
   front: FxSink;
+  /** DOM のカードより手前に描く透明 canvas（結果画面の "LEVEL UP!" など）。無ければ front に描く。 */
+  overlay?: FxSink;
 }
 
 export interface FxDirectorOptions {
@@ -33,7 +35,7 @@ export interface FxDirectorOptions {
 interface Live {
   name: FxEventName;
   prio: number;
-  layer: "back" | "front";
+  layer: "back" | "front" | "overlay";
   fx: FxInstance;
 }
 
@@ -94,7 +96,7 @@ export class FxDirector {
       };
       opts.x = at.x;
       opts.y = at.y;
-      const fx = sinks[spec.layer].play(spec.mod, opts, spec.ttl ?? null);
+      const fx = (sinks[spec.layer] ?? sinks.front).play(spec.mod, opts, spec.ttl ?? null);
       this.live.push({ name, prio: FX_PRIORITY[name], layer: spec.layer, fx });
       played = true;
     });
@@ -118,6 +120,7 @@ export class FxDirector {
     this.timers.clear();
     this.sinks?.back.destroy();
     this.sinks?.front.destroy();
+    this.sinks?.overlay?.destroy();
   }
 
   /** 位置を決める。band 指定は帯の割合から、無ければ x / y。帯が無ければ null（出さない）。 */

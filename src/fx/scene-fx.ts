@@ -5,6 +5,7 @@ import { fxEnabled, onReducedMotion } from "../ui/flags";
 import { FxDirector } from "./FxDirector";
 import type { Band } from "./FxDirector";
 import { PixelFxLayer } from "./PixelFxLayer";
+import { DomFxLayer } from "./DomFxLayer";
 
 export interface SceneFxOptions {
   /** 前景の描画範囲。指定すると前景はこの矩形の中にだけ描く（盤面を覆わない）。 */
@@ -17,6 +18,8 @@ export interface SceneFxOptions {
   width?: number;
   /** 描画領域の高さ。省略は GAME_HEIGHT。 */
   height?: number;
+  /** true なら、DOM より手前に出す透明 canvas のレイヤー（layer: "overlay" の演出用）も作る。 */
+  overlay?: boolean;
 }
 
 /**
@@ -52,8 +55,11 @@ export function createSceneFx(
     clipGfx.fillStyle(0xffffff, 1).fillRect(band.x, band.y, band.w, band.h);
     front.sprite.setMask(clipGfx.createGeometryMask());
   }
+  const host = scene.game.canvas.parentElement;
+  const overlay =
+    options.overlay && host ? new DomFxLayer(host, scene.game.canvas, w, h) : undefined;
   const director = new FxDirector(
-    { back, front },
+    { back, front, overlay },
     fxEnabled,
     { band: () => band, frontSlots: options.frontSlots },
     playSfx,
@@ -61,12 +67,14 @@ export function createSceneFx(
   const tick = (_t: number, delta: number) => {
     back.update(delta / 1000);
     front.update(delta / 1000);
+    overlay?.update(delta / 1000);
   };
   scene.events.on("update", tick);
   // 途中で「視差効果を減らす」にされたら、背景のループ演出も含めて止める（以後の emit は fxEnabled で止まる）
   const unwatch = onReducedMotion(() => {
     back.stopAll();
     front.stopAll();
+    overlay?.stopAll();
   });
   scene.events.once("shutdown", () => {
     unwatch();
