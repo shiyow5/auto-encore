@@ -587,7 +587,11 @@ export class WorkshopScene extends Phaser.Scene {
         "data-machine": id,
         "data-allowed": String(allowed),
       });
-      b.append(iconCanvas(id), h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]), h("span", { class: "ws-tool-cost" }, `${cost}G`));
+      b.append(
+        iconCanvas(id),
+        h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
+        h("span", { class: "ws-tool-cost" }, `${cost}G`),
+      );
       b.addEventListener("click", () => {
         this.selected = id;
         this.refreshOverlay();
