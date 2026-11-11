@@ -148,3 +148,26 @@ export function verdictMessage(order: Order, v: Verdict): string | null {
   const msg = (t as Record<string, unknown>)[v];
   return typeof msg === "string" ? msg : null;
 }
+
+/**
+ * 全注文クリア（#137）。最後の注文を合格し、その前の注文もすべて解放済み（＝クリア済み）のとき true。
+ * 解放は前の注文の合格でしか進まないので、解放済み一覧から判定する。
+ */
+export function isAllCleared(
+  orders: readonly Order[],
+  clearedOrderId: string,
+  passed: boolean,
+  unlocked: readonly string[],
+): boolean {
+  if (!passed || orders.length === 0) return false;
+  if (orders[orders.length - 1]!.id !== clearedOrderId) return false;
+  return orders.every((o) => o.id === clearedOrderId || unlocked.includes(o.id));
+}
+
+/** 全クリア時の締めの一文（texts.result.allClear）。無ければ null。 */
+export function allClearMessage(order: Order): string | null {
+  const t = order.texts["result"];
+  if (typeof t !== "object" || t === null) return null;
+  const msg = (t as Record<string, unknown>)["allClear"];
+  return typeof msg === "string" ? msg : null;
+}
