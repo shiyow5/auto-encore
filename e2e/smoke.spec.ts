@@ -162,7 +162,7 @@ test("?fx=0: 途中が切れていると詰まって「もう一歩」・速度�
     "正確さ 0%（0/8） —",
   );
   await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName("速度 — (未達) —");
-  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName("コスト 9G 金");
+  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName("コスト 9G —");
 });
 
 test("演出あり: 実行すると音符を tick ごとに動かしてから結果へ（スキップもできる）", async ({
