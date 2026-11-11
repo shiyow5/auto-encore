@@ -1076,6 +1076,9 @@ body[data-scene="workshop"] #audio-toggle {
   padding: 6px;
   gap: 8px;
   border-radius: 4px;
+  /* 低い横画面(844×300 等)でも画面内に収め、棚の中だけスクロールさせる */
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
 }
 
 .ws-compact .ws-shelf > h2 {

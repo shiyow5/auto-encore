@@ -56,3 +56,25 @@ test("AE#165: 844×390 で棚ボタン 44px 以上・価格は枠内・説明は
   expect(r.cardBottom).toBeLessThanOrEqual(390);
   expect(r.pageOverflow).toBe(false);
 });
+
+test("AE#165: 844×300 でも棚が画面内に収まり、全消しに届く", async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 300 });
+  await page.goto("/?fx=0");
+  await page.getByLabel("はじめる").click();
+  await page.locator('[data-order-id="order-01"] button').click();
+  await expect(page.locator("#ws-overlay.ws-compact")).toBeVisible();
+
+  const r = await page.evaluate(() => {
+    const shelf = document.querySelector(".ws-shelf")!.getBoundingClientRect();
+    return {
+      shelfBottom: shelf.bottom,
+      pageScrolls: document.documentElement.scrollHeight > window.innerHeight,
+    };
+  });
+  expect(r.shelfBottom).toBeLessThanOrEqual(300);
+  expect(r.pageScrolls).toBe(false);
+
+  const clear = page.locator(".ws-clear");
+  await clear.scrollIntoViewIfNeeded();
+  await clear.click();
+});
