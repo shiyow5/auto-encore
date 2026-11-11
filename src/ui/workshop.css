@@ -258,6 +258,158 @@
   cursor: progress;
 }
 
+/* 横持ち・PC: 棚の中の入れ物は無いものとして縦に並べる。「消す」ボタンは縦持ち専用 */
+.ws-palette,
+.ws-actions {
+  display: contents;
+}
+
+.ws-erase {
+  display: none;
+}
+
+/* ---- 縦持ち（スマホ幅, Issue #95）----
+ * canvas を画面の CSS ピクセルと同じ大きさにしてあるので --u は 1px。文字はすべて 16px 以上、
+ * 押す所は 44×44px 以上。上から: ヒント(y=8) → 盤面(y=56) → 操作の列 → 機械の横スクロール → 注文票 → 実行ボタン(下固定)。 */
+#ws-overlay.ws-portrait {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+#ws-overlay.ws-portrait h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+#ws-overlay.ws-portrait p,
+#ws-overlay.ws-portrait ul {
+  margin: 0 0 8px;
+}
+
+#ws-overlay.ws-portrait ul {
+  padding-left: 24px;
+}
+
+.ws-portrait .ws-shelf,
+.ws-portrait .ws-order {
+  display: contents;
+}
+
+.ws-portrait .ws-shelf > h2 {
+  display: none;
+}
+
+.ws-portrait .ws-help-line {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  height: 40px;
+  max-width: 100%;
+  padding: 0 12px;
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px !important;
+  color: var(--ae-text-weak) !important;
+  line-height: 20px;
+  text-align: center !important;
+}
+
+.ws-portrait .ws-actions {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 8px);
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  padding: 0 12px;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-actions .ws-btn {
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ws-portrait .ws-erase {
+  display: block;
+}
+
+.ws-portrait .ws-palette {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 60px);
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  height: 64px;
+  padding: 4px 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  pointer-events: auto;
+  /* 左右 16px のフェードで「続きがある」ことを見せる */
+  background:
+    linear-gradient(to right, var(--ae-surface), transparent 16px),
+    linear-gradient(to left, var(--ae-surface), transparent 16px);
+}
+
+.ws-portrait .ws-palette .ws-btn {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-width: 64px;
+  height: 56px;
+  padding: 0 6px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.ws-portrait .ws-order-body {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 132px);
+  left: 0;
+  right: 0;
+  bottom: calc(52px + 56px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  padding: 0 16px;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-tutorial {
+  font-size: 16px !important;
+  margin: 0 0 8px !important;
+}
+
+.ws-portrait .ws-status {
+  left: 16px;
+  right: 16px;
+  top: auto;
+  bottom: calc(52px + 20px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  min-height: 0;
+  margin: 0;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-run {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  height: 52px;
+  margin: 0;
+  font-size: 18px;
+  pointer-events: auto;
+}
+
 /* ---- 結果画面（K4。仮の見た目。数値が読めることを優先） ---- */
 #rs-overlay {
   position: absolute;
