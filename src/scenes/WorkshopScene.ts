@@ -138,6 +138,16 @@ function h<K extends keyof HTMLElementTagNameMap>(
   return e;
 }
 
+/** 改行（\n）を <br> にして 1 つの <p> に入れる（注文票の文面用）。 */
+function multiLine(text: string, cls: string): HTMLParagraphElement {
+  const p = h("p", { class: cls });
+  text.split("\n").forEach((line, i) => {
+    if (i > 0) p.append(document.createElement("br"));
+    p.append(document.createTextNode(line));
+  });
+  return p;
+}
+
 export class WorkshopScene extends Phaser.Scene {
   private order!: Order;
   private machines!: MachineTable;
@@ -865,20 +875,19 @@ export class WorkshopScene extends Phaser.Scene {
     card.append(body);
     body.append(h("h2", {}, this.order.title));
     const intro = this.order.texts["intro"];
-    if (typeof intro === "string") body.append(h("p", {}, intro));
+    if (this.order.client) {
+      body.append(h("p", { class: "ws-client" }, `依頼人: ${this.order.client.name}`));
+    }
+    if (typeof intro === "string") body.append(multiLine(intro, "ws-intro"));
     // Issue #48: tutorial 文を表示
     const tutorial = this.order.texts["tutorial"];
     if (typeof tutorial === "string") {
-      body.append(
-        h(
-          "p",
-          {
-            class: "ws-tutorial",
-            style: "font-size: 16px; line-height: 24px; color: var(--ae-text-weak); margin: 8px 0;",
-          },
-          tutorial,
-        ),
+      const p = multiLine(tutorial, "ws-tutorial");
+      p.setAttribute(
+        "style",
+        "font-size: 16px; line-height: 24px; color: var(--ae-text-weak); margin: 8px 0;",
       );
+      body.append(p);
     }
     const list = h("ul", {});
     // Issue #49: 座標文字は出さず、マス目上の入口・出口の記号（矢印）で示す

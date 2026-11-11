@@ -339,12 +339,14 @@
 .rs-actions {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 8px;
 }
 
 .rs-actions .ae-btn {
   width: 160px;
+  flex: none; /* ボタンが4つ並んでも縮めない（足りなければ折り返す） */
 }
 
 @media (max-width: 480px) {
@@ -472,12 +474,13 @@
   box-sizing: border-box;
   height: 40px;
   max-width: 100%;
-  padding: 0 12px;
+  /* #162: 右上の音量(#volume-toggle, 左端が右から約 106px)と重ねないよう、右を 112px 空けて折り返す */
+  padding: 0 112px 0 12px;
   margin: 0;
   overflow: hidden;
   font-size: 16px !important;
   color: var(--ae-text-weak) !important;
-  line-height: 20px;
+  line-height: 19px;
   text-align: center !important;
 }
 

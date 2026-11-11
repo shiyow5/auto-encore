@@ -3,8 +3,8 @@
   "id": "order-02",
   "title": "高い音と低い音",
   "client": {
-    "id": "kogure",
-    "name": "小暮店長"
+    "id": "hinata",
+    "name": "ひなた"
   },
   "texts": {
     "intro": "ドとソが混ざって届いたんだ。低い箱と高い箱に分けてくれないか。",
@@ -65,7 +65,11 @@
       "bronze": 80,
       "unit": "percent"
     },
-    "ticks": { "gold": 18, "silver": 24, "bronze": 36 },
+    "ticks": {
+      "gold": 18,
+      "silver": 24,
+      "bronze": 36
+    },
     "cost": {
       "gold": 19,
       "silver": 23,
