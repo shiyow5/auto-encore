@@ -48,3 +48,14 @@ test("#94 全消しは確認を挟み、はいで消える・やめるで残る"
   await page.getByRole("button", { name: "はい" }).click();
   await expect(page.getByLabel("配置の合計")).toHaveText("機械 0台 / 0G");
 });
+
+// kyoya 指摘(#150): スマホ横 844×390 でも「実行」が画面内（パネル内スクロールなしで押せる）
+test("#99 844×390: 「実行」ボタンが viewport 内にある", async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await openWorkshop(page);
+  const box = await page.locator("#ws-overlay .ws-run").boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(390);
+  expect(box!.height).toBeGreaterThanOrEqual(44); // kyoya P2: タップ目標 44px
+});

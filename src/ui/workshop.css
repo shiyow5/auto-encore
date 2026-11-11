@@ -18,6 +18,14 @@
   --ae-text-weak: #c4b4c9;
   --ae-amber: #f2b45a;
   --ae-danger: #ff8a7a;
+  --ae-amber-hover: #f6c77f;
+  --ae-line: #7a6888;
+  --ae-text-muted: #9a88a8;
+  --ae-entry: #92ddcc;
+  --ae-exit: #f29bb8;
+  --ae-medal-gold: #ffd27a;
+  --ae-medal-silver: #d8d3e0;
+  --ae-medal-bronze: #d98e5f;
   /* フォントは1か所で管理。Phaser の text もこの値を参照して「DotGothic16", monospace */
   --ae-font: "DotGothic16", monospace;
 }
@@ -30,21 +38,22 @@
   position: absolute;
   --u: 1px;
   font-family: var(--ae-font);
-  font-size: calc(var(--u) * 6);
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--ae-text);
   pointer-events: none;
 }
 
 #ws-overlay h2 {
-  margin: 0 0 calc(var(--u) * 3);
-  font-size: calc(var(--u) * 7);
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 32px;
   color: var(--ae-amber);
 }
 
 #ws-overlay p,
 #ws-overlay ul {
-  margin: 0 0 calc(var(--u) * 3);
+  margin: 0 0 8px;
 }
 
 #ws-overlay ul {
@@ -96,7 +105,7 @@
 }
 
 .ws-tool-cost {
-  font-size: calc(var(--u) * 3);
+  font-size: 12px; /* #99: 脚注扱い（12px は .ae-footnote のみ） */
   color: var(--ae-text-weak);
 }
 
@@ -114,7 +123,7 @@
   height: calc(var(--u) * 11);
   font-size: calc(var(--u) * 4);
   text-align: center;
-  border: calc(var(--u) * 0.5) solid #7a6888;
+  border: calc(var(--u) * 0.5) solid var(--ae-line);
 }
 
 .ws-confirm {
@@ -138,6 +147,7 @@
 
 .ws-confirm p {
   flex: 1;
+  font-size: 16px; /* #99 */
   margin: 0;
 }
 
@@ -281,7 +291,7 @@
 }
 
 .ae-btn-primary:hover {
-  background: #f6c77f;
+  background: var(--ae-amber-hover);
 }
 
 .ae-btn-primary:active {
@@ -291,7 +301,7 @@
 .ae-btn-secondary {
   color: var(--ae-text);
   background: transparent;
-  border-color: #7a6888;
+  border-color: var(--ae-line);
 }
 
 .ae-btn-secondary:hover {
@@ -335,14 +345,22 @@
   display: block;
   width: 100%;
   margin-top: calc(var(--u) * 2);
+  min-height: 44px; /* #99 P2: 横長でもタップ目標 44px を確保 */
   text-align: center;
   font-weight: bold;
   color: var(--ae-bg);
   background: var(--ae-amber);
 }
 
+/* 横長で注文票が縦に収まらないときも「実行」を下端に残す（パネル内スクロールの末尾まで行かなくてよい） */
+#ws-overlay:not(.ws-portrait) .ws-run {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
 .ws-run:hover {
-  background: #f6c77f;
+  background: var(--ae-amber-hover);
 }
 
 /* 実行中の「実行中…(tick n)」。実行ボタンの真下に出す（盤面・演出の帯には重ねない） */
@@ -612,15 +630,15 @@
 }
 
 .rs-table [data-medal="gold"] {
-  color: var(--ae-amber);
+  color: var(--ae-medal-gold);
 }
 
 .rs-table [data-medal="silver"] {
-  color: #d8dce6;
+  color: var(--ae-medal-silver);
 }
 
 .rs-table [data-medal="bronze"] {
-  color: #e0a07a;
+  color: var(--ae-medal-bronze);
 }
 
 .rs-table [data-medal="none"] {
@@ -834,7 +852,7 @@ body[data-scene="workshop"] #audio-toggle {
   gap: 4px;
   padding: 8px 12px;
   font-family: var(--ae-font);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ae-text);
   background: var(--ae-surface);
   border: 1px solid var(--ae-amber);
@@ -875,13 +893,13 @@ body[data-scene="workshop"] #audio-toggle {
   justify-content: center;
   font-size: 16px;
   background: var(--ae-surface);
-  border: 2px solid #3a2d42;
+  border: 2px solid var(--ae-surface-up);
   border-radius: 4px;
 }
 
 .os-row:hover,
 .os-row:focus-within {
-  background: #3a2d42;
+  background: var(--ae-surface-up);
   border-color: var(--ae-amber);
 }
 
@@ -911,12 +929,12 @@ body[data-scene="workshop"] #audio-toggle {
 }
 
 .os-row-locked {
-  color: #9a88a8;
+  color: var(--ae-text-muted);
 }
 
 .os-row-locked:hover {
   background: var(--ae-surface);
-  border-color: #3a2d42;
+  border-color: var(--ae-surface-up);
 }
 
 .os-lock-title,
