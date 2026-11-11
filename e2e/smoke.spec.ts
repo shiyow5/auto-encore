@@ -12,7 +12,7 @@ function collectErrors(page: import("@playwright/test").Page): string[] {
 test("起動してキャンバスが表示され、タイトル→工房に進む（演出あり）", async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto("/");
-  await expect(page.locator("#game canvas")).toBeVisible();
+  await expect(page.locator("#game > canvas")).toBeVisible();
   // タイトル画面経由 → はじめるで工房へ
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
