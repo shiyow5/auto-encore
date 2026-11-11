@@ -55,6 +55,7 @@ import {
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
+import { iconCanvas, portTexture, registerTextures } from "../art/sprites";
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
 import { duckBgm, onSoundToggle, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
@@ -90,15 +91,6 @@ export const MACHINE_NAME: Record<MachineId, string> = {
   sorter: "仕分け機",
   tuner: "調律機",
   bin: "回収箱",
-};
-
-/** 機械ごとの床の色。 */
-const MACHINE_COLOR: Record<MachineId, number> = {
-  belt: COLOR.belt,
-  merger: COLOR.merger,
-  sorter: COLOR.sorter,
-  tuner: COLOR.tuner,
-  bin: COLOR.bin,
 };
 
 /** 音高の読み（machines.json の "do"/"mi"/"so" を画面の言葉にする）。候補そのものは machines.json。 */
@@ -155,6 +147,8 @@ export class WorkshopScene extends Phaser.Scene {
   private pointerPressing = false;
 
   private gfx!: Phaser.GameObjects.Graphics;
+  /** 盤面のドット絵（床・機械・入口/出口）。再描画のたびに作り直す。gfx（線・矢印・音符）より下に置く。 */
+  private tiles: Phaser.GameObjects.Image[] = [];
   private fx?: FxDirector;
   /** 再生中に bin へ入った音符の数（combo 表示用） */
   private combo = 0;
@@ -240,11 +234,12 @@ export class WorkshopScene extends Phaser.Scene {
     this.nextPitchValue = pitchChoices(data.machines, "sorter")[0] ?? 0;
     // audio.ts の共有設定 (ae-audio-enabled) を使用する
 
+    registerTextures(this.textures);
     this.applyViewport();
     this.fx = createSceneFx(this, "fx-workshop", this.scale.width, this.scale.height);
     this.fx.emit("ambient");
     this.combo = 0;
-    this.gfx = this.add.graphics();
+    this.gfx = this.add.graphics().setDepth(5);
     // ?seed= の QA 実行では出さない（押下を遮らない）
     this.tutorial = flags().seed !== null ? "done" : initialStep(orderId, isTutorialDone());
     this.buildOverlay();
@@ -513,9 +508,18 @@ export class WorkshopScene extends Phaser.Scene {
     const g = this.gfx;
     const { width, height } = this.rules;
     g.clear();
-    g.fillStyle(COLOR.floor, 1);
-    g.fillRect(this.gridX, this.gridY, width * this.cell, height * this.cell);
-    g.lineStyle(1, COLOR.line, 1);
+    for (const t of this.tiles) t.destroy();
+    this.tiles = [];
+    // 画像は TILE(14px) 基準なので、盤面の cell（縦持ちで変わる）に合わせて伸縮する
+    const put = (key: string, p: Point): void => {
+      const { x, y } = this.cellXY(p);
+      this.tiles.push(
+        this.add.image(x, y, key).setOrigin(0, 0).setDisplaySize(this.cell, this.cell).setDepth(1),
+      );
+    };
+    // 床（木板ではなく暗い床タイル。グリッドは薄い線）
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) put("ae-floor", { x, y });
+    g.lineStyle(1, COLOR.line, 0.45);
     for (let x = 0; x <= width; x++) {
       g.lineBetween(
         this.gridX + x * this.cell + 0.5,
@@ -536,27 +540,22 @@ export class WorkshopScene extends Phaser.Scene {
     for (const r of this.rules.reserved) {
       const { x, y } = this.cellXY(r.pos);
       if (r.kind === "blocked") {
-        g.fillStyle(COLOR.line, 1);
-        g.fillRect(x + 1, y + 1, this.cell - 1, this.cell - 1);
+        put("ae-blocked", r.pos);
         continue;
       }
-      g.fillStyle(r.kind === "input" ? COLOR.input : COLOR.output, 1);
-      g.fillRect(x + 2, y + 2, this.cell - 3, this.cell - 3);
-      this.arrow(x, y, r.dir ?? "E", COLOR.floor);
+      // 入口/出口: 地色の上にラベル（A / OUT など）をドットで描く
+      put(portTexture(this.textures, r.kind, r.id ?? (r.kind === "input" ? "A" : "OUT")), r.pos);
+      this.arrow(x, y + 2, r.dir ?? "E", COLOR.floor);
     }
 
     for (const p of this.placements) {
       const { x, y } = this.cellXY(p.pos);
-      g.fillStyle(MACHINE_COLOR[p.machine], 1);
-      g.fillRect(x + 1, y + 1, this.cell - 1, this.cell - 1);
-      // 回収箱は仮の図形（kotoha 側の素材が届くまで）: 床色の穴の上に向きの三角
-      if (p.machine === "bin") {
-        g.fillStyle(COLOR.floor, 1);
-        g.fillRect(x + 3, y + 3, this.cell - 5, this.cell - 5);
-      }
+      put(`ae-${p.machine}`, p.pos);
       this.arrow(x, y, p.dir, COLOR.arrow);
       // 仕分け機は右下に音高の色の点（ド・ミ・ソ = 音符と同じ色）
       if (p.config) {
+        g.fillStyle(0x140f18, 1);
+        g.fillRect(x + CELL - 5, y + CELL - 5, 5, 5);
         g.fillStyle(NOTE_COLOR[p.config.pitch], 1);
         const d = Math.round((3 * this.cell) / CELL);
         g.fillRect(x + this.cell - d - 1, y + this.cell - d - 1, d, d);
@@ -629,7 +628,7 @@ export class WorkshopScene extends Phaser.Scene {
         "data-machine": id,
         "data-allowed": String(allowed),
       });
-      b.textContent = `${MACHINE_NAME[id]} ${cost}G`;
+      b.append(iconCanvas(id), document.createTextNode(`${MACHINE_NAME[id]} ${cost}G`));
       b.addEventListener("click", () => {
         this.selected = id;
         this.refreshOverlay();
@@ -661,7 +660,7 @@ export class WorkshopScene extends Phaser.Scene {
       class: "ws-btn",
       "aria-label": isAudioEnabled() ? "音を切る" : "音をオンにする",
     });
-    this.muteButton.textContent = isAudioEnabled() ? "🔊" : "🔇";
+    this.setMuteLabel(isAudioEnabled());
     this.muteButton.addEventListener("click", () => this.toggleMute());
     actions.append(this.muteButton);
     // スライダーでの自動ミュート解除など、このボタン以外で音のオン/オフが変わっても表示を合わせる
@@ -892,13 +891,23 @@ export class WorkshopScene extends Phaser.Scene {
     s.setProperty("--grid-h", `${((this.rules.height * this.cell) / this.scale.height) * 100}%`);
   }
 
+  /** 音ボタン: ドット絵のスピーカー + 『音: ON/OFF』（絵文字・色だけに頼らない）。 */
+  private setMuteLabel(enabled: boolean): void {
+    this.muteButton.replaceChildren(
+      iconCanvas(enabled ? "speaker-on" : "speaker-off"),
+      document.createTextNode(enabled ? "音: ON" : "音: OFF"),
+    );
+  }
+
   private toggleMute(): void {
     const enabled = toggleSound();
+    this.setMuteLabel(enabled);
+    this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
     this.say(enabled ? "音をオンにした" : "音を切った");
   }
 
   private syncMuteButton(enabled: boolean): void {
-    this.muteButton.textContent = enabled ? "🔊" : "🔇";
+    this.setMuteLabel(enabled);
     this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
   }
 
@@ -914,6 +923,7 @@ export class WorkshopScene extends Phaser.Scene {
     window.removeEventListener("resize", this.onResize);
     this.overlay.remove();
     this.cells = [];
+    this.tiles = [];
     // 次の画面（タイトル・結果）は 320×180 前提。縦持ちで変えた canvas の大きさを戻す
     if (this.scale.width !== GAME_WIDTH || this.scale.height !== GAME_HEIGHT) {
       this.scale.setGameSize(GAME_WIDTH, GAME_HEIGHT);
