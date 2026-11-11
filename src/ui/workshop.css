@@ -164,6 +164,20 @@
   width: calc(var(--u) * 68);
   max-height: calc(var(--u) * 112);
   overflow: auto;
+  scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
+}
+
+/* 白いスクロールバー領域の背景（Issue #124） */
+.ws-order::-webkit-scrollbar {
+  width: 8px;
+}
+.ws-order::-webkit-scrollbar-track {
+  background: var(--ae-surface-up);
+  border-radius: 4px;
+}
+.ws-order::-webkit-scrollbar-thumb {
+  background: var(--ae-text-weak);
+  border-radius: 4px;
 }
 
 .ws-btn {
@@ -240,6 +254,80 @@
 
 .ws-status.ws-error {
   color: var(--ae-danger);
+}
+
+/* 共通ボタン（#97）。高さ44px・文字16px・角丸4px・枠2px。Primary は琥珀塗り、Secondary は枠のみ */
+.ae-btn {
+  box-sizing: border-box;
+  min-width: 128px;
+  height: 44px;
+  padding: 0 20px;
+  font: inherit;
+  font-size: 16px;
+  text-align: center;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ae-btn:focus-visible {
+  outline: 2px solid var(--ae-text);
+  outline-offset: 2px;
+}
+
+.ae-btn-primary {
+  color: var(--ae-bg);
+  background: var(--ae-amber);
+}
+
+.ae-btn-primary:hover {
+  background: #f6c77f;
+}
+
+.ae-btn-primary:active {
+  transform: translateY(1px);
+}
+
+.ae-btn-secondary {
+  color: var(--ae-text);
+  background: transparent;
+  border-color: #7a6888;
+}
+
+.ae-btn-secondary:hover {
+  border-color: var(--ae-amber);
+}
+
+/* 結果画面の操作ボタン: PC は横並び・幅160px・gap16px、SP は縦積み（Primary が上） */
+.rs-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.rs-actions .ae-btn {
+  width: 160px;
+}
+
+@media (max-width: 480px) {
+  .rs-actions {
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .rs-actions .ae-btn {
+    width: 100%;
+    max-width: 358px;
+  }
+}
+
+/* 注文選択の「タイトルへ戻る」: 左下 16px */
+.os-back {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
 }
 
 /* 実行ボタン（注文票のいちばん下）。主操作なので塗りつぶし */
@@ -543,16 +631,6 @@
   margin: 0 0 1rem;
 }
 
-.rs-back {
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
-}
-
-.rs-back:focus-visible {
-  outline: 2px solid var(--ae-amber);
-  outline-offset: 2px;
-}
-
 /* 最初にずれた位置（spec-e §2） */
 .rs-fm {
   margin: 0 0 1rem;
@@ -771,6 +849,76 @@ body[data-scene="workshop"] #audio-toggle {
 }
 .volume-row output {
   text-align: right;
+}
+
+/* 注文選択の行（#98）。ロックは opacity ではなく色指定（#9A88A8）。選択中は枠2px琥珀＋地#3A2D42の1重 */
+.os-list {
+  width: 100%;
+  max-width: 300px;
+}
+
+.os-row {
+  box-sizing: border-box;
+  min-height: 56px;
+  margin: 8px 0;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--ae-surface);
+  border: 2px solid #3a2d42;
+  border-radius: 4px;
+}
+
+.os-row:hover,
+.os-row:focus-within {
+  background: #3a2d42;
+  border-color: var(--ae-amber);
+}
+
+/* 押せるのは行全体（ボタンが行いっぱい。44px 以上） */
+.os-row:not(.os-row-locked) {
+  padding: 0;
+}
+
+.os-row-btn {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  font: inherit;
+  text-align: left;
+  color: var(--ae-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.os-row-btn:focus-visible {
+  outline: none; /* 枠は行（:focus-within）が担う */
+}
+
+.os-row-locked {
+  color: #9a88a8;
+}
+
+.os-row-locked:hover {
+  background: var(--ae-surface);
+  border-color: #3a2d42;
+}
+
+.os-lock-title,
+.os-lock-cond > span {
+  white-space: nowrap;
+}
+
+.os-lock-cond {
+  display: flex;
+  flex-direction: column;
 }
 
 /* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */

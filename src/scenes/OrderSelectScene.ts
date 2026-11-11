@@ -80,37 +80,30 @@ export class OrderSelectScene extends Phaser.Scene {
     `;
 
     // タイトル
-    ov.append(h("h1", { style: "font-size: 14px; margin: 0 0 4px;" }, "Auto Encore"));
+    ov.append(h("h1", { style: "font-size: 16px; margin: 0 0 4px;" }, "Auto Encore"));
     ov.append(
       h(
         "p",
-        { style: "font-size: 12px; color: var(--ae-text-weak); margin: 0 0 20px;" },
+        { style: "font-size: 16px; color: var(--ae-text-weak); margin: 0 0 20px;" },
         "夜更けのオルゴール工房",
       ),
     );
-    ov.append(h("h2", { style: "font-size: 12px; margin: 0 0 12px;" }, "注文を選ぶ"));
+    ov.append(h("h2", { style: "font-size: 16px; margin: 0 0 12px;" }, "注文を選ぶ"));
 
     // 注文一覧
-    const list = h("div", { style: "width: 100%; max-width: 300px;" });
+    const list = h("div", { class: "os-list" });
     data.orders.forEach((order, index) => {
       const isUnlocked = unlocked.includes(order.id);
       const item = h("div", {
         "data-order-id": order.id,
-        style: `
-          border: 1px solid ${isUnlocked ? "#5c4a66" : "#3a2f40"};
-          border-radius: 4px; margin: 6px 0; padding: 8px 12px;
-          background: ${isUnlocked ? "#2a2530" : "#1a1520"};
-          opacity: ${isUnlocked ? 1 : 0.5};
-        `,
+        class: isUnlocked ? "os-row" : "os-row os-row-locked",
       });
 
       if (isUnlocked) {
         const btn = h("button", {
           type: "button",
-          class: "ws-btn",
+          class: "os-row-btn",
           "data-order-id": order.id,
-          style:
-            "width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;",
         });
         btn.append(h("span", {}, order.title));
         // メダルはまだ保存していないので欄ごと出さない (保存・表示は次版。Issue #70)
@@ -120,10 +113,15 @@ export class OrderSelectScene extends Phaser.Scene {
         item.append(btn);
       } else {
         const prev = data.orders[index - 1];
-        const hint = prev ? `（${prev.title} をクリアで解放）` : "";
-        const locked = h("span", {}, `ロック中: ${order.title}${hint}`);
+        const locked = h("span", { class: "os-lock-title" }, `ロック中: ${order.title}`);
         locked.prepend(iconCanvas("lock"));
         item.append(locked);
+        if (prev) {
+          // 解放条件は行を分け、各行 nowrap（語の途中で折り返さない）
+          const cond = h("span", { class: "os-lock-cond" });
+          cond.append(h("span", {}, "解放条件:"), h("span", {}, `${prev.title} をクリア`));
+          item.append(cond);
+        }
       }
       list.append(item);
     });
@@ -132,8 +130,7 @@ export class OrderSelectScene extends Phaser.Scene {
     // タイトルへ戻る (TitleScene へ)
     const back = h("button", {
       type: "button",
-      class: "ws-btn",
-      style: "margin-top: 16px;",
+      class: "ae-btn ae-btn-secondary os-back",
     });
     back.textContent = "タイトルへ戻る";
     back.addEventListener("click", () => {
@@ -145,7 +142,7 @@ export class OrderSelectScene extends Phaser.Scene {
       h(
         "p",
         {
-          style: "font-size: 12px; color: var(--ae-text-weak); margin-top: 12px;",
+          style: "font-size: 16px; color: var(--ae-text-weak); margin-top: 12px; max-width: 100%;",
         },
         "クリアすると次の注文が解放されます",
       ),
