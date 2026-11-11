@@ -9,10 +9,10 @@ export function isPortraitLayout(width: number, height: number): boolean {
 export const PORTRAIT_GRID_Y = 56;
 /**
  * 盤面より下に必要な高さ（workshop.css の縦持ちの値と揃える）:
- * 操作列の上余白 8 + 操作列 44 + 棚 64 + 注文票との間 16（= 注文票の top 132）
+ * 盤面の外周 8px の枠を避ける上余白 12 + 操作列 44 + 棚 64 + 注文票との間 16（= 注文票の top 136）
  * + 注文票の最低高さ 96 + 下の固定帯（実行ボタン 52 + 余白 56）と safe-area 余裕 34。
  */
-export const PORTRAIT_BELOW_GRID = 132 + 96 + 52 + 56 + 34;
+export const PORTRAIT_BELOW_GRID = 136 + 96 + 52 + 56 + 34;
 
 /**
  * 縦持ちの盤面の大きさ。1マスは幅から (幅-30)/列数、高さから (高さ-56-盤面以外の高さ)/行数 の小さい方（切り捨て）。

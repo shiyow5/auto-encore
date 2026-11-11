@@ -25,8 +25,8 @@ describe("縦持ちレイアウト（Issue #95）", () => {
   it("600×650・12×8 は高さ側で縮み、注文票が 96px 以上残る", () => {
     const m = portraitMetrics(600, 12, 650, 8);
     expect(m.cell).toBeLessThan(47);
-    // 注文票の高さ = 画面高 - 盤面の下端 - (操作列〜注文票の上端 132-… の固定分)。CSS: top=盤面下+132, bottom=108
-    const orderHeight = 650 - (m.gridY + m.cell * 8 + 132) - (52 + 56);
+    // 注文票の高さ = 画面高 - 盤面の下端 - (操作列〜注文票の上端 136-… の固定分)。CSS: top=盤面下+136, bottom=108
+    const orderHeight = 650 - (m.gridY + m.cell * 8 + 136) - (52 + 56);
     expect(orderHeight).toBeGreaterThanOrEqual(96);
   });
 });
