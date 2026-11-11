@@ -256,6 +256,80 @@
   color: var(--ae-danger);
 }
 
+/* 共通ボタン（#97）。高さ44px・文字16px・角丸4px・枠2px。Primary は琥珀塗り、Secondary は枠のみ */
+.ae-btn {
+  box-sizing: border-box;
+  min-width: 128px;
+  height: 44px;
+  padding: 0 20px;
+  font: inherit;
+  font-size: 16px;
+  text-align: center;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ae-btn:focus-visible {
+  outline: 2px solid var(--ae-text);
+  outline-offset: 2px;
+}
+
+.ae-btn-primary {
+  color: var(--ae-bg);
+  background: var(--ae-amber);
+}
+
+.ae-btn-primary:hover {
+  background: #f6c77f;
+}
+
+.ae-btn-primary:active {
+  transform: translateY(1px);
+}
+
+.ae-btn-secondary {
+  color: var(--ae-text);
+  background: transparent;
+  border-color: #7a6888;
+}
+
+.ae-btn-secondary:hover {
+  border-color: var(--ae-amber);
+}
+
+/* 結果画面の操作ボタン: PC は横並び・幅160px・gap16px、SP は縦積み（Primary が上） */
+.rs-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.rs-actions .ae-btn {
+  width: 160px;
+}
+
+@media (max-width: 480px) {
+  .rs-actions {
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .rs-actions .ae-btn {
+    width: 100%;
+    max-width: 358px;
+  }
+}
+
+/* 注文選択の「タイトルへ戻る」: 左下 16px */
+.os-back {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+}
+
 /* 実行ボタン（注文票のいちばん下）。主操作なので塗りつぶし */
 .ws-run {
   display: block;
@@ -555,16 +629,6 @@
 
 .rs-msg {
   margin: 0 0 1rem;
-}
-
-.rs-back {
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
-}
-
-.rs-back:focus-visible {
-  outline: 2px solid var(--ae-amber);
-  outline-offset: 2px;
 }
 
 /* 最初にずれた位置（spec-e §2） */

@@ -132,8 +132,7 @@ export class OrderSelectScene extends Phaser.Scene {
     // タイトルへ戻る (TitleScene へ)
     const back = h("button", {
       type: "button",
-      class: "ws-btn",
-      style: "margin-top: 16px;",
+      class: "ae-btn ae-btn-secondary os-back",
     });
     back.textContent = "タイトルへ戻る";
     back.addEventListener("click", () => {
