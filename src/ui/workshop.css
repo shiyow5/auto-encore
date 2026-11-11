@@ -54,7 +54,7 @@
 .ws-shelf,
 .ws-order {
   position: absolute;
-  top: calc(var(--u) * 26);
+  top: calc(var(--u) * 10);
   box-sizing: border-box;
   padding: calc(var(--u) * 3);
   background: var(--ae-surface);
@@ -64,10 +64,99 @@
 
 .ws-shelf {
   left: calc(var(--u) * 4);
-  width: calc(var(--u) * 66);
+  width: calc(var(--u) * 50);
   display: flex;
   flex-direction: column;
+  gap: calc(var(--u) * 2);
+}
+
+.ws-shelf h2 {
+  margin: 0;
+  font-size: calc(var(--u) * 5);
+}
+
+/* 機械ボタンは 2 列。1280×720 で 96×44px（#94） */
+.ws-palette,
+.ws-actions {
+  display: grid;
+  grid-template-columns: repeat(2, calc(var(--u) * 24));
+  gap: calc(var(--u) * 2);
+}
+
+.ws-palette .ws-btn,
+.ws-actions .ws-btn {
+  box-sizing: border-box;
+  height: calc(var(--u) * 11);
+  padding: 0 calc(var(--u) * 2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: calc(var(--u) * 4);
+  line-height: 1.1;
+}
+
+.ws-tool-cost {
+  font-size: calc(var(--u) * 3);
+  color: var(--ae-text-weak);
+}
+
+.ws-clear,
+.ws-confirm {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.ws-clear {
+  box-sizing: border-box;
+  left: calc(var(--u) * 214);
+  top: calc(var(--u) * 141);
+  width: calc(var(--u) * 30);
+  height: calc(var(--u) * 11);
+  font-size: calc(var(--u) * 4);
+  text-align: center;
+  border: calc(var(--u) * 0.5) solid #7a6888;
+}
+
+.ws-confirm {
+  left: calc(var(--u) * 76);
+  top: calc(var(--u) * 60);
+  width: calc(var(--u) * 168);
+  z-index: 10;
+  box-sizing: border-box;
+  padding: calc(var(--u) * 4);
+  display: flex;
+  align-items: center;
   gap: calc(var(--u) * 3);
+  background: var(--ae-surface);
+  border: calc(var(--u) * 0.5) solid var(--ae-danger);
+  font-size: calc(var(--u) * 4.5);
+}
+
+.ws-confirm[hidden] {
+  display: none;
+}
+
+.ws-confirm p {
+  flex: 1;
+  margin: 0;
+}
+
+.ws-confirm .ws-btn {
+  font-size: calc(var(--u) * 4);
+}
+
+.ws-danger {
+  border-color: var(--ae-danger);
+}
+
+.ws-help-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--u) * 2);
+  margin: 0;
+  text-align: center;
+  font-size: calc(var(--u) * 4);
 }
 
 .ws-order {
@@ -75,6 +164,20 @@
   width: calc(var(--u) * 68);
   max-height: calc(var(--u) * 112);
   overflow: auto;
+  scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
+}
+
+/* 白いスクロールバー領域の背景（Issue #124） */
+.ws-order::-webkit-scrollbar {
+  width: 8px;
+}
+.ws-order::-webkit-scrollbar-track {
+  background: var(--ae-surface-up);
+  border-radius: 4px;
+}
+.ws-order::-webkit-scrollbar-thumb {
+  background: var(--ae-text-weak);
+  border-radius: 4px;
 }
 
 .ws-btn {
@@ -145,12 +248,86 @@
   position: absolute;
   left: calc(var(--u) * 76);
   top: calc(var(--u) * 142);
-  width: calc(var(--u) * 168);
+  width: calc(var(--u) * 134);
   min-height: 1.35em;
 }
 
 .ws-status.ws-error {
   color: var(--ae-danger);
+}
+
+/* 共通ボタン（#97）。高さ44px・文字16px・角丸4px・枠2px。Primary は琥珀塗り、Secondary は枠のみ */
+.ae-btn {
+  box-sizing: border-box;
+  min-width: 128px;
+  height: 44px;
+  padding: 0 20px;
+  font: inherit;
+  font-size: 16px;
+  text-align: center;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ae-btn:focus-visible {
+  outline: 2px solid var(--ae-text);
+  outline-offset: 2px;
+}
+
+.ae-btn-primary {
+  color: var(--ae-bg);
+  background: var(--ae-amber);
+}
+
+.ae-btn-primary:hover {
+  background: #f6c77f;
+}
+
+.ae-btn-primary:active {
+  transform: translateY(1px);
+}
+
+.ae-btn-secondary {
+  color: var(--ae-text);
+  background: transparent;
+  border-color: #7a6888;
+}
+
+.ae-btn-secondary:hover {
+  border-color: var(--ae-amber);
+}
+
+/* 結果画面の操作ボタン: PC は横並び・幅160px・gap16px、SP は縦積み（Primary が上） */
+.rs-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.rs-actions .ae-btn {
+  width: 160px;
+}
+
+@media (max-width: 480px) {
+  .rs-actions {
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .rs-actions .ae-btn {
+    width: 100%;
+    max-width: 358px;
+  }
+}
+
+/* 注文選択の「タイトルへ戻る」: 左下 16px */
+.os-back {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
 }
 
 /* 実行ボタン（注文票のいちばん下）。主操作なので塗りつぶし */
@@ -182,6 +359,179 @@
 
 #ws-overlay[data-running="true"] .ws-cell {
   cursor: progress;
+}
+
+/* 横持ち・PC: 機械ボタンも操作ボタンも 2 列の格子（上の .ws-palette/.ws-actions）。「消す」ボタンは縦持ち専用 */
+.ws-erase {
+  display: none;
+}
+
+/* ---- 縦持ち（スマホ幅, Issue #95）----
+ * canvas を画面の CSS ピクセルと同じ大きさにしてあるので --u は 1px。文字はすべて 16px 以上、
+ * 押す所は 44×44px 以上。上から: ヒント(y=8) → 盤面(y=56) → 操作の列 → 機械の横スクロール → 注文票 → 実行ボタン(下固定)。 */
+#ws-overlay.ws-portrait {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+#ws-overlay.ws-portrait h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+#ws-overlay.ws-portrait p,
+#ws-overlay.ws-portrait ul {
+  margin: 0 0 8px;
+}
+
+#ws-overlay.ws-portrait ul {
+  padding-left: 24px;
+}
+
+.ws-portrait .ws-shelf,
+.ws-portrait .ws-order {
+  display: contents;
+}
+
+.ws-portrait .ws-shelf > h2 {
+  display: none;
+}
+
+.ws-portrait .ws-help-line {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  height: 40px;
+  max-width: 100%;
+  padding: 0 12px;
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px !important;
+  color: var(--ae-text-weak) !important;
+  line-height: 20px;
+  text-align: center !important;
+}
+
+.ws-portrait .ws-actions {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 8px);
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  padding: 0 12px;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-actions .ws-btn {
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ws-portrait .ws-erase {
+  display: block;
+}
+
+/* 縦持ちの全消しは操作の列の一員（横持ちの右下固定を打ち消す）。確認は盤面の上に出す */
+.ws-portrait .ws-actions .ws-clear {
+  position: static;
+  width: auto;
+  height: auto;
+}
+
+.ws-portrait .ws-confirm .ws-btn {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-confirm {
+  left: 16px;
+  right: 16px;
+  top: calc(var(--grid-y-px) + 40px);
+  width: auto;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-palette {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 60px);
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  display: flex;
+  gap: 8px;
+  height: 64px;
+  padding: 4px 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  pointer-events: auto;
+  /* 左右 16px のフェードで「続きがある」ことを見せる */
+  background:
+    linear-gradient(to right, var(--ae-surface), transparent 16px),
+    linear-gradient(to left, var(--ae-surface), transparent 16px);
+}
+
+.ws-portrait .ws-palette .ws-btn,
+.ws-portrait .ws-actions .ws-btn,
+.ws-portrait .ws-tool-cost {
+  font-size: 16px;
+}
+
+.ws-portrait .ws-palette .ws-btn {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-width: 64px;
+  height: 56px;
+  padding: 0 6px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.ws-portrait .ws-order-body {
+  position: absolute;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 132px);
+  left: 0;
+  right: 0;
+  bottom: calc(52px + 56px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  padding: 0 16px;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-tutorial {
+  font-size: 16px !important;
+  margin: 0 0 8px !important;
+}
+
+.ws-portrait .ws-status {
+  left: 16px;
+  right: 16px;
+  top: auto;
+  bottom: calc(52px + 20px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  min-height: 0;
+  margin: 0;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-run {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  height: 52px;
+  margin: 0;
+  font-size: 18px;
+  pointer-events: auto;
 }
 
 /* ---- 結果画面（K4。仮の見た目。数値が読めることを優先） ---- */
@@ -279,16 +629,6 @@
 
 .rs-msg {
   margin: 0 0 1rem;
-}
-
-.rs-back {
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
-}
-
-.rs-back:focus-visible {
-  outline: 2px solid var(--ae-amber);
-  outline-offset: 2px;
 }
 
 /* 最初にずれた位置（spec-e §2） */
@@ -513,4 +853,11 @@ body[data-scene="workshop"] #audio-toggle {
 .os-lock-cond {
   display: flex;
   flex-direction: column;
+}
+
+/* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
+#audio-toggle .ae-icon {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
 }
