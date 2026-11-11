@@ -342,30 +342,33 @@ export function iconCanvas(name: SpriteName, className = "ae-icon"): HTMLCanvasE
   return c;
 }
 
-/** 音符（長さ1=大 / 2以上=小）。c=音高色 h=ハイライト d=輪郭。10x10。 */
+/**
+ * 音符（長さ1=♪ 旗つき / 2以上=♩ 旗なし）。c=音高色 h=ハイライト。輪郭(暗色)は drawNote が自動で縁取る。10x10。
+ * ♪と同じシルエット（左下に符頭・右に棒・上に旗）。隙間が多いので下のベルト矢印が透けて読める（#153）。
+ */
 const NOTE_ROWS: Readonly<Record<"short" | "long", readonly string[]>> = {
   short: [
-    "..dddddd..",
-    ".dccccccd.",
-    "dcchhccccd",
-    "dchhcccccd",
-    "dcccccccdd",
-    "dcccccccdd",
-    "dccccccdd.",
-    ".dccccccd.",
-    "..dddddd..",
+    "....c.....",
+    "....cc....",
+    "....c.cc..",
+    "....c..cc.",
+    "....c...c.",
+    "....c.....",
+    "..ccc.....",
+    ".hccc.....",
+    "..cc......",
     "..........",
   ],
   long: [
-    "..........",
-    "...dddd...",
-    "..dcchcd..",
-    ".dcchccdd.",
-    ".dcccccdd.",
-    ".dcccccdd.",
-    "..dcccdd..",
-    "...dddd...",
-    "..........",
+    "....c.....",
+    "....c.....",
+    "....c.....",
+    "....c.....",
+    "....c.....",
+    "....c.....",
+    "..ccc.....",
+    ".hccc.....",
+    "..cc......",
     "..........",
   ],
 };
@@ -380,10 +383,22 @@ export function drawNote(
   length: "short" | "long",
   color: number,
 ): void {
-  NOTE_ROWS[length].forEach((row, y) => {
+  const rows = NOTE_ROWS[length];
+  const filled = (x: number, y: number): boolean => {
+    const ch = rows[y]?.[x];
+    return ch !== undefined && ch !== ".";
+  };
+  rows.forEach((row, y) => {
     [...row].forEach((ch, x) => {
-      if (ch === ".") return;
-      ctx.fillStyle = ch === "d" ? "#140f18" : ch === "h" ? "#ffffff" : hex(color);
+      if (ch === ".") {
+        // 塗りに接する空きは輪郭色（縁取り）
+        if (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1)) {
+          ctx.fillStyle = "#140f18";
+          ctx.fillRect(x, y, 1, 1);
+        }
+        return;
+      }
+      ctx.fillStyle = ch === "h" ? "#ffffff" : hex(color);
       ctx.fillRect(x, y, 1, 1);
     });
   });
