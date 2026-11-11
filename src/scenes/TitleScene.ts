@@ -39,11 +39,12 @@ class TitleOverlay {
     `;
 
     const title = h("h1", {}, TITLE);
-    title.style.cssText = "font-size: 14px; margin: 0 0 8px;";
+    title.style.cssText = "font-size: 32px; line-height: 32px; color: #f2b45a; margin: 0 0 8px;";
     ov.append(title);
 
     const subtitle = h("p", {}, "夜更けのオルゴール工房");
-    subtitle.style.cssText = "font-size: 12px; color: var(--ae-text-weak); margin: 0 0 24px;";
+    subtitle.style.cssText =
+      "font-size: 16px; line-height: 24px; color: #c4b4c9; margin: 0 0 24px;";
     ov.append(subtitle);
 
     const btnStart = h("button", {
@@ -53,7 +54,7 @@ class TitleOverlay {
     });
     btnStart.textContent = "はじめる";
     btnStart.style.cssText = `
-      padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
+      min-height: 44px; padding: 8px 24px; font-size: 16px; font-family: var(--ae-font);
       background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
       cursor: pointer; margin: 4px;
     `;
@@ -71,7 +72,7 @@ class TitleOverlay {
     });
     btnGuide.textContent = "遊び方";
     btnGuide.style.cssText = `
-      padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
+      min-height: 44px; padding: 8px 24px; font-size: 16px; font-family: var(--ae-font);
       background: var(--ae-surface); color: var(--ae-text-weak); border: 1px solid #3a2f40;
       cursor: pointer; margin: 4px;
     `;
@@ -96,12 +97,12 @@ class TitleOverlay {
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       background: var(--ae-bg); border: 1px solid #5c4a66;
-      padding: 20px; max-width: 300px; color: var(--ae-text);
-      font-size: 12px; line-height: 1.6;
+      padding: 20px; max-width: 420px; color: var(--ae-text);
+      font-size: 16px; line-height: 24px;
     `;
 
     const title = h("h2", {}, "遊び方");
-    title.style.cssText = "margin: 0 0 12px; font-size: 13px;";
+    title.style.cssText = "margin: 0 0 12px; font-size: 24px; line-height: 32px;";
     guide.append(title);
 
     const ops = [
@@ -120,7 +121,7 @@ class TitleOverlay {
     const close = h("button", { type: "button", class: "ws-btn" });
     close.textContent = "閉じる";
     close.style.cssText = `
-      margin-top: 12px; padding: 4px 16px; font-size: 12px;
+      margin-top: 12px; min-height: 44px; padding: 4px 16px; font-size: 16px;
       background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
       cursor: pointer;
     `;
