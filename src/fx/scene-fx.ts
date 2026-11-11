@@ -13,6 +13,10 @@ export interface SceneFxOptions {
   frontSlots?: number;
   /** 演出レイヤー全体の不透明度（0〜1）。省略は 1。 */
   alpha?: number;
+  /** 前景・背景の描画領域の幅。省略は GAME_WIDTH（縦持ちでは画面サイズを渡す）。 */
+  width?: number;
+  /** 描画領域の高さ。省略は GAME_HEIGHT。 */
+  height?: number;
 }
 
 /**
@@ -30,9 +34,11 @@ export function createSceneFx(
     scene.events.once("shutdown", () => soundOnly.dispose());
     return soundOnly;
   }
-  const back = new PixelFxLayer(scene, `${keyPrefix}-back`, GAME_WIDTH, GAME_HEIGHT);
+  const w = options.width ?? GAME_WIDTH;
+  const h = options.height ?? GAME_HEIGHT;
+  const back = new PixelFxLayer(scene, `${keyPrefix}-back`, w, h);
   back.sprite.setDepth(-10);
-  const front = new PixelFxLayer(scene, `${keyPrefix}-front`, GAME_WIDTH, GAME_HEIGHT);
+  const front = new PixelFxLayer(scene, `${keyPrefix}-front`, w, h);
   front.sprite.setDepth(10);
   if (options.alpha !== undefined) {
     back.sprite.setAlpha(options.alpha);
