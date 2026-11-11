@@ -593,12 +593,59 @@ export class WorkshopScene extends Phaser.Scene {
     }
 
     const frame = this.playing?.ex.frames[this.playing.frame];
-    if (frame) this.drawNotes(frame);
+    if (frame) {
+      this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
+      this.drawNotes(frame);
+    }
 
     if (this.hover && !this.playing) {
       const { x, y } = this.cellXY(this.hover);
       g.lineStyle(1, COLOR.hover, 0.9);
       g.strokeRect(x + 1.5, y + 1.5, this.cell - 2, this.cell - 2);
+    }
+  }
+
+  /**
+   * 実行中の演出（Issue #113）。tick ごとに描き直す gfx だけで作る（新規 canvas なし）。
+   * - 稼働灯: 盤面の上縁を左→右、下縁を右→左へ流れる琥珀色の灯り（1 tick で 10px）
+   * - 音符の尾: 1 tick 前の位置に、小さく薄い点（流れの向きが分かる）。今いるマスには重ねない
+   * - 合流機の火花: 音符が合流機のマスにいる tick だけ、四隅に白い点（#57 の連動）
+   * 音符・文字・マスの絵は隠さない（尾は alpha 0.3、火花は 1px 角）。
+   */
+  private drawRunFx(frame: SimState, prev: SimState | undefined): void {
+    const { width, height } = this.rules;
+    const g = this.gfx;
+    const tick = this.playing?.frame ?? 0;
+    // 稼働灯: 盤面の上下の縁を、琥珀色の灯り（幅 14px）が左→右へ流れる。縁の外側 2px なのでマスや文字に重ならない
+    const gridW = width * CELL;
+    const lx = GRID_X + ((tick * 10) % gridW);
+    const lw = Math.min(14, GRID_X + gridW - lx);
+    g.fillStyle(0xf6c77f, 1);
+    g.fillRect(lx, GRID_Y - 3, lw, 2);
+    g.fillRect(GRID_X + gridW - (lx - GRID_X) - lw, GRID_Y + height * CELL + 1, lw, 2);
+    const here = new Set(frame.cells.map((c) => c.key));
+    for (const c of prev?.cells ?? []) {
+      if (here.has(c.key)) continue;
+      const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      g.fillStyle(NOTE_COLOR[c.note.pitch], 0.3);
+      g.fillCircle(x + CELL / 2 + 0.5, y + CELL / 2 + 0.5, 2);
+    }
+    const mergers = new Set(
+      this.placements.filter((p) => p.machine === "merger").map((p) => p.pos.y * width + p.pos.x),
+    );
+    for (const c of frame.cells) {
+      if (!mergers.has(c.key)) continue;
+      const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      const o = tick % 2 === 0 ? 0 : 1;
+      g.fillStyle(0xffffff, 1);
+      for (const [dx, dy] of [
+        [1 + o, 1],
+        [CELL - 3 - o, 1],
+        [1 + o, CELL - 3],
+        [CELL - 3 - o, CELL - 3],
+      ] as const) {
+        g.fillRect(x + dx, y + dy, 2, 2);
+      }
     }
   }
 
