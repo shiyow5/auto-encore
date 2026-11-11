@@ -61,7 +61,11 @@ export function createSceneFx(
   const director = new FxDirector(
     { back, front, overlay },
     fxEnabled,
-    { band: () => band, frontSlots: options.frontSlots },
+    {
+      band: () => band,
+      frontSlots: options.frontSlots,
+      viewport: () => ({ w: window.innerWidth, h: window.innerHeight }),
+    },
     playSfx,
   );
   const tick = (_t: number, delta: number) => {

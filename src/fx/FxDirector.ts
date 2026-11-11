@@ -30,6 +30,8 @@ export interface FxDirectorOptions {
   band?: () => Band | null;
   /** 前景（front）の同時本数の上限。省略なら無制限。背景は数えない。 */
   frontSlots?: number;
+  /** 画面（ウィンドウ）の大きさ。originFor を持つ spec の位置決めに使う。無ければ x / y を使う。 */
+  viewport?: () => { w: number; h: number } | null;
 }
 
 interface Live {
@@ -130,6 +132,8 @@ export class FxDirector {
       if (!b) return null;
       return { x: b.x + b.w * spec.band.fx, y: b.y + b.h * spec.band.fy };
     }
+    const vp = spec.originFor ? this.opts.viewport?.() : null;
+    if (spec.originFor && vp) return spec.originFor(vp.w, vp.h);
     return { x: spec.x ?? 0, y: spec.y ?? 0 };
   }
 

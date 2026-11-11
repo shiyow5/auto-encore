@@ -55,6 +55,11 @@ export interface FxSpec {
    * 指定があると x / y より優先。帯が無いシーン（結果画面など）では出さない。
    */
   band?: { fx: number; fy: number };
+  /**
+   * 画面（ウィンドウ）の大きさに応じて origin を決める。指定があると x / y より優先。
+   * 結果画面のカード（DOM）は画面の大きさで配置が変わるため、演出の位置も合わせる（Issue #132）。
+   */
+  originFor?: (viewportW: number, viewportH: number) => { x: number; y: number };
   options?: FxOptions;
   /** ループ系を一発ものとして使うときの再生秒数 */
   ttl?: number;
@@ -81,6 +86,16 @@ export const FX_PRIORITY: Readonly<Record<FxEventName, number>> = {
   runError: 3,
   result: 0,
 };
+
+/**
+ * LEVEL UP! の origin（内部ドット）。画面幅で選ぶ（結果画面のカードの文字に重ならない位置。Issue #132）。
+ * - 広い画面（1280x720 など）: 左寄り x:52。中央（x:160）は数値に重なる。
+ * - 狭い・横長の画面（844x390 / 390x844）: x:268。x:52 は見出し・「指標」行や音符の見出しに重なる。
+ * y は演出の柱（高さ約100px）があるため動かさない。
+ */
+export function levelUpOrigin(viewportW: number, _viewportH: number): { x: number; y: number } {
+  return { x: viewportW >= 1000 ? 52 : 268, y: 118 };
+}
 
 export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   boot: [{ mod: glitch, x: 160, y: 90, ttl: 0.6, layer: "front" }],
@@ -115,7 +130,7 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   // 結果は日本語のカードが主役。pixelfx の文字は英数字のみ（日本語不可）で、ACHIEVEMENT バナーは
   // 画面上端で切れてカードに重なっていたので外した（AE#128）。メダル演出は medalEarned が担う。
   // LEVEL UP! はカード（DOM）の後ろに隠れないよう overlay。文言・座標はそのまま（Issue #132 案A）
-  result: [{ mod: levelUp, x: 160, y: 118, layer: "overlay" }],
+  result: [{ mod: levelUp, x: 160, y: 118, layer: "overlay", originFor: levelUpOrigin }],
 };
 
 /** 演出に付ける SE。「演出 → 音」の対応はここだけ（シーンは playSfx を呼ばず emit するだけ）。 */
