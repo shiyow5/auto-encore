@@ -6,6 +6,7 @@
  * - 「はじめる」(TitleScene) → ここ → WorkshopScene
  * - ResultScene から「次の注文へ」でここへ戻ってくる
  */
+import { iconCanvas } from "../art/sprites";
 import Phaser from "phaser";
 import type { Order } from "../core/sim/types";
 import { loadGameData } from "../data";
@@ -120,7 +121,9 @@ export class OrderSelectScene extends Phaser.Scene {
       } else {
         const prev = data.orders[index - 1];
         const hint = prev ? `（${prev.title} をクリアで解放）` : "";
-        item.append(h("span", {}, `🔒 ${order.title}${hint}`));
+        const locked = h("span", {}, `ロック中: ${order.title}${hint}`);
+        locked.prepend(iconCanvas("lock"));
+        item.append(locked);
       }
       list.append(item);
     });

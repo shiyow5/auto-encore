@@ -1,6 +1,7 @@
 import type { FxInstance, FxModule, FxOptions } from "pixelfx";
-import { FX_MAP, FX_PRIORITY, WORKSHOP_PALETTE } from "./fx-map";
+import { FX_MAP, FX_PRIORITY, FX_SFX, WORKSHOP_PALETTE } from "./fx-map";
 import type { FxEventName, FxSpec } from "./fx-map";
+import type { SfxName } from "../audio/sounds";
 
 /** エフェクトを描いてよい矩形（内部解像度のドット）。 */
 export interface Band {
@@ -46,17 +47,37 @@ interface Live {
 export class FxDirector {
   private disposed = false;
   private live: Live[] = [];
+  private readonly timers = new Set<ReturnType<typeof setTimeout>>();
 
+  /**
+   * sinks が null（?fx=0 など）でも、sfx があれば SE は鳴らす。
+   * opts は帯と前景の上限。sfx は SE を鳴らす関数（本番は playSfx）。
+   */
   constructor(
     private readonly sinks: FxSinks | null,
     private readonly enabled: () => boolean,
     private readonly opts: FxDirectorOptions = {},
+    private readonly sfx: ((name: SfxName) => void) | null = null,
   ) {}
+
+  private playSfxFor(name: FxEventName): void {
+    const s = FX_SFX[name];
+    if (!s || !this.sfx) return;
+    const play = this.sfx;
+    if (!s.delayMs) return play(s.sfx);
+    const t = setTimeout(() => {
+      this.timers.delete(t);
+      if (!this.disposed) play(s.sfx);
+    }, s.delayMs);
+    this.timers.add(t);
+  }
 
   /** 1 つでも再生したら true。extra は全エフェクトに足すオプション（combo の count など）。 */
   emit(name: FxEventName, seed = 1, extra: FxOptions = {}): boolean {
+    if (this.disposed) return false;
+    this.playSfxFor(name);
     const sinks = this.sinks;
-    if (this.disposed || !sinks || !this.enabled()) return false;
+    if (!sinks || !this.enabled()) return false;
     this.prune();
     let played = false;
     FX_MAP[name].forEach((spec: FxSpec, i) => {
@@ -93,6 +114,8 @@ export class FxDirector {
     if (this.disposed) return;
     this.disposed = true;
     this.live = [];
+    for (const t of this.timers) clearTimeout(t);
+    this.timers.clear();
     this.sinks?.back.destroy();
     this.sinks?.front.destroy();
   }

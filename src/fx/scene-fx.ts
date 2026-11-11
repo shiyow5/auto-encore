@@ -1,5 +1,6 @@
 import type Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
+import { playSfx } from "../audio/player";
 import { fxEnabled, onReducedMotion } from "../ui/flags";
 import { FxDirector } from "./FxDirector";
 import type { Band } from "./FxDirector";
@@ -23,7 +24,12 @@ export function createSceneFx(
   keyPrefix: string,
   options: SceneFxOptions = {},
 ): FxDirector {
-  if (!fxEnabled()) return new FxDirector(null, fxEnabled);
+  if (!fxEnabled()) {
+    // 音だけの FxDirector でも、シーンを離れたら予約中の SE（medal の遅延再生など）を止める
+    const soundOnly = new FxDirector(null, fxEnabled, {}, playSfx);
+    scene.events.once("shutdown", () => soundOnly.dispose());
+    return soundOnly;
+  }
   const back = new PixelFxLayer(scene, `${keyPrefix}-back`, GAME_WIDTH, GAME_HEIGHT);
   back.sprite.setDepth(-10);
   const front = new PixelFxLayer(scene, `${keyPrefix}-front`, GAME_WIDTH, GAME_HEIGHT);
@@ -40,10 +46,12 @@ export function createSceneFx(
     clipGfx.fillStyle(0xffffff, 1).fillRect(band.x, band.y, band.w, band.h);
     front.sprite.setMask(clipGfx.createGeometryMask());
   }
-  const director = new FxDirector({ back, front }, fxEnabled, {
-    band: () => band,
-    frontSlots: options.frontSlots,
-  });
+  const director = new FxDirector(
+    { back, front },
+    fxEnabled,
+    { band: () => band, frontSlots: options.frontSlots },
+    playSfx,
+  );
   const tick = (_t: number, delta: number) => {
     back.update(delta / 1000);
     front.update(delta / 1000);
