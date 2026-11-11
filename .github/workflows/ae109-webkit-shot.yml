@@ -27,13 +27,13 @@ jobs:
           HEAD_SHA=$(gh api repos/${{ github.repository }}/commits/main --jq .sha)
           echo "main HEAD: $HEAD_SHA target: $TARGET_SHA"
           if [ "$HEAD_SHA" != "$TARGET_SHA" ]; then echo "SHA mismatch: stop"; exit 1; fi
-      - name: Install Playwright WebKit (outside repo)
+      - name: Install Playwright Chromium (outside repo)
         run: |
           printf 'Acquire::Retries "3";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' | sudo tee /etc/apt/apt.conf.d/99ci-retry >/dev/null
           mkdir -p "$RUNNER_TEMP/shot" && cd "$RUNNER_TEMP/shot"
           npm init -y >/dev/null
           npm i playwright@1.65.0
-          npx playwright install --with-deps webkit
+          npx playwright install chromium
       - name: Capture
         env:
           TARGET_URL: https://shiyow5.github.io/auto-encore/
@@ -42,14 +42,14 @@ jobs:
         run: |
           cd "$RUNNER_TEMP/shot"
           cat > shot.mjs <<'JS'
-          import { webkit } from 'playwright';
+          import { chromium } from 'playwright';
           import fs from 'node:fs';
           const out = process.env.OUT_DIR;
           fs.mkdirSync(out, { recursive: true });
           const log = [];
           const note = (s) => { log.push(s); console.log(s); };
-          const browser = await webkit.launch();
-          note(`webkit version: ${browser.version()}`);
+          const browser = await chromium.launch();
+          note(`browser version: ${browser.version()}`);
           note(`target sha: ${process.env.TARGET_SHA}`);
           note(`started (UTC): ${new Date().toISOString()}`);
           const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
