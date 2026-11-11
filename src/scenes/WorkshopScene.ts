@@ -163,6 +163,8 @@ export class WorkshopScene extends Phaser.Scene {
   /** 再生中に bin へ入った音符の数（combo 表示用） */
   private combo = 0;
   private overlay!: HTMLElement;
+  /** 稼働灯（上縁・下縁の2本）。canvas ではなく DOM に置き、.ws-grid の台座 box-shadow より前に出す（#160 回帰） */
+  private lamps: HTMLElement[] = [];
   /** 縦持ち（スマホ幅）レイアウトか。create で決める。 */
   private portrait = false;
   private cell = CELL;
@@ -530,6 +532,8 @@ export class WorkshopScene extends Phaser.Scene {
     const g = this.gfx;
     const { width, height } = this.rules;
     g.clear();
+    // 稼働灯は drawRunFx（再生中の tick）でだけ出す。それ以外は隠す
+    for (const el of this.lamps) el.hidden = true;
     for (const t of this.tiles) t.destroy();
     this.tiles = [];
     // 画像は TILE(14px) 基準なので、盤面の cell（縦持ちで変わる）に合わせて伸縮する
@@ -594,18 +598,21 @@ export class WorkshopScene extends Phaser.Scene {
     const tick = this.playing?.frame ?? 0;
     // 稼働灯: 盤面の上下の縁を、琥珀色の灯り（幅 14px）が左→右へ流れる。縁の外側 2px なのでマスや文字に重ならない
     // 縦画面では cell / 盤面原点が変わるので、this.cell / this.gridX / this.gridY と倍率 k で換算する
+    // 灯りは DOM（.ws-lamp）で描く。.ws-grid の台座 box-shadow（DOM）に隠れないようにするため（sota 判断 A）
     const k = this.cell / CELL;
     const gridW = width * this.cell;
     const lx = this.gridX + ((tick * 10 * k) % gridW);
     const lw = Math.min(14 * k, this.gridX + gridW - lx);
-    g.fillStyle(0xf6c77f, 1);
-    g.fillRect(lx, this.gridY - 3, lw, 2);
-    g.fillRect(
-      this.gridX + gridW - (lx - this.gridX) - lw,
-      this.gridY + height * this.cell + 1,
-      lw,
-      2,
-    );
+    const [topLamp, bottomLamp] = this.lamps;
+    if (topLamp && bottomLamp) {
+      this.showLamp(topLamp, lx, this.gridY - 3, lw);
+      this.showLamp(
+        bottomLamp,
+        this.gridX + gridW - (lx - this.gridX) - lw,
+        this.gridY + height * this.cell + 1,
+        lw,
+      );
+    }
     const here = new Set(frame.cells.map((c) => c.key));
     for (const c of prev?.cells ?? []) {
       if (here.has(c.key)) continue;
@@ -631,6 +638,16 @@ export class WorkshopScene extends Phaser.Scene {
         g.fillRect(x + dx, y + dy, 2, 2);
       }
     }
+  }
+
+  /** 稼働灯の DOM を canvas 座標（px）の位置・幅に合わせる。.ws-grid と同じく scale 基準の % で置く。 */
+  private showLamp(el: HTMLElement, x: number, y: number, w: number): void {
+    const { width, height } = this.scale;
+    el.style.left = `${(x / width) * 100}%`;
+    el.style.top = `${(y / height) * 100}%`;
+    el.style.width = `${(w / width) * 100}%`;
+    el.style.height = `${(2 / height) * 100}%`;
+    el.hidden = false;
   }
 
   /** その tick の音符をマスの中央に置く（移動の補間なし＝最小の再生）。長い音は大きめ。 */
@@ -832,6 +849,15 @@ export class WorkshopScene extends Phaser.Scene {
       }
     }
     ov.append(grid);
+    // 稼働灯（.ws-grid の兄弟。後から追加するので台座 box-shadow の上に出る）
+    this.lamps = [0, 1].map(() => {
+      const el = document.createElement("div");
+      el.className = "ws-lamp";
+      el.setAttribute("aria-hidden", "true");
+      el.hidden = true;
+      return el;
+    });
+    ov.append(...this.lamps);
 
     // 注文票（右）
     const card = h("section", { class: "ws-order", "aria-label": "注文票" });
