@@ -479,6 +479,53 @@
 body[data-scene="workshop"] #audio-toggle {
   display: none;
 }
+
+/* Issue #50: 注文1 のチュートリアル。盤面の上の帯。押せるのはスキップだけ */
+.ws-guide {
+  position: absolute;
+  left: calc(var(--u) * 76);
+  top: calc(var(--u) * 2);
+  width: calc(var(--u) * 168);
+  box-sizing: border-box;
+  padding: calc(var(--u) * 2) calc(var(--u) * 3);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+  background: var(--ae-surface);
+  border: calc(var(--u) * 1) solid var(--ae-amber);
+}
+.ws-guide-text {
+  flex: 1;
+}
+.ws-guide-skip {
+  pointer-events: auto;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ae-text);
+  background: transparent;
+  border: 1px solid var(--ae-amber);
+  cursor: pointer;
+}
+[data-tutorial-focus] {
+  outline: calc(var(--u) * 1) solid var(--ae-amber);
+  outline-offset: calc(var(--u) * -1);
+  animation: ws-tutorial-blink 1s steps(2, jump-none) infinite;
+}
+/* ?fx=0 / 視差効果を減らす のときは点滅せず静的な枠線だけ */
+#ws-overlay[data-tutorial-static="true"] [data-tutorial-focus] {
+  animation: none;
+}
+@keyframes ws-tutorial-blink {
+  50% {
+    outline-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-tutorial-focus] {
+    animation: none;
+  }
+}
+
 /* 音量（♪ の左隣。パネルはその下に開く） */
 .volume-toggle {
   right: 60px;
