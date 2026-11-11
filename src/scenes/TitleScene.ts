@@ -38,13 +38,16 @@ class TitleOverlay {
       z-index: 100;
     `;
 
-    const title = h("h1", {}, TITLE);
-    title.style.cssText = "font-size: 14px; margin: 0 0 8px;";
+    // 狭い画面では「夜更け」と「のオルゴール工房」の間で折れないよう、後半を nowrap にまとめる
+    const title = h("h1", {});
+    const [titleHead, titleTail] = TITLE.split(" ― ");
+    title.append(`${titleHead} ― `);
+    const titleNoWrap = h("span", {}, titleTail);
+    titleNoWrap.style.whiteSpace = "nowrap";
+    title.append(titleNoWrap);
+    title.style.cssText =
+      "font-size: 32px; line-height: 32px; color: var(--ae-amber); margin: 0 0 24px; text-align: center; padding: 0 16px;";
     ov.append(title);
-
-    const subtitle = h("p", {}, "夜更けのオルゴール工房");
-    subtitle.style.cssText = "font-size: 12px; color: var(--ae-text-weak); margin: 0 0 24px;";
-    ov.append(subtitle);
 
     const btnStart = h("button", {
       type: "button",
@@ -53,8 +56,8 @@ class TitleOverlay {
     });
     btnStart.textContent = "はじめる";
     btnStart.style.cssText = `
-      padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
-      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
+      min-height: 44px; padding: 8px 24px; font-size: 16px; font-family: var(--ae-font);
+      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid var(--ae-line);
       cursor: pointer; margin: 4px;
     `;
     btnStart.addEventListener("click", () => {
@@ -71,8 +74,8 @@ class TitleOverlay {
     });
     btnGuide.textContent = "遊び方";
     btnGuide.style.cssText = `
-      padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
-      background: var(--ae-surface); color: var(--ae-text-weak); border: 1px solid #3a2f40;
+      min-height: 44px; padding: 8px 24px; font-size: 16px; font-family: var(--ae-font);
+      background: var(--ae-surface); color: var(--ae-text-weak); border: 1px solid var(--ae-surface-up);
       cursor: pointer; margin: 4px;
     `;
     btnGuide.addEventListener("click", () => this.toggleGuide());
@@ -95,13 +98,13 @@ class TitleOverlay {
     guide.style.cssText = `
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      background: var(--ae-bg); border: 1px solid #5c4a66;
-      padding: 20px; max-width: 300px; color: var(--ae-text);
-      font-size: 12px; line-height: 1.6;
+      background: var(--ae-bg); border: 1px solid var(--ae-line);
+      padding: 20px; max-width: 420px; color: var(--ae-text);
+      font-size: 16px; line-height: 24px;
     `;
 
     const title = h("h2", {}, "遊び方");
-    title.style.cssText = "margin: 0 0 12px; font-size: 13px;";
+    title.style.cssText = "margin: 0 0 12px; font-size: 24px; line-height: 32px;";
     guide.append(title);
 
     const ops = [
@@ -120,8 +123,8 @@ class TitleOverlay {
     const close = h("button", { type: "button", class: "ws-btn" });
     close.textContent = "閉じる";
     close.style.cssText = `
-      margin-top: 12px; padding: 4px 16px; font-size: 12px;
-      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
+      margin-top: 12px; min-height: 44px; padding: 4px 16px; font-size: 16px;
+      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid var(--ae-line);
       cursor: pointer;
     `;
     close.addEventListener("click", () => {

@@ -44,7 +44,7 @@ export class BootScene extends Phaser.Scene {
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, TITLE, {
         fontFamily: '"DotGothic16", monospace',
-        fontSize: "12px",
+        fontSize: "16px",
         color: "#e6e6e6",
       })
       .setOrigin(0.5);

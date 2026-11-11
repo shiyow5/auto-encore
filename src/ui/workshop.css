@@ -18,6 +18,14 @@
   --ae-text-weak: #c4b4c9;
   --ae-amber: #f2b45a;
   --ae-danger: #ff8a7a;
+  --ae-amber-hover: #f6c77f;
+  --ae-line: #7a6888;
+  --ae-text-muted: #9a88a8;
+  --ae-entry: #92ddcc;
+  --ae-exit: #f29bb8;
+  --ae-medal-gold: #ffd27a;
+  --ae-medal-silver: #d8d3e0;
+  --ae-medal-bronze: #d98e5f;
   /* フォントは1か所で管理。Phaser の text もこの値を参照して「DotGothic16", monospace */
   --ae-font: "DotGothic16", monospace;
 }
@@ -30,21 +38,22 @@
   position: absolute;
   --u: 1px;
   font-family: var(--ae-font);
-  font-size: calc(var(--u) * 6);
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--ae-text);
   pointer-events: none;
 }
 
 #ws-overlay h2 {
-  margin: 0 0 calc(var(--u) * 3);
-  font-size: calc(var(--u) * 7);
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 32px;
   color: var(--ae-amber);
 }
 
 #ws-overlay p,
 #ws-overlay ul {
-  margin: 0 0 calc(var(--u) * 3);
+  margin: 0 0 8px;
 }
 
 #ws-overlay ul {
@@ -96,7 +105,7 @@
 }
 
 .ws-tool-cost {
-  font-size: calc(var(--u) * 3);
+  font-size: 12px; /* #99: 脚注扱い（12px は .ae-footnote のみ） */
   color: var(--ae-text-weak);
 }
 
@@ -114,7 +123,7 @@
   height: calc(var(--u) * 11);
   font-size: calc(var(--u) * 4);
   text-align: center;
-  border: calc(var(--u) * 0.5) solid #7a6888;
+  border: calc(var(--u) * 0.5) solid var(--ae-line);
 }
 
 .ws-confirm {
@@ -138,6 +147,7 @@
 
 .ws-confirm p {
   flex: 1;
+  font-size: 16px; /* #99 */
   margin: 0;
 }
 
@@ -162,7 +172,7 @@
 .ws-order {
   right: calc(var(--u) * 4);
   width: calc(var(--u) * 68);
-  max-height: calc(var(--u) * 112);
+  max-height: calc(var(--u) * 140); /* #136: 注文3でも内側スクロールを出さない */
   overflow: auto;
   scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
 }
@@ -184,7 +194,7 @@
   font: inherit;
   color: var(--ae-text);
   background: var(--ae-surface-up);
-  border: calc(var(--u) * 1) solid transparent;
+  border: calc(var(--u) * 0.5) solid #7a6888;
   border-radius: calc(var(--u) * 2);
   padding: calc(var(--u) * 2) calc(var(--u) * 3);
   cursor: pointer;
@@ -197,18 +207,25 @@
 }
 
 .ws-btn[aria-pressed="true"] {
+  background: var(--ae-amber);
   border-color: var(--ae-amber);
+  color: #1e1722;
+}
+
+.ws-btn[aria-pressed="true"] .ws-tool-cost {
+  color: #1e1722;
 }
 
 /* 注文で使えない機械も棚には出す（置けるが「実行」で止まる）。色だけに頼らず点線の枠でも区別 */
 .ws-tool[data-allowed="false"] {
-  color: var(--ae-text-weak);
+  color: #9a88a8;
   border-style: dashed;
-  border-color: var(--ae-text-weak);
+  border-color: #9a88a8;
 }
 
 .ws-tool[data-allowed="false"][aria-pressed="true"] {
   border-color: var(--ae-amber);
+  color: #1e1722;
 }
 
 /* マスのボタンは透明（見た目は canvas が描く）。フォーカスだけは DOM で見せる */
@@ -219,6 +236,11 @@
   width: var(--grid-w);
   height: var(--grid-h);
   display: grid;
+  /* #101: 内側 2px #7A6888 → 外枠 3px #F3E9DC → 台座 16px #2A2030（盤面の外周） */
+  box-shadow:
+    0 0 0 2px #7a6888,
+    0 0 0 5px #f3e9dc,
+    0 0 0 21px #2a2030;
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   pointer-events: auto;
@@ -230,6 +252,13 @@
   border: 0;
   background: transparent;
   cursor: pointer;
+  /* グリッド線 2px #7A6888（隣り合うセルの 1px 内側線が重なって 2px） */
+  box-shadow: inset 0 0 0 1px #7a6888;
+}
+
+/* カーソル枠: 2px #F3E9DC 実線（置いたベルトの琥珀と区別できる） */
+#ws-overlay:not([data-running="true"]) .ws-cell:hover {
+  box-shadow: inset 0 0 0 2px #f3e9dc;
 }
 
 .ws-cell[data-kind="input"],
@@ -281,7 +310,7 @@
 }
 
 .ae-btn-primary:hover {
-  background: #f6c77f;
+  background: var(--ae-amber-hover);
 }
 
 .ae-btn-primary:active {
@@ -291,7 +320,7 @@
 .ae-btn-secondary {
   color: var(--ae-text);
   background: transparent;
-  border-color: #7a6888;
+  border-color: var(--ae-line);
 }
 
 .ae-btn-secondary:hover {
@@ -335,14 +364,44 @@
   display: block;
   width: 100%;
   margin-top: calc(var(--u) * 2);
+  min-height: 44px; /* #99 P2: 横長でもタップ目標 44px を確保 */
   text-align: center;
   font-weight: bold;
   color: var(--ae-bg);
   background: var(--ae-amber);
 }
 
+/* 配置の合計: 注文票の下端（実行ボタンの直上）に固定。上に影を出して「続きがある」手がかりにする（#136） */
+.ws-order-total {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--ae-surface);
+  box-shadow: 0 -6px 6px -4px rgba(0, 0, 0, 0.4);
+}
+
+.ws-order-total p:last-child {
+  margin-bottom: 0;
+}
+
+/* スマホ縦は注文票が地色の上に直接のるので、合計の帯も地色にそろえる */
+.ws-portrait .ws-order-total {
+  background: var(--ae-bg);
+}
+
+#ws-overlay:not(.ws-portrait) .ws-order-total {
+  bottom: calc(44px + var(--u) * 2); /* 実行ボタン(min-height 44px + margin)の分 */
+}
+
+/* 横長で注文票が縦に収まらないときも「実行」を下端に残す（パネル内スクロールの末尾まで行かなくてよい） */
+#ws-overlay:not(.ws-portrait) .ws-run {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
 .ws-run:hover {
-  background: #f6c77f;
+  background: var(--ae-amber-hover);
 }
 
 /* 実行中の「実行中…(tick n)」。実行ボタンの真下に出す（盤面・演出の帯には重ねない） */
@@ -414,9 +473,17 @@
   text-align: center !important;
 }
 
+.ws-portrait .ws-grid {
+  /* 縦持ちは上の説明文・下の操作列との間が 8px しかないため、台座を 3px に縮めて外周 8px に収める（Codex 指摘 / #101） */
+  box-shadow:
+    0 0 0 2px #7a6888,
+    0 0 0 5px #f3e9dc,
+    0 0 0 8px #2a2030;
+}
+
 .ws-portrait .ws-actions {
   position: absolute;
-  top: calc(var(--grid-y-px) + var(--grid-h-px) + 8px);
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 12px);
   left: 0;
   right: 0;
   box-sizing: border-box;
@@ -496,7 +563,7 @@
 
 .ws-portrait .ws-order-body {
   position: absolute;
-  top: calc(var(--grid-y-px) + var(--grid-h-px) + 132px);
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 136px);
   left: 0;
   right: 0;
   bottom: calc(52px + 56px + env(safe-area-inset-bottom, 0px));
@@ -612,15 +679,15 @@
 }
 
 .rs-table [data-medal="gold"] {
-  color: var(--ae-amber);
+  color: var(--ae-medal-gold);
 }
 
 .rs-table [data-medal="silver"] {
-  color: #d8dce6;
+  color: var(--ae-medal-silver);
 }
 
 .rs-table [data-medal="bronze"] {
-  color: #e0a07a;
+  color: var(--ae-medal-bronze);
 }
 
 .rs-table [data-medal="none"] {
@@ -770,7 +837,7 @@ body[data-scene="workshop"] #audio-toggle {
   gap: 4px;
   padding: 8px 12px;
   font-family: var(--ae-font);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ae-text);
   background: var(--ae-surface);
   border: 1px solid var(--ae-amber);
@@ -795,9 +862,127 @@ body[data-scene="workshop"] #audio-toggle {
   text-align: right;
 }
 
+/* 注文選択の行（#98）。ロックは opacity ではなく色指定（#9A88A8）。選択中は枠2px琥珀＋地#3A2D42の1重 */
+.os-list {
+  width: 100%;
+  max-width: 300px;
+}
+
+.os-row {
+  box-sizing: border-box;
+  min-height: 56px;
+  margin: 8px 0;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--ae-surface);
+  border: 2px solid var(--ae-surface-up);
+  border-radius: 4px;
+}
+
+.os-row:hover,
+.os-row:focus-within {
+  background: var(--ae-surface-up);
+  border-color: var(--ae-amber);
+}
+
+/* 押せるのは行全体（ボタンが行いっぱい。44px 以上） */
+.os-row:not(.os-row-locked) {
+  padding: 0;
+}
+
+.os-row-btn {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  font: inherit;
+  text-align: left;
+  color: var(--ae-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.os-row-btn:focus-visible {
+  outline: none; /* 枠は行（:focus-within）が担う */
+}
+
+.os-row-locked {
+  color: var(--ae-text-muted);
+}
+
+.os-row-locked:hover {
+  background: var(--ae-surface);
+  border-color: var(--ae-surface-up);
+}
+
+.os-lock-title,
+.os-lock-cond > span {
+  white-space: nowrap;
+}
+
+.os-lock-cond {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
 #audio-toggle .ae-icon {
   width: 24px;
   height: 24px;
   image-rendering: pixelated;
+}
+
+/* 注文選択の全体(#158)。地色はタイトルと同じ。縦に収まらないときは上から並べてスクロール（上が切れない） */
+.os-overlay {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  overflow-y: auto;
+  padding: 16px 16px 72px;
+  background: rgba(15, 12, 20, 0.95);
+  color: var(--ae-text);
+  font-family: var(--ae-font);
+}
+
+.os-heading {
+  font-size: 24px;
+  line-height: 32px;
+  margin: 0 0 12px;
+}
+
+.os-note {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--ae-text-weak);
+  margin: 12px 0 0;
+  text-align: center;
+}
+
+/* スマホ横: 見出しと余白を詰めて 390px に収める */
+@media (max-height: 500px) {
+  .os-overlay {
+    padding: 8px 16px 8px;
+  }
+  .os-heading {
+    font-size: 16px;
+    line-height: 24px;
+    margin: 0 0 4px;
+  }
+  .os-row {
+    margin: 4px 0;
+  }
+  .os-note {
+    margin-top: 4px;
+  }
 }

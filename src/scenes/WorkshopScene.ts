@@ -82,7 +82,6 @@ const FX_ALPHA = 0.5;
 
 const COLOR = {
   floor: 0x1e1722,
-  line: 0x3a2f40,
   belt: 0x5c4a66,
   merger: 0x4a5c66,
   sorter: 0x66584a,
@@ -91,7 +90,6 @@ const COLOR = {
   arrow: 0xf2b45a,
   input: 0x8fd6c8,
   output: 0xf28f9a,
-  hover: 0xffffff,
 };
 
 /** 音符の色（ド・ミ・ソ）。 */
@@ -543,23 +541,7 @@ export class WorkshopScene extends Phaser.Scene {
     };
     // 床（木板ではなく暗い床タイル。グリッドは薄い線）
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) put("ae-floor", { x, y });
-    g.lineStyle(1, COLOR.line, 0.45);
-    for (let x = 0; x <= width; x++) {
-      g.lineBetween(
-        this.gridX + x * this.cell + 0.5,
-        this.gridY,
-        this.gridX + x * this.cell + 0.5,
-        this.gridY + height * this.cell,
-      );
-    }
-    for (let y = 0; y <= height; y++) {
-      g.lineBetween(
-        this.gridX,
-        this.gridY + y * this.cell + 0.5,
-        this.gridX + width * this.cell,
-        this.gridY + y * this.cell + 0.5,
-      );
-    }
+    // グリッド線・外枠・台座・カーソル枠は DOM(workshop.css .ws-grid / .ws-cell)で描く(#101: px 指定値を正確に出すため)
 
     for (const r of this.rules.reserved) {
       const { x, y } = this.cellXY(r.pos);
@@ -594,12 +576,6 @@ export class WorkshopScene extends Phaser.Scene {
 
     const frame = this.playing?.ex.frames[this.playing.frame];
     if (frame) this.drawNotes(frame);
-
-    if (this.hover && !this.playing) {
-      const { x, y } = this.cellXY(this.hover);
-      g.lineStyle(1, COLOR.hover, 0.9);
-      g.strokeRect(x + 1.5, y + 1.5, this.cell - 2, this.cell - 2);
-    }
   }
 
   /** その tick の音符をマスの中央に置く（移動の補間なし＝最小の再生）。長い音は大きめ。 */
@@ -667,7 +643,7 @@ export class WorkshopScene extends Phaser.Scene {
       b.append(
         iconCanvas(id),
         h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
-        h("span", { class: "ws-tool-cost" }, `${cost}G`),
+        h("span", { class: "ws-tool-cost ae-footnote" }, `${cost}G`),
       );
       b.addEventListener("click", () => {
         this.selected = id;
@@ -815,7 +791,10 @@ export class WorkshopScene extends Phaser.Scene {
       body.append(
         h(
           "p",
-          { class: "ws-tutorial", style: "font-size: 12px; color: #b0a0c0; margin: 6px 0;" },
+          {
+            class: "ws-tutorial",
+            style: "font-size: 16px; line-height: 24px; color: var(--ae-text-weak); margin: 8px 0;",
+          },
           tutorial,
         ),
       );
@@ -831,7 +810,10 @@ export class WorkshopScene extends Phaser.Scene {
     // 実行中は同じ位置（実行ボタンの直上）に「実行中…(tick n)」を出す。配置の合計は実行中は隠す
     this.runStatus = h("p", { class: "ws-run-status", "aria-hidden": "true" });
     this.runStatus.hidden = true;
-    body.append(this.costText, this.runStatus);
+    // 合計と実行中表示は注文票の下端に固定（入口・出口が長くても見える。#136）
+    const total = h("div", { class: "ws-order-total" });
+    total.append(this.costText, this.runStatus);
+    body.append(total);
     this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
     this.runButton.addEventListener("click", () => this.runSim());
     card.append(this.runButton);
@@ -844,7 +826,9 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: "color: #8a8090;",
+      style: this.portrait
+        ? "color: var(--ae-text-muted);"
+        : "font-size: 16px; line-height: 24px; color: var(--ae-text-muted); text-align: center; margin: 4px auto; max-width: 560px;",
     });
     helpLine.textContent = this.portrait
       ? "タップ=置く／消すボタン=消す／向きボタン=向き"

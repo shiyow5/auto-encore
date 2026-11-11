@@ -9,3 +9,6 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# symlink 等 (node_modules/ は末尾スラッシュ付きでディレクトリしか一致しないため)
+node_modules
