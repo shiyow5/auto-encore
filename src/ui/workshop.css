@@ -343,6 +343,13 @@
   background: var(--ae-amber);
 }
 
+/* 横長で注文票が縦に収まらないときも「実行」を下端に残す（パネル内スクロールの末尾まで行かなくてよい） */
+#ws-overlay:not(.ws-portrait) .ws-run {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
 .ws-run:hover {
   background: #f6c77f;
 }
