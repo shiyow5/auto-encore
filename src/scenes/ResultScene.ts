@@ -152,12 +152,18 @@ export class ResultScene extends Phaser.Scene {
     const msg = verdictMessage(order, verdict);
     if (msg) ov.append(h("p", { class: "rs-msg" }, msg));
 
-    const back = h("button", { type: "button", class: "ws-btn rs-back" }, "工房にもどる");
+    const back = h(
+      "button",
+      { type: "button", class: "ae-btn ae-btn-secondary rs-back" },
+      "工房にもどる",
+    );
     back.addEventListener("click", () => {
       setQaBusy("transition", true); // 工房の create で外す。start は次の step まで遅れるので先に立てる
       this.scene.start("workshop", { placements, orderId: order.id });
     });
-    ov.append(back);
+    const actions = h("div", { class: "rs-actions" });
+    actions.append(back);
+    ov.append(actions);
 
     // Issue #47: 結果が合格 (pass または encore) なら「次の注文へ」を表示
     if (report.passed) {
@@ -181,7 +187,7 @@ export class ResultScene extends Phaser.Scene {
       if (nextOrder) {
         const nextBtn = h("button", {
           type: "button",
-          class: "ws-btn rs-next",
+          class: "ae-btn ae-btn-primary rs-next",
         });
         nextBtn.textContent = "次の注文へ";
         nextBtn.addEventListener("click", () => {
@@ -189,7 +195,7 @@ export class ResultScene extends Phaser.Scene {
           // 前の注文の配置は盤・入口が違うので持ち込まない
           this.scene.start("workshop", { orderId: nextOrder.id });
         });
-        ov.append(nextBtn);
+        actions.append(nextBtn);
       }
     }
 
