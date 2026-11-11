@@ -182,6 +182,12 @@ export class WorkshopScene extends Phaser.Scene {
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => {
     if (isPortraitLayout(window.innerWidth, window.innerHeight) !== this.portrait) {
+      // 再生中は作り直さない（restart すると再生が消えて結果画面に届かない）。見た目だけ合わせ、
+      // 再生は最後まで進めて結果画面へ。結果画面から戻れば新しい向きで create される。
+      if (this.playing) {
+        this.layout();
+        return;
+      }
       // 縦横が入れ替わった: 配置を引き継いでレイアウトごと作り直す
       this.scene.restart({ placements: this.placements, orderId: this.order.id });
       return;
@@ -200,7 +206,7 @@ export class WorkshopScene extends Phaser.Scene {
     const w = portrait ? window.innerWidth : GAME_WIDTH;
     const hgt = portrait ? window.innerHeight : GAME_HEIGHT;
     const m = portrait
-      ? portraitMetrics(w, this.rules.width)
+      ? portraitMetrics(w, this.rules.width, hgt, this.rules.height)
       : { cell: CELL, gridX: GRID_X, gridY: GRID_Y };
     const changed =
       this.scale.width !== w ||

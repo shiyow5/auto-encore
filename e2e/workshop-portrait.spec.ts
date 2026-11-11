@@ -74,3 +74,35 @@ test("AE#95: 縦持ちでタップして置ける・消すモードで消せる�
   await expect(ov).toHaveAttribute("data-placements", "0");
   await expect(page.locator(".ws-run")).toBeVisible();
 });
+
+test("AE#95 Codex P2: 600×650 の背の低い縦画面でも注文票が 96px 以上残る", async ({ page }) => {
+  await page.setViewportSize({ width: 600, height: 650 });
+  await page.goto("/?fx=0");
+  await page.getByLabel("はじめる").click();
+  await page.locator('[data-order-id="order-01"] button').click();
+  await expect(page.locator("#ws-overlay.ws-portrait")).toBeVisible();
+  const r = await page.evaluate(() => {
+    const ov = document.getElementById("ws-overlay")!;
+    const body = ov.querySelector<HTMLElement>(".ws-order-body")!.getBoundingClientRect();
+    const cell = ov.querySelector<HTMLElement>(".ws-cell")!.getBoundingClientRect();
+    return { orderH: body.height, cell: cell.width };
+  });
+  expect(r.orderH).toBeGreaterThanOrEqual(96);
+  expect(r.cell).toBeLessThan(47);
+});
+
+test("AE#95 Codex P2: 再生中に縦横を回しても再生は消えず結果画面に届く", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("はじめる").click();
+  await page.locator('[data-order-id="order-01"] button').click();
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
+  // 模範解（ベルト x=1..10, y=3, 東向き）
+  for (let x = 1; x <= 10; x++) {
+    await page.getByRole("button", { name: `マス ${x},3: 空き` }).tap();
+  }
+  // 実行して、再生中に横持ちへ回す（fx 有効でないと再生せず即結果になる）
+  await page.locator(".ws-run").tap();
+  await expect(page.locator("#ws-overlay")).toHaveAttribute("data-running", "true");
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect(page.locator("body")).toHaveAttribute("data-scene", "result", { timeout: 30_000 });
+});
