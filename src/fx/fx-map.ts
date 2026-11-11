@@ -92,11 +92,12 @@ export const FX_PRIORITY: Readonly<Record<FxEventName, number>> = {
  * 文字は origin の左右に約 ±47 ドット（canvas 幅 320 ドット）に広がるので、canvas 内に収まる x を選ぶ。
  * - 広い画面（幅1000px以上、1280x720 など）: 左寄り x:52。中央（x:160）は数値に重なる。
  * - 横長の狭い画面（844x390）: x:258, y:96。文字は「音量」ボタンの下・「メダル」見出しより上に置く。
- * - 縦長（390x844）: x:262, y:112。文字は「工房にもどる」ボタンと「出口に届いた音符」の間の余白に置く。
+ * - 縦長（390x844）: x:110, y:172。canvas がカードの下半分（ボタン・グラフ）の上に重なるので、グラフ左側の空いた枠内（見出しの下・折れ線の上）に置く。
+ *   右側の「目標」ラベル・目盛り、「工房にもどる」ボタン、見出しの文字には重ならない。
  */
 export function levelUpOrigin(viewportW: number, viewportH: number): { x: number; y: number } {
   if (viewportW >= 1000) return { x: 52, y: 118 };
-  if (viewportH > viewportW) return { x: 262, y: 112 };
+  if (viewportH > viewportW) return { x: 110, y: 172 };
   return { x: 258, y: 96 };
 }
 

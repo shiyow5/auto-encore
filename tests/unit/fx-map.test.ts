@@ -174,10 +174,10 @@ describe("演出 → SE の対応（FX_SFX）", () => {
 });
 
 describe("levelUpOrigin（Issue #132）", () => {
-  it("広い画面は左寄り、横長は上部の余白、縦長は工房ボタンと chart の間に置く（文字が canvas 内に収まる）", async () => {
+  it("広い画面は左寄り、横長は上部の余白、縦長はグラフ左側の空き枠に置く（文字が canvas 内に収まる）", async () => {
     const { levelUpOrigin } = await import("../../src/fx/fx-map");
     expect(levelUpOrigin(1280, 720)).toEqual({ x: 52, y: 118 });
     expect(levelUpOrigin(844, 390)).toEqual({ x: 258, y: 96 });
-    expect(levelUpOrigin(390, 844)).toEqual({ x: 262, y: 112 });
+    expect(levelUpOrigin(390, 844)).toEqual({ x: 110, y: 172 });
   });
 });
