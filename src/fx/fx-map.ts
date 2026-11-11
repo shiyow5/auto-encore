@@ -115,7 +115,7 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   ],
   result: [
     { mod: achievement, x: 160, y: 12, layer: "front" },
-    { mod: levelUp, x: 160, y: 118, layer: "front" },
+    { mod: levelUp, x: 52, y: 118, layer: "front" },
   ],
 };
 
