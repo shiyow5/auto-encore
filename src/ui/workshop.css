@@ -328,6 +328,20 @@ body[data-scene="workshop"] #audio-toggle {
   display: none;
 }
 
+/* ドット絵アイコン（12〜14px の絵を拡大。ぼかさない）。画面が小さいときは縮める */
+.ae-icon {
+  width: clamp(16px, calc(var(--u, 1px) * 7), 28px);
+  height: clamp(16px, calc(var(--u, 1px) * 7), 28px);
+  flex: none;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 0.5em;
+}
+.ws-btn:has(.ae-icon) {
+  display: flex;
+  align-items: center;
+}
+
 /* Issue #50: 注文1 のチュートリアル。盤面の上の帯。押せるのはスキップだけ */
 .ws-guide {
   position: absolute;
