@@ -14,6 +14,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { rotateCW } from "../core/grid";
+import { isHoverNone, shouldRotateOnTap } from "./workshop/tap";
 import type { Dir, Point } from "../core/grid";
 import type { SimState } from "../core/sim/sim";
 import {
@@ -25,7 +26,18 @@ import {
   type Placement,
 } from "../core/sim/types";
 import { loadGameData } from "../data";
-import { fxEnabled } from "../ui/flags";
+import { fxEnabled, flags } from "../ui/flags";
+import {
+  TUTORIAL_NEED_MACHINE,
+  tutorialText,
+  initialStep,
+  isTutorialDone,
+  markTutorialDone,
+  reduce as tutorialReduce,
+  type TutorialEvent,
+  type TutorialStep,
+} from "./workshop/tutorial";
+import { isPortraitLayout, portraitMetrics } from "./workshop/portrait";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
 import {
@@ -44,8 +56,15 @@ import {
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
+import {
+  activeTexture,
+  iconCanvas,
+  noteTexture,
+  portTexture,
+  registerTextures,
+} from "../art/sprites";
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
-import { duckBgm, playSfx, toggleSound } from "../audio/player";
+import { duckBgm, onSoundToggle, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
@@ -55,6 +74,11 @@ export const PLAY_MS_PER_TICK = 110;
 export const CELL = 14;
 export const GRID_X = 76;
 export const GRID_Y = 26;
+/** 演出の帯（盤面の下）。盤面の下端からこの分だけ空けて、そこから高さ FX_BAND_H まで。 */
+const FX_BAND_GAP = 3;
+const FX_BAND_H = 37;
+/** 演出レイヤー全体の不透明度の上限（音符の流れを隠さない。rio の設計 #AE121） */
+const FX_ALPHA = 0.5;
 
 const COLOR = {
   floor: 0x1e1722,
@@ -79,15 +103,6 @@ export const MACHINE_NAME: Record<MachineId, string> = {
   sorter: "仕分け機",
   tuner: "調律機",
   bin: "回収箱",
-};
-
-/** 機械ごとの床の色。 */
-const MACHINE_COLOR: Record<MachineId, number> = {
-  belt: COLOR.belt,
-  merger: COLOR.merger,
-  sorter: COLOR.sorter,
-  tuner: COLOR.tuner,
-  bin: COLOR.bin,
 };
 
 /** 音高の読み（machines.json の "do"/"mi"/"so" を画面の言葉にする）。候補そのものは machines.json。 */
@@ -144,20 +159,74 @@ export class WorkshopScene extends Phaser.Scene {
   private pointerPressing = false;
 
   private gfx!: Phaser.GameObjects.Graphics;
+  /** 盤面のドット絵（床・機械・入口/出口）。再描画のたびに作り直す。gfx（線・矢印・音符）より下に置く。 */
+  private tiles: Phaser.GameObjects.Image[] = [];
   private fx?: FxDirector;
   /** 再生中に bin へ入った音符の数（combo 表示用） */
   private combo = 0;
   private overlay!: HTMLElement;
+  /** 縦持ち（スマホ幅）レイアウトか。create で決める。 */
+  private portrait = false;
+  private cell = CELL;
+  private gridX = GRID_X;
+  private gridY = GRID_Y;
+  /** 縦持ちの「消す」モード: 入っている間はマスのタップで機械を消す（長押し・右クリックの代わり）。 */
+  private eraseMode = false;
+  private eraseButton!: HTMLButtonElement;
   private cells: HTMLButtonElement[] = [];
+  /** Issue #50: 注文1 のチュートリアル。出さないときは "done"。 */
+  private tutorial: TutorialStep = "done";
+  private tutorialPanel: HTMLDivElement | null = null;
   private status!: HTMLElement;
   private costText!: HTMLElement;
   private dirButton!: HTMLButtonElement;
   private pitchButton!: HTMLButtonElement;
   private muteButton!: HTMLButtonElement;
+  private unsubSound: (() => void) | null = null;
   private runButton!: HTMLButtonElement;
+  /** 実行ボタンの下に出す「実行中…(tick n)」。実行中だけ見える */
+  private runStatus!: HTMLElement;
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
-  private readonly onResize = (): void => this.layout();
+  private readonly onResize = (): void => {
+    if (isPortraitLayout(window.innerWidth, window.innerHeight) !== this.portrait) {
+      // 再生中は作り直さない（restart すると再生が消えて結果画面に届かない）。見た目だけ合わせ、
+      // 再生は最後まで進めて結果画面へ。結果画面から戻れば新しい向きで create される。
+      if (this.playing) {
+        this.layout();
+        return;
+      }
+      // 縦横が入れ替わった: 配置を引き継いでレイアウトごと作り直す
+      this.scene.restart({ placements: this.placements, orderId: this.order.id });
+      return;
+    }
+    if (this.portrait && this.applyViewport()) this.redraw();
+    this.layout();
+  };
+
+  /**
+   * 画面の向きに合わせて canvas の大きさと盤面の座標を決める。
+   * 縦持ちは canvas を画面の CSS ピクセルと同じ大きさにして縮小しない（文字・マスを小さくしない）。変わったら true。
+   */
+  private applyViewport(): boolean {
+    const portrait = isPortraitLayout(window.innerWidth, window.innerHeight);
+    this.portrait = portrait;
+    const w = portrait ? window.innerWidth : GAME_WIDTH;
+    const hgt = portrait ? window.innerHeight : GAME_HEIGHT;
+    const m = portrait
+      ? portraitMetrics(w, this.rules.width, hgt, this.rules.height)
+      : { cell: CELL, gridX: GRID_X, gridY: GRID_Y };
+    const changed =
+      this.scale.width !== w ||
+      this.scale.height !== hgt ||
+      m.cell !== this.cell ||
+      m.gridX !== this.gridX;
+    if (this.scale.width !== w || this.scale.height !== hgt) this.scale.setGameSize(w, hgt);
+    this.cell = m.cell;
+    this.gridX = m.gridX;
+    this.gridY = m.gridY;
+    return changed;
+  }
 
   constructor() {
     super("workshop");
@@ -179,10 +248,22 @@ export class WorkshopScene extends Phaser.Scene {
     this.nextPitchValue = pitchChoices(data.machines, "sorter")[0] ?? 0;
     // audio.ts の共有設定 (ae-audio-enabled) を使用する
 
-    this.fx = createSceneFx(this, "fx-workshop");
+    registerTextures(this.textures);
+    this.applyViewport();
+    // 演出は盤面の下の帯だけに出す。盤面・ヒント・右パネルには重ねない（縦持ちの盤面座標に合わせる）
+    const board = { x: this.gridX, y: this.gridY + this.rules.height * this.cell + FX_BAND_GAP };
+    this.fx = createSceneFx(this, "fx-workshop", {
+      band: { ...board, w: this.rules.width * this.cell, h: FX_BAND_H },
+      frontSlots: 2, // 同時 3 本 = 背景 1 + 前景 2
+      alpha: FX_ALPHA,
+      width: this.scale.width,
+      height: this.scale.height,
+    });
     this.fx.emit("ambient");
     this.combo = 0;
-    this.gfx = this.add.graphics();
+    this.gfx = this.add.graphics().setDepth(5);
+    // ?seed= の QA 実行では出さない（押下を遮らない）
+    this.tutorial = flags().seed !== null ? "done" : initialStep(orderId, isTutorialDone());
     this.buildOverlay();
     this.redraw();
 
@@ -237,12 +318,12 @@ export class WorkshopScene extends Phaser.Scene {
     });
     this.playing = { ex, frame: 0, timer };
     this.combo = 0;
-    this.fx?.emit("machineRun");
     playSfx("run");
     duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
     this.say("実行中…");
+    this.runStatus.textContent = "実行中…(tick 0)";
     this.changed();
   }
 
@@ -259,7 +340,9 @@ export class WorkshopScene extends Phaser.Scene {
       if (ev.tick !== p.frame) continue;
       this.combo++;
       this.fx?.emit("noteCombo", this.combo, { count: this.combo });
+      // 4つごとは紙吹雪の SE のみ（見た目は出さない。fx-map の comboMilestone は空）
       if (this.combo % 4 === 0) this.fx?.emit("comboMilestone", this.combo);
+      this.fx?.emit("noteArrive");
     }
     // bin に入った音符を鳴らす
     if (isAudioEnabled()) {
@@ -271,18 +354,19 @@ export class WorkshopScene extends Phaser.Scene {
     this.redraw();
     setQaState(p.ex.frames[p.frame] ?? null);
     this.overlay.dataset.tick = String(p.frame);
+    this.runStatus.textContent = `実行中…(tick ${p.frame})`;
   }
 
   private finishPlayback(): void {
     const p = this.playing;
     if (!p) return;
     p.timer.remove();
-    this.fx?.stop("machineRun");
     duckBgm(false);
     this.showResult(p.ex);
   }
 
   private showResult(ex: Execution): void {
+    this.tutorialEvent("ran");
     const data: ResultData = {
       order: this.order,
       report: ex.report,
@@ -316,6 +400,7 @@ export class WorkshopScene extends Phaser.Scene {
     }
     this.placements = res.placements;
     playSfx("place");
+    this.tutorialEvent("placed");
     const pitch = hasPitch ? `（音高 ${pitchLabel(this.nextPitchValue)}）` : "";
     this.say(
       `${MACHINE_NAME[this.selected]}を ${pos.x},${pos.y} に${DIR_NAME[this.nextDir]}向きで置いた${pitch}`,
@@ -349,6 +434,7 @@ export class WorkshopScene extends Phaser.Scene {
     if (pos && placementAt(this.placements, pos)) {
       this.placements = rotateAt(this.placements, pos);
       playSfx("rotate");
+      this.tutorialEvent("rotated");
       const p = placementAt(this.placements, pos);
       this.say(`${pos.x},${pos.y} を${DIR_NAME[p?.dir ?? "E"]}向きにした`);
       this.changed();
@@ -383,6 +469,53 @@ export class WorkshopScene extends Phaser.Scene {
     this.refreshOverlay();
   }
 
+  // ---- チュートリアル (Issue #50) ---------------------------------------
+
+  private tutorialEvent(event: TutorialEvent): void {
+    const next = tutorialReduce(this.tutorial, event);
+    if (next === this.tutorial) return;
+    this.tutorial = next;
+    if (next === "done") markTutorialDone();
+    this.renderTutorial();
+  }
+
+  /** 案内パネルと強調枠を今の手順に合わせる。 */
+  private renderTutorial(): void {
+    for (const e of this.overlay.querySelectorAll("[data-tutorial-focus]")) {
+      e.removeAttribute("data-tutorial-focus");
+    }
+    if (this.tutorial === "done") {
+      this.tutorialPanel?.remove();
+      return;
+    }
+    if (!this.tutorialPanel) return;
+    const text = this.tutorialPanel.querySelector(".ws-guide-text");
+    let msg = tutorialText(this.tutorial, isHoverNone());
+    if (this.tutorial === "rotate" && this.placements.length === 0) msg += TUTORIAL_NEED_MACHINE;
+    if (text) text.textContent = msg;
+    this.tutorialPanel.dataset.step = this.tutorial;
+    const target =
+      this.tutorial === "place"
+        ? this.overlay.querySelector(".ws-shelf")
+        : this.tutorial === "run"
+          ? this.runButton
+          : this.cells.find((b) => b.dataset.kind === "machine");
+    target?.setAttribute("data-tutorial-focus", "true");
+    this.overlay.dataset.tutorialStatic = String(!fxEnabled());
+  }
+
+  private buildTutorial(): void {
+    if (this.tutorial === "done") return;
+    const panel = h("div", { class: "ws-guide", "aria-live": "polite" });
+    panel.append(h("span", { class: "ws-guide-text" }));
+    const skip = h("button", { type: "button", class: "ws-guide-skip" }, "スキップ");
+    skip.addEventListener("click", () => this.tutorialEvent("skip"));
+    panel.append(skip);
+    this.overlay.append(panel);
+    this.tutorialPanel = panel;
+    this.renderTutorial();
+  }
+
   private say(text: string, error = false): void {
     if (error) playSfx("error");
     this.status.textContent = text;
@@ -392,59 +525,70 @@ export class WorkshopScene extends Phaser.Scene {
   // ---- canvas 描画 ------------------------------------------------------
 
   private cellXY(p: Point): { x: number; y: number } {
-    return { x: GRID_X + p.x * CELL, y: GRID_Y + p.y * CELL };
+    return { x: this.gridX + p.x * this.cell, y: this.gridY + p.y * this.cell };
   }
 
   private redraw(): void {
     const g = this.gfx;
     const { width, height } = this.rules;
     g.clear();
-    g.fillStyle(COLOR.floor, 1);
-    g.fillRect(GRID_X, GRID_Y, width * CELL, height * CELL);
-    g.lineStyle(1, COLOR.line, 1);
+    for (const t of this.tiles) t.destroy();
+    this.tiles = [];
+    // 画像は TILE(14px) 基準なので、盤面の cell（縦持ちで変わる）に合わせて伸縮する
+    const put = (key: string, p: Point): void => {
+      const { x, y } = this.cellXY(p);
+      this.tiles.push(
+        this.add.image(x, y, key).setOrigin(0, 0).setDisplaySize(this.cell, this.cell).setDepth(1),
+      );
+    };
+    // 床（木板ではなく暗い床タイル。グリッドは薄い線）
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) put("ae-floor", { x, y });
+    g.lineStyle(1, COLOR.line, 0.45);
     for (let x = 0; x <= width; x++) {
       g.lineBetween(
-        GRID_X + x * CELL + 0.5,
-        GRID_Y,
-        GRID_X + x * CELL + 0.5,
-        GRID_Y + height * CELL,
+        this.gridX + x * this.cell + 0.5,
+        this.gridY,
+        this.gridX + x * this.cell + 0.5,
+        this.gridY + height * this.cell,
       );
     }
     for (let y = 0; y <= height; y++) {
       g.lineBetween(
-        GRID_X,
-        GRID_Y + y * CELL + 0.5,
-        GRID_X + width * CELL,
-        GRID_Y + y * CELL + 0.5,
+        this.gridX,
+        this.gridY + y * this.cell + 0.5,
+        this.gridX + width * this.cell,
+        this.gridY + y * this.cell + 0.5,
       );
     }
 
     for (const r of this.rules.reserved) {
       const { x, y } = this.cellXY(r.pos);
       if (r.kind === "blocked") {
-        g.fillStyle(COLOR.line, 1);
-        g.fillRect(x + 1, y + 1, CELL - 1, CELL - 1);
+        put("ae-blocked", r.pos);
         continue;
       }
-      g.fillStyle(r.kind === "input" ? COLOR.input : COLOR.output, 1);
-      g.fillRect(x + 2, y + 2, CELL - 3, CELL - 3);
-      this.arrow(x, y, r.dir ?? "E", COLOR.floor);
+      // 入口/出口: 地色の上にラベル（A / OUT など）をドットで描く
+      put(portTexture(this.textures, r.kind, r.id ?? (r.kind === "input" ? "A" : "OUT")), r.pos);
+      this.arrow(x, y + 2, r.dir ?? "E", COLOR.floor);
     }
 
     for (const p of this.placements) {
       const { x, y } = this.cellXY(p.pos);
-      g.fillStyle(MACHINE_COLOR[p.machine], 1);
-      g.fillRect(x + 1, y + 1, CELL - 1, CELL - 1);
-      // 回収箱は仮の図形（kotoha 側の素材が届くまで）: 床色の穴の上に向きの三角
-      if (p.machine === "bin") {
-        g.fillStyle(COLOR.floor, 1);
-        g.fillRect(x + 3, y + 3, CELL - 5, CELL - 5);
-      }
+      const running = this.playing && p.machine !== "belt";
+      put(
+        running
+          ? activeTexture(this.textures, p.machine, (this.playing?.frame ?? 0) % 2 === 0 ? 0 : 1)
+          : `ae-${p.machine}`,
+        p.pos,
+      );
       this.arrow(x, y, p.dir, COLOR.arrow);
       // 仕分け機は右下に音高の色の点（ド・ミ・ソ = 音符と同じ色）
       if (p.config) {
+        g.fillStyle(0x140f18, 1);
+        g.fillRect(x + CELL - 5, y + CELL - 5, 5, 5);
         g.fillStyle(NOTE_COLOR[p.config.pitch], 1);
-        g.fillRect(x + CELL - 4, y + CELL - 4, 3, 3);
+        const d = Math.round((3 * this.cell) / CELL);
+        g.fillRect(x + this.cell - d - 1, y + this.cell - d - 1, d, d);
       }
     }
 
@@ -454,7 +598,7 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.hover && !this.playing) {
       const { x, y } = this.cellXY(this.hover);
       g.lineStyle(1, COLOR.hover, 0.9);
-      g.strokeRect(x + 1.5, y + 1.5, CELL - 2, CELL - 2);
+      g.strokeRect(x + 1.5, y + 1.5, this.cell - 2, this.cell - 2);
     }
   }
 
@@ -463,18 +607,24 @@ export class WorkshopScene extends Phaser.Scene {
     const { width } = this.rules;
     for (const c of frame.cells) {
       const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
-      const r = c.note.length === 1 ? 4 : 3;
-      this.gfx.fillStyle(0x000000, 0.5);
-      this.gfx.fillCircle(x + CELL / 2 + 1, y + CELL / 2 + 1.5, r);
-      this.gfx.fillStyle(NOTE_COLOR[c.note.pitch], 1);
-      this.gfx.fillCircle(x + CELL / 2 + 0.5, y + CELL / 2 + 0.5, r);
+      const key = noteTexture(
+        this.textures,
+        c.note.length === 1 ? "short" : "long",
+        NOTE_COLOR[c.note.pitch],
+      );
+      this.tiles.push(
+        this.add
+          .image(x + 2, y + 2, key)
+          .setOrigin(0, 0)
+          .setDepth(6), // gfx（矢印）depth 5 より上。scene-fx front(10) より下
+      );
     }
   }
 
   /** マスの中央に向きの三角を描く。 */
   private arrow(x: number, y: number, dir: Dir, color: number): void {
-    const c = { x: x + CELL / 2 + 0.5, y: y + CELL / 2 + 0.5 };
-    const s = 4;
+    const c = { x: x + this.cell / 2 + 0.5, y: y + this.cell / 2 + 0.5 };
+    const s = Math.round((4 * this.cell) / CELL);
     const pts: Record<Dir, [number, number, number, number, number, number]> = {
       E: [c.x + s, c.y, c.x - s, c.y - s, c.x - s, c.y + s],
       W: [c.x - s, c.y, c.x + s, c.y - s, c.x + s, c.y + s],
@@ -491,11 +641,18 @@ export class WorkshopScene extends Phaser.Scene {
   private buildOverlay(): void {
     document.getElementById("ws-overlay")?.remove();
     const ov = h("div", { id: "ws-overlay", "data-scene": "workshop" });
+    if (this.portrait) ov.classList.add("ws-portrait");
+    document.body.dataset.layout = this.portrait ? "portrait" : "landscape";
     this.overlay = ov;
+    this.eraseMode = false;
 
     // 棚（左）
     const shelf = h("section", { class: "ws-shelf", "aria-label": "パーツ棚" });
     shelf.append(h("h2", {}, "棚"));
+    // 縦持ちでは palette（機械）が横スクロール、actions（向き・音高・消す…）が操作の列になる。横持ちは従来どおり縦に並ぶ（display: contents）
+    const palette = h("div", { class: "ws-palette", role: "group", "aria-label": "機械を選ぶ" });
+    const actions = h("div", { class: "ws-actions", role: "group", "aria-label": "操作" });
+    shelf.append(palette, actions);
     for (const id of Object.keys(this.machines) as MachineId[]) {
       const cost = this.order.machineCost[id] ?? this.machines[id].cost;
       const allowed = this.order.allowedMachines.includes(id);
@@ -507,42 +664,85 @@ export class WorkshopScene extends Phaser.Scene {
         "data-machine": id,
         "data-allowed": String(allowed),
       });
-      b.textContent = `${MACHINE_NAME[id]} ${cost}G`;
+      b.append(
+        iconCanvas(id),
+        h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
+        h("span", { class: "ws-tool-cost" }, `${cost}G`),
+      );
       b.addEventListener("click", () => {
         this.selected = id;
         this.refreshOverlay();
       });
-      shelf.append(b);
+      palette.append(b);
     }
     this.dirButton = h("button", { type: "button", class: "ws-btn" });
     this.dirButton.addEventListener("click", () => this.rotate(null));
-    shelf.append(this.dirButton);
+    actions.append(this.dirButton);
     this.pitchButton = h("button", { type: "button", class: "ws-btn ws-pitch" });
     this.pitchButton.addEventListener("click", () => this.cyclePitch(null));
-    shelf.append(this.pitchButton);
+    actions.append(this.pitchButton);
+    // 縦持ち専用: 長押し・右クリックの代わりに「消すモード」。入っている間はマスのタップで消す
+    this.eraseButton = h("button", {
+      type: "button",
+      class: "ws-btn ws-erase",
+      "aria-pressed": "false",
+      "aria-label": "消すモード（入れるとマスをタップして機械を消す）",
+    });
+    this.eraseButton.textContent = "消す";
+    this.eraseButton.addEventListener("click", () => {
+      this.eraseMode = !this.eraseMode;
+      this.refreshOverlay();
+    });
+    actions.append(this.eraseButton);
     // ミュートボタン (audio.ts の共有設定を使用)
     this.muteButton = h("button", {
       type: "button",
       class: "ws-btn",
       "aria-label": isAudioEnabled() ? "音を切る" : "音をオンにする",
     });
-    this.muteButton.textContent = isAudioEnabled() ? "🔊" : "🔇";
+    this.setMuteLabel(isAudioEnabled());
     this.muteButton.addEventListener("click", () => this.toggleMute());
-    shelf.append(this.muteButton);
+    actions.append(this.muteButton);
+    // スライダーでの自動ミュート解除など、このボタン以外で音のオン/オフが変わっても表示を合わせる
+    this.unsubSound = onSoundToggle((on) => this.syncMuteButton(on));
+
+    // 全消しは棚から外し、盤面の右下に置く（#94）。押すと確認を出す
     const clear = h(
       "button",
-      { type: "button", class: "ws-btn", "aria-label": "配置を全部消す" },
+      { type: "button", class: "ws-btn ws-clear", "aria-label": "配置を全部消す" },
       "全消し",
     );
-    clear.addEventListener("click", () => this.clearAll());
-    shelf.append(clear);
-    ov.append(shelf);
+    const confirm = h("div", {
+      class: "ws-confirm",
+      role: "alertdialog",
+      "aria-label": "全消しの確認",
+      hidden: "",
+    });
+    const yes = h("button", { type: "button", class: "ws-btn ws-danger" }, "はい");
+    const no = h("button", { type: "button", class: "ws-btn" }, "やめる");
+    confirm.append(h("p", {}, "全部消します。よろしいですか？"), yes, no);
+    clear.addEventListener("click", () => {
+      if (this.playing || this.placements.length === 0) return;
+      confirm.hidden = false;
+      no.focus();
+    });
+    yes.addEventListener("click", () => {
+      confirm.hidden = true;
+      this.clearAll();
+      clear.focus();
+    });
+    no.addEventListener("click", () => {
+      confirm.hidden = true;
+      clear.focus();
+    });
+    actions.append(clear);
+    ov.append(shelf, confirm);
 
     // グリッド（中央）
     const grid = h("div", {
       class: "ws-grid",
       role: "group",
-      "aria-label": `工房 ${this.rules.width}×${this.rules.height}（クリックで置く・R で回す・P か Shift+クリックで仕分け機の音高・右クリックか Delete で消す）`,
+      "aria-label": `工房 ${this.rules.width}×${this.rules.height}（${isHoverNone() ? "タップで置く・置いた機械をタップで回す" : "クリックで置く・R で回す"}・P か Shift+クリックで仕分け機の音高・右クリックか Delete で消す）`,
     });
     grid.style.setProperty("--cols", String(this.rules.width));
     grid.style.setProperty("--rows", String(this.rules.height));
@@ -551,9 +751,21 @@ export class WorkshopScene extends Phaser.Scene {
       for (let x = 0; x < this.rules.width; x++) {
         const pos = { x, y };
         const b = h("button", { type: "button", class: "ws-cell", tabindex: "-1" });
+        let tapType: string | undefined; // 直近の pointerdown の入力種別（キーボード由来の click では undefined）
         b.addEventListener("click", (e) => {
           if (e.shiftKey) this.cyclePitch(pos);
-          else this.placeAt(pos);
+          else if (this.eraseMode) this.removeAtPos(pos);
+          else if (
+            shouldRotateOnTap(
+              tapType,
+              placementAt(this.placements, pos),
+              this.selected,
+              this.nextPitchValue,
+            )
+          ) {
+            this.rotate(pos);
+          } else this.placeAt(pos);
+          tapType = undefined;
         });
         b.addEventListener("contextmenu", (e) => {
           e.preventDefault();
@@ -570,7 +782,8 @@ export class WorkshopScene extends Phaser.Scene {
           if (this.hover && this.hover.x === x && this.hover.y === y) this.hover = null;
           this.redraw();
         });
-        b.addEventListener("pointerdown", () => {
+        b.addEventListener("pointerdown", (e) => {
+          tapType = e.pointerType;
           this.pointerPressing = true;
         });
         b.addEventListener("pointerup", () => {
@@ -591,13 +804,15 @@ export class WorkshopScene extends Phaser.Scene {
 
     // 注文票（右）
     const card = h("section", { class: "ws-order", "aria-label": "注文票" });
-    card.append(h("h2", {}, this.order.title));
+    const body = h("div", { class: "ws-order-body" });
+    card.append(body);
+    body.append(h("h2", {}, this.order.title));
     const intro = this.order.texts["intro"];
-    if (typeof intro === "string") card.append(h("p", {}, intro));
+    if (typeof intro === "string") body.append(h("p", {}, intro));
     // Issue #48: tutorial 文を表示
     const tutorial = this.order.texts["tutorial"];
     if (typeof tutorial === "string") {
-      card.append(
+      body.append(
         h(
           "p",
           { class: "ws-tutorial", style: "font-size: 12px; color: #b0a0c0; margin: 6px 0;" },
@@ -611,9 +826,12 @@ export class WorkshopScene extends Phaser.Scene {
       list.append(h("li", {}, `入口 ${i.id} ${DIR_ARROW[i.dir]}（${DIR_NAME[i.dir]}へ出す）`));
     for (const o of this.order.outputs)
       list.append(h("li", {}, `出口 ${o.id} ${DIR_ARROW[o.dir]}（${DIR_NAME[o.dir]}向き）`));
-    card.append(list);
+    body.append(list);
     this.costText = h("p", { "aria-label": "配置の合計" });
-    card.append(this.costText);
+    // 実行中は同じ位置（実行ボタンの直上）に「実行中…(tick n)」を出す。配置の合計は実行中は隠す
+    this.runStatus = h("p", { class: "ws-run-status", "aria-hidden": "true" });
+    this.runStatus.hidden = true;
+    body.append(this.costText, this.runStatus);
     this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
     this.runButton.addEventListener("click", () => this.runSim());
     card.append(this.runButton);
@@ -626,10 +844,13 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: "font-size: 12px; color: #8a8090; text-align: center; margin: 4px 0;",
+      style: "color: #8a8090;",
     });
-    helpLine.textContent = "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
+    helpLine.textContent = this.portrait
+      ? "タップ=置く／消すボタン=消す／向きボタン=向き"
+      : "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
     ov.append(helpLine);
+    this.tutorialPanel = null;
 
     // R キーはマス以外にフォーカスがあっても効くように（マウス操作中のホバー対象を回す）
     ov.addEventListener("keydown", (e) => {
@@ -652,6 +873,8 @@ export class WorkshopScene extends Phaser.Scene {
     });
 
     (document.getElementById("game") ?? document.body).append(ov);
+    this.tutorialPanel = null;
+    this.buildTutorial();
     this.refreshOverlay();
   }
 
@@ -701,6 +924,7 @@ export class WorkshopScene extends Phaser.Scene {
     for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(".ws-tool")) {
       b.setAttribute("aria-pressed", String(b.dataset.machine === this.selected));
     }
+    this.eraseButton.setAttribute("aria-pressed", String(this.eraseMode));
     this.dirButton.textContent = `向き ${DIR_ARROW[this.nextDir]}`;
     this.dirButton.setAttribute(
       "aria-label",
@@ -718,10 +942,13 @@ export class WorkshopScene extends Phaser.Scene {
     const running = this.playing !== null;
     this.overlay.dataset.running = String(running);
     this.runButton.textContent = running ? "結果へスキップ" : "実行";
+    this.runStatus.hidden = !running;
+    this.costText.hidden = running;
     for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(".ws-shelf .ws-btn")) {
       b.disabled = running;
     }
     this.cells.forEach((b) => b.setAttribute("aria-disabled", String(running)));
+    this.renderTutorial();
   }
 
   /** overlay を canvas の表示位置・大きさに合わせる。中身は内部解像度に対する % で置いてある。 */
@@ -736,21 +963,38 @@ export class WorkshopScene extends Phaser.Scene {
     s.top = `${c.top - p.top}px`;
     s.width = `${c.width}px`;
     s.height = `${c.height}px`;
-    s.setProperty("--u", `${c.width / GAME_WIDTH}px`);
-    s.setProperty("--grid-x", `${(GRID_X / GAME_WIDTH) * 100}%`);
-    s.setProperty("--grid-y", `${(GRID_Y / GAME_HEIGHT) * 100}%`);
-    s.setProperty("--grid-w", `${((this.rules.width * CELL) / GAME_WIDTH) * 100}%`);
-    s.setProperty("--grid-h", `${((this.rules.height * CELL) / GAME_HEIGHT) * 100}%`);
+    s.setProperty("--u", `${c.width / this.scale.width}px`);
+    s.setProperty("--grid-y-px", `${this.gridY}px`);
+    s.setProperty("--grid-h-px", `${this.rules.height * this.cell}px`);
+    s.setProperty("--grid-x", `${(this.gridX / this.scale.width) * 100}%`);
+    s.setProperty("--grid-y", `${(this.gridY / this.scale.height) * 100}%`);
+    s.setProperty("--grid-w", `${((this.rules.width * this.cell) / this.scale.width) * 100}%`);
+    s.setProperty("--grid-h", `${((this.rules.height * this.cell) / this.scale.height) * 100}%`);
+  }
+
+  /** 音ボタン: ドット絵のスピーカー + 『音: ON/OFF』（絵文字・色だけに頼らない）。 */
+  private setMuteLabel(enabled: boolean): void {
+    this.muteButton.replaceChildren(
+      iconCanvas(enabled ? "speaker-on" : "speaker-off"),
+      document.createTextNode(enabled ? "音: ON" : "音: OFF"),
+    );
   }
 
   private toggleMute(): void {
     const enabled = toggleSound();
-    this.muteButton.textContent = enabled ? "🔊" : "🔇";
+    this.setMuteLabel(enabled);
     this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
     this.say(enabled ? "音をオンにした" : "音を切った");
   }
 
+  private syncMuteButton(enabled: boolean): void {
+    this.setMuteLabel(enabled);
+    this.muteButton.setAttribute("aria-label", enabled ? "音を切る" : "音をオンにする");
+  }
+
   private teardown(): void {
+    this.unsubSound?.();
+    this.unsubSound = null;
     this.playing?.timer.remove();
     this.playing = null;
     duckBgm(false);
@@ -760,5 +1004,11 @@ export class WorkshopScene extends Phaser.Scene {
     window.removeEventListener("resize", this.onResize);
     this.overlay.remove();
     this.cells = [];
+    this.tiles = [];
+    // 次の画面（タイトル・結果）は 320×180 前提。縦持ちで変えた canvas の大きさを戻す
+    if (this.scale.width !== GAME_WIDTH || this.scale.height !== GAME_HEIGHT) {
+      this.scale.setGameSize(GAME_WIDTH, GAME_HEIGHT);
+    }
+    delete document.body.dataset.layout;
   }
 }

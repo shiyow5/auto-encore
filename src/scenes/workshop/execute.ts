@@ -98,7 +98,7 @@ export const MEDAL_TEXT: Record<Medal, string> = {
   gold: "金",
   silver: "銀",
   bronze: "銅",
-  none: "なし",
+  none: "—",
 };
 
 export interface MetricRow {
@@ -121,7 +121,7 @@ export function metricRows(r: ScoreReport): readonly MetricRow[] {
     {
       key: "ticks",
       label: "速度",
-      value: m.ticks === null ? "記録なし" : `${m.ticks} tick`,
+      value: m.ticks === null ? "— (未達)" : `${m.ticks} tick`,
       medal: r.medals.ticks,
     },
     { key: "cost", label: "コスト", value: `${m.cost}G`, medal: r.medals.cost },

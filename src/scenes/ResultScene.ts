@@ -95,7 +95,8 @@ export class ResultScene extends Phaser.Scene {
     fx.emit("result");
     fx.emit("songComplete");
     const medals = Object.values(report.medals);
-    if (medals.some((m) => m !== "none")) fx.emit("medalEarned");
+    if (medals.includes("gold")) fx.emit("medalEarned");
+    else if (medals.some((m) => m !== "none")) fx.emit("medalSilver");
   }
 
   constructor() {
@@ -136,14 +137,16 @@ export class ResultScene extends Phaser.Scene {
     table.append(body);
     ov.append(table);
 
-    // 最初にずれた位置（spec-e §2）。ずれなし（null）のときは出さない。
+    // 最初にずれた位置（spec-e §2 / #96）。表の外に1行。ずれなし（null）のときは出さない。
     const fm = report.metrics.firstMismatch;
     if (fm !== null) {
-      const mismatchRow = h("tr", { "data-first-mismatch": String(fm) });
-      mismatchRow.append(h("th", { scope: "row" }, "最初にずれた位置"));
-      mismatchRow.append(h("td", {}, `最初にずれた位置: ${fm}音目`));
-      mismatchRow.append(h("td")); // メダル列は空
-      body.append(mismatchRow);
+      const note = h(
+        "p",
+        { class: "rs-fm", "data-first-mismatch": String(fm) },
+        "最初にずれたのは ",
+      );
+      note.append(h("strong", {}, `${fm}音目`));
+      ov.append(note);
     }
 
     const msg = verdictMessage(order, verdict);
@@ -212,7 +215,9 @@ export class ResultScene extends Phaser.Scene {
       this.cameras.main.fadeIn(200, 30, 23, 34);
     }
     this.playFx(report, verdict);
-    playSfx(sfxForReport(report));
+    // 不合格は runError の音（0.23秒）が先に鳴るので、結果の音はその後にずらす
+    if (report.passed) playSfx(sfxForReport(report));
+    else this.time.delayedCall(260, () => playSfx(sfxForReport(report)));
     document.body.dataset.scene = "result";
     setQaBusy("transition", false);
   }
