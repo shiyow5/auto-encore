@@ -26,6 +26,13 @@
   position: relative;
 }
 
+.ws-help-line {
+  font-size: calc(var(--u) * 6);
+  color: #8a8090;
+  text-align: center;
+  margin: calc(var(--u) * 1) 0;
+}
+
 #ws-overlay {
   position: absolute;
   --u: 1px;
@@ -424,4 +431,116 @@ body[data-scene="workshop"] #audio-toggle {
 }
 .volume-row output {
   text-align: right;
+}
+
+/* ---- Issue #123: スマホ縦持ち ----
+ * canvas は盤面まわりだけを映して幅いっぱい・上寄せ。棚・注文票・説明は canvas の下に縦に積む。
+ * 文字は 16px 以上、ボタンは高さ 44px 以上（盤面のマスは例外）。「実行」は画面下に固定。 */
+body[data-portrait="true"] #game {
+  align-items: flex-start;
+  height: 100dvh;
+  overflow-y: auto;
+}
+body[data-portrait="true"] #ws-overlay {
+  font-size: 16px;
+  box-sizing: border-box;
+  padding-top: var(--canvas-h);
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+body[data-portrait="true"] #ws-overlay h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+body[data-portrait="true"] #ws-overlay p,
+body[data-portrait="true"] #ws-overlay ul {
+  margin: 0 0 6px;
+}
+body[data-portrait="true"] #ws-overlay ul {
+  padding-left: 24px;
+}
+body[data-portrait="true"] .ws-grid {
+  /* 盤面は overlay の上端(canvas の位置)に合わせる。padding の外へ出すので absolute のまま */
+  top: var(--grid-y);
+}
+body[data-portrait="true"] .ws-shelf,
+body[data-portrait="true"] .ws-order {
+  position: static;
+  width: auto;
+  max-height: none;
+  margin: 0 8px;
+  padding: 10px;
+  border-radius: 6px;
+}
+body[data-portrait="true"] .ws-shelf {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+body[data-portrait="true"] .ws-shelf h2 {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+body[data-portrait="true"] .ws-btn {
+  min-height: 44px;
+  padding: 8px 10px;
+  border-width: 2px;
+  border-radius: 6px;
+  font-size: 16px;
+}
+body[data-portrait="true"] .ae-icon {
+  width: 24px;
+  height: 24px;
+}
+body[data-portrait="true"] .ws-order .ws-tutorial,
+body[data-portrait="true"] .ws-help-line {
+  font-size: 16px !important;
+  line-height: 1.4;
+  margin: 4px 8px !important;
+}
+body[data-portrait="true"] .ws-help-line {
+  color: var(--ae-text-weak);
+  text-align: left;
+}
+body[data-portrait="true"] .ws-status {
+  position: static;
+  width: auto;
+  margin: 0 8px;
+  min-height: 1.4em;
+  font-size: 16px;
+}
+/* 実行: 画面下に固定。高さ 56px */
+body[data-portrait="true"] .ws-run {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  z-index: 100;
+  width: auto;
+  min-height: 56px;
+  margin: 0;
+  font-size: 20px;
+  pointer-events: auto;
+}
+body[data-portrait="true"] .ws-guide {
+  position: static;
+  width: auto;
+  margin: 0 8px;
+  padding: 8px 10px;
+  border-width: 2px;
+  font-size: 16px;
+}
+body[data-portrait="true"] .ws-guide-skip {
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 16px;
+}
+
+/* 縦持ちの工房: 音量ボタンが盤面に重なるので隠す（音のオン/オフは棚の「音」ボタンで切り替える） */
+body[data-portrait="true"][data-scene="workshop"] .volume-toggle,
+body[data-portrait="true"][data-scene="workshop"] .volume-panel {
+  display: none;
 }

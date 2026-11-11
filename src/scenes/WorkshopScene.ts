@@ -66,6 +66,21 @@ export const PLAY_MS_PER_TICK = 110;
 export const CELL = 14;
 export const GRID_X = 76;
 export const GRID_Y = 26;
+/** スマホ縦持ちで canvas に映す範囲（内部解像度のドット）。盤面 12×8 とその周りの余白だけ。 */
+export const PORTRAIT_VIEW = { x: GRID_X - 4, y: GRID_Y - 4, w: 12 * CELL + 8, h: 8 * CELL + 8 };
+const HELP_DESKTOP = "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
+const HELP_TOUCH = "置く=タップ / 向き=「向き」ボタン / 消す=マスを長押し";
+
+/** 幅 600px 以下で縦長のとき true（スマホ縦）。 */
+export function isPortraitPhone(): boolean {
+  return window.innerWidth <= 600 && window.innerHeight > window.innerWidth * 1.1;
+}
+function p_left(e: HTMLElement): number {
+  return e.getBoundingClientRect().left;
+}
+function p_top(e: HTMLElement): number {
+  return e.getBoundingClientRect().top;
+}
 
 const COLOR = {
   floor: 0x1e1722,
@@ -166,6 +181,11 @@ export class WorkshopScene extends Phaser.Scene {
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => this.layout();
+  /** Issue #123: スマホ縦持ちのレイアウトか（盤面を幅いっぱい・上寄せ、棚と注文票は下に縦積み）。 */
+  private helpLine!: HTMLElement;
+  private portrait = false;
+  /** 長押しで消した直後の click を捨てるための印 */
+  private longPressed = false;
 
   constructor() {
     super("workshop");
@@ -615,7 +635,29 @@ export class WorkshopScene extends Phaser.Scene {
       for (let x = 0; x < this.rules.width; x++) {
         const pos = { x, y };
         const b = h("button", { type: "button", class: "ws-cell", tabindex: "-1" });
+        let pressTimer: number | undefined;
+        const cancelPress = (): void => {
+          window.clearTimeout(pressTimer);
+          pressTimer = undefined;
+        };
+        // タッチの長押し(0.5秒)で消す。右クリックのないスマホ向け(#123)
+        b.addEventListener("pointerdown", (e) => {
+          if (e.pointerType === "mouse") return;
+          cancelPress();
+          pressTimer = window.setTimeout(() => {
+            pressTimer = undefined;
+            this.longPressed = true;
+            this.removeAtPos(pos);
+          }, 500);
+        });
+        b.addEventListener("pointerup", cancelPress);
+        b.addEventListener("pointercancel", cancelPress);
+        b.addEventListener("pointerleave", cancelPress);
         b.addEventListener("click", (e) => {
+          if (this.longPressed) {
+            this.longPressed = false;
+            return;
+          }
           if (e.shiftKey) this.cyclePitch(pos);
           else this.placeAt(pos);
         });
@@ -688,11 +730,9 @@ export class WorkshopScene extends Phaser.Scene {
     ov.append(this.status);
 
     // Issue #48: 操作説明の常時1行
-    const helpLine = h("p", {
-      class: "ws-help-line",
-      style: "font-size: 12px; color: #8a8090; text-align: center; margin: 4px 0;",
-    });
-    helpLine.textContent = "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
+    const helpLine = h("p", { class: "ws-help-line" });
+    helpLine.textContent = HELP_DESKTOP;
+    this.helpLine = helpLine;
     ov.append(helpLine);
     this.tutorialPanel = null;
 
@@ -794,10 +834,29 @@ export class WorkshopScene extends Phaser.Scene {
 
   /** overlay を canvas の表示位置・大きさに合わせる。中身は内部解像度に対する % で置いてある。 */
   private layout(): void {
+    this.applyOrientation();
     const canvas = this.game.canvas;
     const parent = this.overlay.parentElement;
     if (!canvas || !parent) return;
     const c = canvas.getBoundingClientRect();
+    if (this.portrait) {
+      // 盤面まわり(PORTRAIT_VIEW)だけを canvas に映している。棚・注文票は canvas の下に流す。
+      const u = c.width / PORTRAIT_VIEW.w;
+      const s = this.overlay.style;
+      s.left = `${c.left - p_left(parent)}px`;
+      s.top = `${c.top - p_top(parent)}px`;
+      s.width = `${c.width}px`;
+      s.height = "auto";
+      s.setProperty("--u", `${u}px`);
+      s.setProperty("--canvas-h", `${c.height}px`);
+      s.setProperty("--grid-x", `${(GRID_X - PORTRAIT_VIEW.x) * u}px`);
+      s.setProperty("--grid-y", `${(GRID_Y - PORTRAIT_VIEW.y) * u}px`);
+      s.setProperty("--grid-w", `${this.rules.width * CELL * u}px`);
+      s.setProperty("--grid-h", `${this.rules.height * CELL * u}px`);
+      return;
+    }
+    this.overlay.style.height = "";
+    this.overlay.style.removeProperty("--canvas-h");
     const p = parent.getBoundingClientRect();
     const s = this.overlay.style;
     s.left = `${c.left - p.left}px`;
@@ -809,6 +868,31 @@ export class WorkshopScene extends Phaser.Scene {
     s.setProperty("--grid-y", `${(GRID_Y / GAME_HEIGHT) * 100}%`);
     s.setProperty("--grid-w", `${((this.rules.width * CELL) / GAME_WIDTH) * 100}%`);
     s.setProperty("--grid-h", `${((this.rules.height * CELL) / GAME_HEIGHT) * 100}%`);
+  }
+
+  /** 縦持ち(幅が狭く縦長)かどうかで canvas の映す範囲と DOM の並びを切り替える。 */
+  private applyOrientation(): void {
+    const want = isPortraitPhone();
+    if (want === this.portrait && this.overlay.dataset.portrait === String(want)) return;
+    this.portrait = want;
+    this.overlay.dataset.portrait = String(want);
+    document.body.dataset.portrait = String(want);
+    if (want) {
+      this.scale.autoCenter = Phaser.Scale.CENTER_HORIZONTALLY;
+      this.scale.setGameSize(PORTRAIT_VIEW.w, PORTRAIT_VIEW.h);
+      this.cameras.main.setScroll(PORTRAIT_VIEW.x, PORTRAIT_VIEW.y);
+    } else {
+      this.restoreLandscape();
+    }
+    this.scale.refresh();
+    this.helpLine.textContent = want ? HELP_TOUCH : HELP_DESKTOP;
+  }
+
+  private restoreLandscape(): void {
+    this.scale.autoCenter = Phaser.Scale.CENTER_BOTH;
+    this.scale.setGameSize(GAME_WIDTH, GAME_HEIGHT);
+    this.cameras?.main?.setScroll(0, 0);
+    this.scale.refresh();
   }
 
   /** 音ボタン: ドット絵のスピーカー + 『音: ON/OFF』（絵文字・色だけに頼らない）。 */
@@ -842,6 +926,11 @@ export class WorkshopScene extends Phaser.Scene {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);
     window.removeEventListener("resize", this.onResize);
     this.overlay.remove();
+    delete document.body.dataset.portrait;
+    if (this.portrait) {
+      this.portrait = false;
+      this.restoreLandscape();
+    }
     this.cells = [];
     this.tiles = [];
   }
