@@ -82,7 +82,6 @@ const FX_ALPHA = 0.5;
 
 const COLOR = {
   floor: 0x1e1722,
-  line: 0x3a2f40,
   belt: 0x5c4a66,
   merger: 0x4a5c66,
   sorter: 0x66584a,
@@ -91,7 +90,6 @@ const COLOR = {
   arrow: 0xf2b45a,
   input: 0x8fd6c8,
   output: 0xf28f9a,
-  hover: 0xffffff,
 };
 
 /** 音符の色（ド・ミ・ソ）。 */
@@ -543,23 +541,7 @@ export class WorkshopScene extends Phaser.Scene {
     };
     // 床（木板ではなく暗い床タイル。グリッドは薄い線）
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) put("ae-floor", { x, y });
-    g.lineStyle(1, COLOR.line, 0.45);
-    for (let x = 0; x <= width; x++) {
-      g.lineBetween(
-        this.gridX + x * this.cell + 0.5,
-        this.gridY,
-        this.gridX + x * this.cell + 0.5,
-        this.gridY + height * this.cell,
-      );
-    }
-    for (let y = 0; y <= height; y++) {
-      g.lineBetween(
-        this.gridX,
-        this.gridY + y * this.cell + 0.5,
-        this.gridX + width * this.cell,
-        this.gridY + y * this.cell + 0.5,
-      );
-    }
+    // グリッド線・外枠・台座・カーソル枠は DOM(workshop.css .ws-grid / .ws-cell)で描く(#101: px 指定値を正確に出すため)
 
     for (const r of this.rules.reserved) {
       const { x, y } = this.cellXY(r.pos);
@@ -597,12 +579,6 @@ export class WorkshopScene extends Phaser.Scene {
       this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
       this.drawNotes(frame);
     }
-
-    if (this.hover && !this.playing) {
-      const { x, y } = this.cellXY(this.hover);
-      g.lineStyle(1, COLOR.hover, 0.9);
-      g.strokeRect(x + 1.5, y + 1.5, this.cell - 2, this.cell - 2);
-    }
   }
 
   /**
@@ -617,18 +593,20 @@ export class WorkshopScene extends Phaser.Scene {
     const g = this.gfx;
     const tick = this.playing?.frame ?? 0;
     // 稼働灯: 盤面の上下の縁を、琥珀色の灯り（幅 14px）が左→右へ流れる。縁の外側 2px なのでマスや文字に重ならない
-    const gridW = width * CELL;
-    const lx = GRID_X + ((tick * 10) % gridW);
-    const lw = Math.min(14, GRID_X + gridW - lx);
+    // 縦画面では cell / 盤面原点が変わるので、this.cell / this.gridX / this.gridY と倍率 k で換算する
+    const k = this.cell / CELL;
+    const gridW = width * this.cell;
+    const lx = this.gridX + ((tick * 10 * k) % gridW);
+    const lw = Math.min(14 * k, this.gridX + gridW - lx);
     g.fillStyle(0xf6c77f, 1);
-    g.fillRect(lx, GRID_Y - 3, lw, 2);
-    g.fillRect(GRID_X + gridW - (lx - GRID_X) - lw, GRID_Y + height * CELL + 1, lw, 2);
+    g.fillRect(lx, this.gridY - 3, lw, 2);
+    g.fillRect(this.gridX + gridW - (lx - this.gridX) - lw, this.gridY + height * this.cell + 1, lw, 2);
     const here = new Set(frame.cells.map((c) => c.key));
     for (const c of prev?.cells ?? []) {
       if (here.has(c.key)) continue;
       const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
       g.fillStyle(NOTE_COLOR[c.note.pitch], 0.3);
-      g.fillCircle(x + CELL / 2 + 0.5, y + CELL / 2 + 0.5, 2);
+      g.fillCircle(x + this.cell / 2 + 0.5, y + this.cell / 2 + 0.5, 2);
     }
     const mergers = new Set(
       this.placements.filter((p) => p.machine === "merger").map((p) => p.pos.y * width + p.pos.x),
@@ -637,12 +615,13 @@ export class WorkshopScene extends Phaser.Scene {
       if (!mergers.has(c.key)) continue;
       const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
       const o = tick % 2 === 0 ? 0 : 1;
+      const far = this.cell - 3 - o;
       g.fillStyle(0xffffff, 1);
       for (const [dx, dy] of [
         [1 + o, 1],
-        [CELL - 3 - o, 1],
-        [1 + o, CELL - 3],
-        [CELL - 3 - o, CELL - 3],
+        [far, 1],
+        [1 + o, this.cell - 3],
+        [far, this.cell - 3],
       ] as const) {
         g.fillRect(x + dx, y + dy, 2, 2);
       }
@@ -881,7 +860,10 @@ export class WorkshopScene extends Phaser.Scene {
     // 実行中は同じ位置（実行ボタンの直上）に「実行中…(tick n)」を出す。配置の合計は実行中は隠す
     this.runStatus = h("p", { class: "ws-run-status", "aria-hidden": "true" });
     this.runStatus.hidden = true;
-    body.append(this.costText, this.runStatus);
+    // 合計と実行中表示は注文票の下端に固定（入口・出口が長くても見える。#136）
+    const total = h("div", { class: "ws-order-total" });
+    total.append(this.costText, this.runStatus);
+    body.append(total);
     this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
     this.runButton.addEventListener("click", () => this.runSim());
     card.append(this.runButton);
