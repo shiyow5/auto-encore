@@ -21,6 +21,8 @@ import { playSfx } from "../audio/player";
 import { sfxForReport } from "../audio/sounds";
 import {
   MEDAL_TEXT,
+  allClearMessage,
+  isAllCleared,
   STOP_TEXT,
   VERDICT_TEXT,
   metricRows,
@@ -165,6 +167,27 @@ export class ResultScene extends Phaser.Scene {
     actions.append(back);
     ov.append(actions);
 
+    // #137: 最後の注文のあとも行き止まりにならないよう、注文選択とタイトルへの道を常に出す
+    const toSelect = h(
+      "button",
+      { type: "button", class: "ae-btn ae-btn-secondary rs-orders" },
+      "注文選択",
+    );
+    toSelect.addEventListener("click", () => {
+      setQaBusy("transition", true);
+      this.scene.start("orders");
+    });
+    const toTitle = h(
+      "button",
+      { type: "button", class: "ae-btn ae-btn-secondary rs-title-btn" },
+      "タイトル",
+    );
+    toTitle.addEventListener("click", () => {
+      setQaBusy("transition", true);
+      this.scene.start("title");
+    });
+    actions.append(toSelect, toTitle);
+
     // Issue #47: 結果が合格 (pass または encore) なら「次の注文へ」を表示
     if (report.passed) {
       const unlockStore = new SaveStore<string[]>(
@@ -184,6 +207,10 @@ export class ResultScene extends Phaser.Scene {
       if (nextOrder && !unlocked.includes(nextOrder.id)) {
         unlockStore.save([...unlocked, nextOrder.id]);
       }
+      if (isAllCleared(allOrders, order.id, true, [...unlocked, order.id])) {
+        const done = allClearMessage(order);
+        if (done) ov.insertBefore(h("p", { class: "rs-allclear" }, done), actions);
+      }
       if (nextOrder) {
         const nextBtn = h("button", {
           type: "button",
@@ -195,7 +222,7 @@ export class ResultScene extends Phaser.Scene {
           // 前の注文の配置は盤・入口が違うので持ち込まない
           this.scene.start("workshop", { orderId: nextOrder.id });
         });
-        actions.append(nextBtn);
+        actions.insertBefore(nextBtn, toSelect);
       }
     }
 

@@ -312,12 +312,14 @@
 .rs-actions {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 8px;
 }
 
 .rs-actions .ae-btn {
   width: 160px;
+  flex: none; /* ボタンが4つ並んでも縮めない（足りなければ折り返す） */
 }
 
 @media (max-width: 480px) {
