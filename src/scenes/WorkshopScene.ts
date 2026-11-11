@@ -817,7 +817,7 @@ export class WorkshopScene extends Phaser.Scene {
           "p",
           {
             class: "ws-tutorial",
-            style: "font-size: 16px; line-height: 24px; color: #b0a0c0; margin: 8px 0;",
+            style: "font-size: 16px; line-height: 24px; color: var(--ae-text-weak); margin: 8px 0;",
           },
           tutorial,
         ),
@@ -848,8 +848,8 @@ export class WorkshopScene extends Phaser.Scene {
     const helpLine = h("p", {
       class: "ws-help-line",
       style: this.portrait
-        ? "color: #8a8090;"
-        : "font-size: 16px; line-height: 24px; color: #8a8090; text-align: center; margin: 4px auto; max-width: 560px;",
+        ? "color: var(--ae-text-muted);"
+        : "font-size: 16px; line-height: 24px; color: var(--ae-text-muted); text-align: center; margin: 4px auto; max-width: 560px;",
     });
     helpLine.textContent = this.portrait
       ? "タップ=置く／消すボタン=消す／向きボタン=向き"
