@@ -5,6 +5,7 @@
  * - 「はじめる」→ orders 画面へ遷移 (`this.scene.start("orders")`)
  * - 「遊び方」→ モーダルで操作説明を表示
  */
+import { createSceneFx } from "../fx/scene-fx";
 import Phaser from "phaser";
 
 import { TITLE } from "./BootScene";
@@ -147,6 +148,7 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     document.body.dataset.scene = "title";
+    createSceneFx(this, "fx-title").emit("ambient");
 
     const gameEl = document.getElementById("game") ?? document.body;
     this.overlay.attach(gameEl, () => this.scene.start("orders"));

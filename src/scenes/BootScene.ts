@@ -1,7 +1,6 @@
 import Phaser from "phaser";
-import * as glitch from "pixelfx/fx/scifi/glitch";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
-import { PixelFxLayer } from "../fx/PixelFxLayer";
+import { createSceneFx } from "../fx/scene-fx";
 import { Rng } from "../core/rng";
 import { flags, fxEnabled } from "../ui/flags";
 import { setQaBusy } from "../ui/qa";
@@ -24,8 +23,6 @@ async function waitForFont(): Promise<void> {
 
 /** 起動ロゴ。演出ありならグリッチを 0.6 秒見せてから工房へ、?fx=0 ならすぐ工房へ。 */
 export class BootScene extends Phaser.Scene {
-  private fx?: PixelFxLayer;
-
   constructor() {
     super("boot");
   }
@@ -43,8 +40,7 @@ export class BootScene extends Phaser.Scene {
       return;
     }
     const rng = new Rng(flags().seed ?? "boot");
-    this.fx = new PixelFxLayer(this, "fx-boot", GAME_WIDTH, GAME_HEIGHT);
-    this.fx.play(glitch, { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, seed: rng.int(1, 9999) });
+    createSceneFx(this, "fx-boot").emit("boot", rng.int(1, 9999));
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, TITLE, {
         fontFamily: '"DotGothic16", monospace',
@@ -53,9 +49,5 @@ export class BootScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.time.delayedCall(600, () => this.scene.start("title"));
-  }
-
-  override update(_time: number, delta: number): void {
-    this.fx?.update(delta / 1000);
   }
 }

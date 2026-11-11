@@ -144,7 +144,7 @@ test("?fx=0: ベルト10本 → 実行 → 結果に3指標が数値で出る �
   expect(errors).toEqual([]);
 });
 
-test("?fx=0: 途中が切れていると詰まって「もう一歩」・速度は記録なし", async ({ page }) => {
+test("?fx=0: 途中が切れていると詰まって「もう一歩」・速度は未達", async ({ page }) => {
   await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 10_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
@@ -159,12 +159,10 @@ test("?fx=0: 途中が切れていると詰まって「もう一歩」・速度�
   await expect(page.getByRole("heading", { name: "結果: もう一歩" })).toBeVisible();
   const table = page.getByRole("table", { name: "3指標" });
   await expect(table.getByRole("row", { name: /^正確さ/ })).toHaveAccessibleName(
-    "正確さ 0%（0/8） なし",
+    "正確さ 0%（0/8） —",
   );
-  await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName(
-    "速度 記録なし なし",
-  );
-  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName("コスト 9G 金");
+  await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName("速度 — (未達) —");
+  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName("コスト 9G —");
 });
 
 test("演出あり: 実行すると音符を tick ごとに動かしてから結果へ（スキップもできる）", async ({
@@ -311,7 +309,11 @@ test("?fx=0: 注文選択のロック表示と「タイトルへ戻る」", asyn
   const overlay = page.locator("#order-select-overlay");
   await expect(overlay).not.toContainText("解放済み");
   await expect(overlay).not.toContainText("---");
-  await expect(overlay).toContainText("🔒 高い音と低い音（開店前の試し弾き をクリアで解放）");
+  await expect(overlay).toContainText(
+    "ロック中: 高い音と低い音（開店前の試し弾き をクリアで解放）",
+  );
+  // #102 で 🔒 絵文字をドット絵の鍵アイコン(canvas)に置き換えた
+  await expect(overlay.locator("canvas.ae-icon").first()).toBeVisible();
   await page.getByRole("button", { name: "タイトルへ戻る" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title");
   expect(errors).toEqual([]);

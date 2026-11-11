@@ -168,6 +168,13 @@
   background: #f6c77f;
 }
 
+/* 実行中の「実行中…(tick n)」。実行ボタンの真下に出す（盤面・演出の帯には重ねない） */
+.ws-run-status {
+  margin: calc(var(--u) * 2) 0 0;
+  text-align: center;
+  color: var(--ae-text);
+}
+
 .ws-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -208,6 +215,7 @@
 }
 
 .rs-table {
+  table-layout: fixed;
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1rem;
@@ -222,7 +230,10 @@
 
 .rs-table th,
 .rs-table td {
-  padding: 0.375rem 0.5rem;
+  box-sizing: border-box;
+  white-space: nowrap;
+  height: 40px;
+  padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--ae-surface-up);
 }
@@ -230,6 +241,19 @@
 .rs-table thead th {
   font-weight: normal;
   color: var(--ae-text-weak);
+}
+
+.rs-table th:nth-child(1) {
+  width: 40%;
+}
+
+.rs-table th:nth-child(2) {
+  width: 40%;
+}
+
+.rs-table th:nth-child(3) {
+  width: 20%;
+  min-width: 5em;
 }
 
 .rs-table th:nth-child(2),
@@ -270,8 +294,13 @@
 /* 最初にずれた位置（spec-e §2） */
 .rs-fm {
   margin: 0 0 1rem;
+  color: var(--ae-text-weak);
+  font-size: 1rem;
+}
+
+.rs-fm strong {
   color: var(--ae-danger);
-  font-size: 0.875rem;
+  font-weight: normal;
 }
 
 /* 結果のグラフ（Lightweight Charts）とフッターの帰属表示（品質uplift §1.5） */
@@ -324,7 +353,7 @@
   outline: 2px solid var(--ae-amber);
   outline-offset: 2px;
 }
-body[data-scene="workshop"] .audio-toggle {
+body[data-scene="workshop"] #audio-toggle {
   display: none;
 }
 
@@ -396,4 +425,88 @@ body[data-scene="workshop"] .audio-toggle {
   .rs-confetti {
     display: none;
   }
+}
+
+/* Issue #50: 注文1 のチュートリアル。盤面の上の帯。押せるのはスキップだけ */
+.ws-guide {
+  position: absolute;
+  left: calc(var(--u) * 76);
+  top: calc(var(--u) * 2);
+  width: calc(var(--u) * 168);
+  box-sizing: border-box;
+  padding: calc(var(--u) * 2) calc(var(--u) * 3);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+  background: var(--ae-surface);
+  border: calc(var(--u) * 1) solid var(--ae-amber);
+}
+.ws-guide-text {
+  flex: 1;
+}
+.ws-guide-skip {
+  pointer-events: auto;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ae-text);
+  background: transparent;
+  border: 1px solid var(--ae-amber);
+  cursor: pointer;
+}
+[data-tutorial-focus] {
+  outline: calc(var(--u) * 1) solid var(--ae-amber);
+  outline-offset: calc(var(--u) * -1);
+  animation: ws-tutorial-blink 1s steps(2, jump-none) infinite;
+}
+/* ?fx=0 / 視差効果を減らす のときは点滅せず静的な枠線だけ */
+#ws-overlay[data-tutorial-static="true"] [data-tutorial-focus] {
+  animation: none;
+}
+@keyframes ws-tutorial-blink {
+  50% {
+    outline-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-tutorial-focus] {
+    animation: none;
+  }
+}
+
+/* 音量（♪ の左隣。パネルはその下に開く） */
+.volume-toggle {
+  right: 60px;
+}
+.volume-panel {
+  position: absolute;
+  top: 60px;
+  right: 8px;
+  z-index: 200;
+  display: grid;
+  gap: 4px;
+  padding: 8px 12px;
+  font-family: var(--ae-font);
+  font-size: 14px;
+  color: var(--ae-text);
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-amber);
+  border-radius: 6px;
+}
+.volume-panel[hidden] {
+  display: none;
+}
+.volume-row {
+  display: grid;
+  grid-template-columns: 4.5em 120px 3em;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.volume-row input[type="range"] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--ae-amber);
+}
+.volume-row output {
+  text-align: right;
 }
