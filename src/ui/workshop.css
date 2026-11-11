@@ -732,6 +732,14 @@ body[data-scene="workshop"] #audio-toggle {
   vertical-align: middle;
 }
 
+/* メダル文字（色だけで区別しない）。絵の右に 16px で併記 */
+.rs-medal-label {
+  margin-left: 0.4em;
+  font-size: 16px;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
 /* 成功時の紙吹雪（パネルの中だけ。動きを減らす設定では出さない） */
 #rs-overlay {
   overflow-x: hidden;

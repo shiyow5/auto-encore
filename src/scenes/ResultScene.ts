@@ -149,14 +149,14 @@ export class ResultScene extends Phaser.Scene {
       const tr = h("tr", { "data-metric": r.key });
       tr.append(h("th", { scope: "row" }, r.label));
       tr.append(h("td", {}, r.value));
-      // メダルはドット絵（金/銀/銅）。文字は読み上げ用に visually-hidden で残す（「金」→ aria）。なしは文字のまま。
+      // メダルはドット絵＋文字「金/銀/銅」を併記（色だけで区別しない / kyoya P2）。なしは文字のまま。
       const medalCell = h("td", { "data-medal": r.medal });
       if (r.medal === "none") {
         medalCell.textContent = MEDAL_TEXT.none;
       } else {
         medalCell.append(
           iconCanvas(`medal-${r.medal}` as SpriteName, "ae-medal"),
-          h("span", { class: "visually-hidden" }, MEDAL_TEXT[r.medal]),
+          h("span", { class: "rs-medal-label" }, MEDAL_TEXT[r.medal]),
         );
       }
       tr.append(medalCell);
