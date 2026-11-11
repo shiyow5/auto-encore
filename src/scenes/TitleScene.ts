@@ -39,13 +39,9 @@ class TitleOverlay {
     `;
 
     const title = h("h1", {}, TITLE);
-    title.style.cssText = "font-size: 32px; line-height: 32px; color: #f2b45a; margin: 0 0 8px;";
+    title.style.cssText =
+      "font-size: 32px; line-height: 32px; color: #f2b45a; margin: 0 0 24px; text-align: center; padding: 0 16px;";
     ov.append(title);
-
-    const subtitle = h("p", {}, "夜更けのオルゴール工房");
-    subtitle.style.cssText =
-      "font-size: 16px; line-height: 24px; color: #c4b4c9; margin: 0 0 24px;";
-    ov.append(subtitle);
 
     const btnStart = h("button", {
       type: "button",

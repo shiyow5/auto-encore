@@ -6,6 +6,7 @@
  * - 「はじめる」(TitleScene) → ここ → WorkshopScene
  * - ResultScene から「次の注文へ」でここへ戻ってくる
  */
+import { createSceneFx } from "../fx/scene-fx";
 import { iconCanvas } from "../art/sprites";
 import Phaser from "phaser";
 import type { Order } from "../core/sim/types";
@@ -60,6 +61,9 @@ export class OrderSelectScene extends Phaser.Scene {
     // Phaser は scene の shutdown() を自動で呼ばないので、イベントで明示的に登録する
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.shutdown());
 
+    // 背景はタイトルと同じ星の演出・同じ地色にそろえる
+    createSceneFx(this, "fx-orders").emit("ambient");
+
     const data = loadGameData();
     const store = getUnlockStore();
 
@@ -73,22 +77,10 @@ export class OrderSelectScene extends Phaser.Scene {
       id: "order-select-overlay",
       "data-scene": "order-select",
     });
-    ov.style.cssText = `
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(15, 12, 20, 0.95); color: var(--ae-text); font-family: var(--ae-font);
-    `;
+    ov.className = "os-overlay";
 
-    // タイトル
-    ov.append(h("h1", { style: "font-size: 16px; margin: 0 0 4px;" }, "Auto Encore"));
-    ov.append(
-      h(
-        "p",
-        { style: "font-size: 16px; color: var(--ae-text-weak); margin: 0 0 20px;" },
-        "夜更けのオルゴール工房",
-      ),
-    );
-    ov.append(h("h2", { style: "font-size: 16px; margin: 0 0 12px;" }, "注文を選ぶ"));
+    // 見出しは「注文を選ぶ」だけ（作品名はタイトル画面で見せたので繰り返さない）
+    ov.append(h("h2", { class: "os-heading" }, "注文を選ぶ"));
 
     // 注文一覧
     const list = h("div", { class: "os-list" });
@@ -142,7 +134,7 @@ export class OrderSelectScene extends Phaser.Scene {
       h(
         "p",
         {
-          style: "font-size: 16px; color: var(--ae-text-weak); margin-top: 12px; max-width: 100%;",
+          class: "os-note",
         },
         "クリアすると次の注文が解放されます",
       ),
