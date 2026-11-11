@@ -112,6 +112,8 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
     { mod: glitch, band: { fx: 0.5, fy: 0.5 }, ttl: 0.6, layer: "front" },
     { mod: crtOff, x: 0, y: 0, layer: "front" },
   ],
+  // 結果は日本語のカードが主役。pixelfx の文字は英数字のみ（日本語不可）で、ACHIEVEMENT バナーは
+  // 画面上端で切れてカードに重なっていたので外した（AE#128）。メダル演出は medalEarned が担う。
   result: [{ mod: levelUp, x: 52, y: 118, layer: "front" }],
 };
 
