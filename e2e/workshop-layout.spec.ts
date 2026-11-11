@@ -57,4 +57,5 @@ test("#99 844×390: 「実行」ボタンが viewport 内にある", async ({ pa
   expect(box).not.toBeNull();
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.y + box!.height).toBeLessThanOrEqual(390);
+  expect(box!.height).toBeGreaterThanOrEqual(44); // kyoya P2: タップ目標 44px
 });

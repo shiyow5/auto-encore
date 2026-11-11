@@ -337,6 +337,7 @@
   display: block;
   width: 100%;
   margin-top: calc(var(--u) * 2);
+  min-height: 44px; /* #99 P2: 横長でもタップ目標 44px を確保 */
   text-align: center;
   font-weight: bold;
   color: var(--ae-bg);
