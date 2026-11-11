@@ -117,10 +117,13 @@ function isEncore(medals: Medals, passed: boolean, rule: EncoreRule): boolean {
 
 /** 3指標を閾値で判定する。閾値は引数で受けるだけ（値は持たない）。 */
 export function judge(metrics: Metrics, scoring: Scoring): ScoreReport {
+  const accuracy = accuracyMedal(metrics.matched, metrics.total, scoring.accuracy);
+  // 失敗（正確さ未達 / 完走せず）のときコストだけ金にならないよう、速度の「記録なし」と同じく none にする。
+  const failed = accuracy === "none" || metrics.result !== "completed";
   const medals: Medals = {
-    accuracy: accuracyMedal(metrics.matched, metrics.total, scoring.accuracy),
+    accuracy,
     ticks: lowerIsBetterMedal(metrics.ticks, scoring.ticks),
-    cost: lowerIsBetterMedal(metrics.cost, scoring.cost),
+    cost: failed ? "none" : lowerIsBetterMedal(metrics.cost, scoring.cost),
   };
   const passed = isPassed(medals, scoring.passRule);
   return { metrics, medals, passed, encore: isEncore(medals, passed, scoring.encoreRule) };
