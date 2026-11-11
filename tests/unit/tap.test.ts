@@ -10,6 +10,14 @@ describe("shouldRotateOnTap (Issue #140)", () => {
   it("違う種類なら従来どおり置き換え（回さない）", () => {
     expect(shouldRotateOnTap("touch", belt, "sorter")).toBe(false);
   });
+  it("sorter・音高違いなら置き換え（音高変更）", () => {
+    const sorter = { machine: "sorter" as const, config: { pitch: 0 as const } };
+    expect(shouldRotateOnTap("touch", sorter, "sorter", 2 as never)).toBe(false);
+  });
+  it("sorter・音高同じなら回す", () => {
+    const sorter = { machine: "sorter" as const, config: { pitch: 2 as never } };
+    expect(shouldRotateOnTap("touch", sorter, "sorter", 2 as never)).toBe(true);
+  });
   it("空きマスは置く", () => {
     expect(shouldRotateOnTap("touch", undefined, "belt")).toBe(false);
   });

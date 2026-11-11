@@ -623,7 +623,14 @@ export class WorkshopScene extends Phaser.Scene {
         let tapType: string | undefined; // 直近の pointerdown の入力種別（キーボード由来の click では undefined）
         b.addEventListener("click", (e) => {
           if (e.shiftKey) this.cyclePitch(pos);
-          else if (shouldRotateOnTap(tapType, placementAt(this.placements, pos), this.selected)) {
+          else if (
+            shouldRotateOnTap(
+              tapType,
+              placementAt(this.placements, pos),
+              this.selected,
+              this.nextPitchValue,
+            )
+          ) {
             this.rotate(pos);
           } else this.placeAt(pos);
           tapType = undefined;
