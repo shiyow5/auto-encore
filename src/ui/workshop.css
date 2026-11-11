@@ -610,7 +610,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   box-sizing: border-box;
-  width: min(92vw, 28rem);
+  width: min(92vw, 40rem);
   max-height: 92vh;
   overflow: auto;
   padding: 1.25rem 1.5rem;
@@ -624,7 +624,7 @@
 
 #rs-overlay h2 {
   margin: 0 0 0.25rem;
-  font-size: 1.5rem;
+  font-size: 2rem;
   color: var(--ae-amber);
 }
 
@@ -778,6 +778,70 @@ body[data-scene="workshop"] #audio-toggle {
 .ws-btn:has(.ae-icon) {
   display: flex;
   align-items: center;
+}
+
+/* 読み上げ専用（見えないが、アクセシブルネームには残る） */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* メダルのドット絵（12px の絵を 2 倍=24px。ぼかさない） */
+.ae-medal {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
+/* メダル文字（色だけで区別しない）。絵の右に 16px で併記 */
+.rs-medal-label {
+  margin-left: 0.4em;
+  font-size: 16px;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+/* 成功時の紙吹雪（パネルの中だけ。動きを減らす設定では出さない） */
+#rs-overlay {
+  overflow-x: hidden;
+}
+#rs-overlay:has(.rs-confetti) {
+  padding-top: 3.5rem;
+}
+.rs-confetti {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3rem; /* 見出し・表の上の帯だけ。文字に重ねない */
+  overflow: hidden;
+  pointer-events: none;
+}
+.rs-conf {
+  position: absolute;
+  top: -8px;
+  width: 6px;
+  height: 6px;
+  animation: rs-fall 2.6s linear infinite;
+}
+@keyframes rs-fall {
+  to {
+    transform: translateY(3rem) rotate(180deg);
+    opacity: 0.2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-confetti {
+    display: none;
+  }
 }
 
 /* Issue #50: 注文1 のチュートリアル。盤面の上の帯。押せるのはスキップだけ */
