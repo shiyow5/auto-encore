@@ -834,7 +834,10 @@ export class WorkshopScene extends Phaser.Scene {
     // 実行中は同じ位置（実行ボタンの直上）に「実行中…(tick n)」を出す。配置の合計は実行中は隠す
     this.runStatus = h("p", { class: "ws-run-status", "aria-hidden": "true" });
     this.runStatus.hidden = true;
-    body.append(this.costText, this.runStatus);
+    // 合計と実行中表示は注文票の下端に固定（入口・出口が長くても見える。#136）
+    const total = h("div", { class: "ws-order-total" });
+    total.append(this.costText, this.runStatus);
+    body.append(total);
     this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
     this.runButton.addEventListener("click", () => this.runSim());
     card.append(this.runButton);

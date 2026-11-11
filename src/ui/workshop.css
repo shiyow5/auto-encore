@@ -172,7 +172,7 @@
 .ws-order {
   right: calc(var(--u) * 4);
   width: calc(var(--u) * 68);
-  max-height: calc(var(--u) * 112);
+  max-height: calc(var(--u) * 140); /* #136: 注文3でも内側スクロールを出さない */
   overflow: auto;
   scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
 }
@@ -350,6 +350,28 @@
   font-weight: bold;
   color: var(--ae-bg);
   background: var(--ae-amber);
+}
+
+/* 配置の合計: 注文票の下端（実行ボタンの直上）に固定。上に影を出して「続きがある」手がかりにする（#136） */
+.ws-order-total {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--ae-surface);
+  box-shadow: 0 -6px 6px -4px rgba(0, 0, 0, 0.4);
+}
+
+.ws-order-total p:last-child {
+  margin-bottom: 0;
+}
+
+/* スマホ縦は注文票が地色の上に直接のるので、合計の帯も地色にそろえる */
+.ws-portrait .ws-order-total {
+  background: var(--ae-bg);
+}
+
+#ws-overlay:not(.ws-portrait) .ws-order-total {
+  bottom: calc(44px + var(--u) * 2); /* 実行ボタン(min-height 44px + margin)の分 */
 }
 
 /* 横長で注文票が縦に収まらないときも「実行」を下端に残す（パネル内スクロールの末尾まで行かなくてよい） */
