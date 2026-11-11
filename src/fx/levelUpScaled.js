@@ -116,10 +116,11 @@ const STRANDS = Array.from({ length: 9 }, (_, i) => ({
   end: 0.5 + rand(i, 7) * 0.42,
 }));
 
-// the text band (LEVEL UP! の文字帯, y in dots) and its fade: 1 until 0.5s, then 0.35 at 1.0s (ease-out)
+// the text band (LEVEL UP! の文字帯, y in dots) and its fade: 1 until 0.5s, 0 by 0.8s (ease-out), then stays 0
+// (sota 判断(2) / rio 0.8s 指示: 柱と中心光は 0.8s の文字帯に乗せない。0.8s で一括消去はせず、この曲線で消す)
 const BAND_T = -74,
   BAND_B = -48;
-const bandK = (t) => 1 - 0.65 * ease.outQuad(seg(t, 0.5, 1.0));
+const bandK = (t) => 1 - ease.outQuad(seg(t, 0.5, 0.8));
 
 // half-width of the pillar at time t
 const widthAt = (t) =>
@@ -136,7 +137,7 @@ function column(p, C, t) {
     bot = -TOP * ease.inCubic(seg(t, RET, GONE)),
     W = widthAt(t),
     k = 1 - smooth(RET, GONE, t);
-  // the text band: from 0.5s the light there fades toward 0.35 (rio's spec); the rest of the pillar is untouched
+  // the text band: from 0.5s the light there fades to 0 by 0.8s (no pop); the upper and lower parts of the pillar are untouched
   const kb = bandK(t);
   const glowSplit = (end, w, col, al) => {
     for (const [y0, y1, m] of [
