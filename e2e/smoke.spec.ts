@@ -311,7 +311,7 @@ test("?fx=0: 注文選択のロック表示と「タイトルへ戻る」", asyn
   const overlay = page.locator("#order-select-overlay");
   await expect(overlay).not.toContainText("解放済み");
   await expect(overlay).not.toContainText("---");
-  await expect(overlay).toContainText("🔒 高い音と低い音（開店前の試し弾き をクリアで解放）");
+  await expect(overlay).toContainText("ロック中: 高い音と低い音（開店前の試し弾き をクリアで解放）");
   await page.getByRole("button", { name: "タイトルへ戻る" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title");
   expect(errors).toEqual([]);
