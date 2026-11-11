@@ -87,7 +87,7 @@ export class ResultScene extends Phaser.Scene {
 
   /** 合格なら祝い、止まった（不合格）ならエラー演出。メダルが 1 つでもあれば取得演出。 */
   private playFx(report: ScoreReport, verdict: string): void {
-    const fx = createSceneFx(this, "fx-result");
+    const fx = createSceneFx(this, "fx-result", { overlay: true });
     if (!report.passed) {
       fx.emit("runError", verdict.length);
       return;
