@@ -667,7 +667,7 @@ export class WorkshopScene extends Phaser.Scene {
       b.append(
         iconCanvas(id),
         h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
-        h("span", { class: "ws-tool-cost" }, `${cost}G`),
+        h("span", { class: "ws-tool-cost ae-footnote" }, `${cost}G`),
       );
       b.addEventListener("click", () => {
         this.selected = id;
@@ -815,7 +815,10 @@ export class WorkshopScene extends Phaser.Scene {
       body.append(
         h(
           "p",
-          { class: "ws-tutorial", style: "font-size: 12px; color: #b0a0c0; margin: 6px 0;" },
+          {
+            class: "ws-tutorial",
+            style: "font-size: 16px; line-height: 24px; color: #b0a0c0; margin: 8px 0;",
+          },
           tutorial,
         ),
       );
@@ -844,7 +847,9 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: "color: #8a8090;",
+      style: this.portrait
+        ? "color: #8a8090;"
+        : "font-size: 16px; line-height: 24px; color: #8a8090; text-align: center; margin: 4px auto; max-width: 560px;",
     });
     helpLine.textContent = this.portrait
       ? "タップ=置く／消すボタン=消す／向きボタン=向き"

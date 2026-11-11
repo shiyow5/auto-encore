@@ -30,21 +30,22 @@
   position: absolute;
   --u: 1px;
   font-family: var(--ae-font);
-  font-size: calc(var(--u) * 6);
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--ae-text);
   pointer-events: none;
 }
 
 #ws-overlay h2 {
-  margin: 0 0 calc(var(--u) * 3);
-  font-size: calc(var(--u) * 7);
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 32px;
   color: var(--ae-amber);
 }
 
 #ws-overlay p,
 #ws-overlay ul {
-  margin: 0 0 calc(var(--u) * 3);
+  margin: 0 0 8px;
 }
 
 #ws-overlay ul {
@@ -96,7 +97,7 @@
 }
 
 .ws-tool-cost {
-  font-size: calc(var(--u) * 3);
+  font-size: 12px; /* #99: 脚注扱い（12px は .ae-footnote のみ） */
   color: var(--ae-text-weak);
 }
 
@@ -138,6 +139,7 @@
 
 .ws-confirm p {
   flex: 1;
+  font-size: 16px; /* #99 */
   margin: 0;
 }
 
@@ -335,10 +337,18 @@
   display: block;
   width: 100%;
   margin-top: calc(var(--u) * 2);
+  min-height: 44px; /* #99 P2: 横長でもタップ目標 44px を確保 */
   text-align: center;
   font-weight: bold;
   color: var(--ae-bg);
   background: var(--ae-amber);
+}
+
+/* 横長で注文票が縦に収まらないときも「実行」を下端に残す（パネル内スクロールの末尾まで行かなくてよい） */
+#ws-overlay:not(.ws-portrait) .ws-run {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
 }
 
 .ws-run:hover {
@@ -770,7 +780,7 @@ body[data-scene="workshop"] #audio-toggle {
   gap: 4px;
   padding: 8px 12px;
   font-family: var(--ae-font);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ae-text);
   background: var(--ae-surface);
   border: 1px solid var(--ae-amber);
