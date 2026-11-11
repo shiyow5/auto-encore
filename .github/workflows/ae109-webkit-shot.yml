@@ -1,0 +1,81 @@
+name: ae109-webkit-shot
+
+# AE#109 の確認用（一時）: 共有ホストに apt を入れず、CI の Playwright WebKit で
+# https://shiyow5.github.io/auto-encore/ を撮影する。main には入れない。
+on:
+  push:
+    branches: [nodoka/ae109-webkit-shot]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webkit-shot:
+    name: webkit-shot
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Install Playwright WebKit (outside repo)
+        run: |
+          mkdir -p "$RUNNER_TEMP/shot" && cd "$RUNNER_TEMP/shot"
+          npm init -y >/dev/null
+          npm i playwright@1.65.0
+          npx playwright install --with-deps webkit
+      - name: Capture
+        env:
+          TARGET_URL: https://shiyow5.github.io/auto-encore/
+          OUT_DIR: ${{ runner.temp }}/ae109-out
+          TARGET_SHA: d109bae1c8ec0b8a3501efc50f19599c734e83b2
+        run: |
+          cd "$RUNNER_TEMP/shot"
+          cat > shot.mjs <<'JS'
+          import { webkit } from 'playwright';
+          import fs from 'node:fs';
+          const out = process.env.OUT_DIR;
+          fs.mkdirSync(out, { recursive: true });
+          const log = [];
+          const note = (s) => { log.push(s); console.log(s); };
+          const browser = await webkit.launch();
+          const version = browser.version();
+          note(`webkit version: ${version}`);
+          note(`target sha: ${process.env.TARGET_SHA}`);
+          note(`started (UTC): ${new Date().toISOString()}`);
+          const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+          const errors = [];
+          page.on('pageerror', (e) => errors.push(String(e)));
+          try {
+            await page.goto(process.env.TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForTimeout(1000);
+            await page.screenshot({ path: `${out}/01-top.png` });
+            note('01-top.png saved');
+            for (const [i, label] of [[2, 'はじめる'], [3, '開店前の試し弾き']]) {
+              const el = page.locator(`text=${label}`).first();
+              if (await el.count()) { await el.click({ timeout: 10000 }).catch((e) => note(`click ${label} failed: ${e.message.split('\n')[0]}`)); }
+              else { note(`not found: ${label}`); }
+              await page.waitForTimeout(800);
+              await page.screenshot({ path: `${out}/0${i}-after-${label}.png` });
+              note(`0${i}-after-${label}.png saved`);
+            }
+            await page.screenshot({ path: `${out}/99-final.png`, fullPage: true });
+            note('99-final.png saved (fullPage)');
+          } catch (e) {
+            note(`ERROR: ${e.message.split('\n')[0]}`);
+            await page.screenshot({ path: `${out}/99-error.png` }).catch(() => {});
+          }
+          note(`pageerror count: ${errors.length}`);
+          note(`finished (UTC): ${new Date().toISOString()}`);
+          fs.writeFileSync(`${out}/info.txt`, log.join('\n') + '\n');
+          await browser.close();
+          JS
+          node shot.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ae109-webkit-shot
+          path: ${{ runner.temp }}/ae109-out/
+          retention-days: 14
