@@ -146,7 +146,16 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   // 結果は日本語のカードが主役。pixelfx の文字は英数字のみ（日本語不可）で、ACHIEVEMENT バナーは
   // 画面上端で切れてカードに重なっていたので外した（AE#128）。メダル演出は medalEarned が担う。
   // LEVEL UP! はカード（DOM）の後ろに隠れないよう overlay。文言・座標はそのまま（Issue #132 案A）
-  result: [{ mod: levelUpScaled, x: 160, y: 118, layer: "overlay", originFor: levelUpOrigin, optionsFor: levelUpOptions }],
+  result: [
+    {
+      mod: levelUpScaled,
+      x: 160,
+      y: 118,
+      layer: "overlay",
+      originFor: levelUpOrigin,
+      optionsFor: levelUpOptions,
+    },
+  ],
 };
 
 /** 演出に付ける SE。「演出 → 音」の対応はここだけ（シーンは playSfx を呼ばず emit するだけ）。 */
