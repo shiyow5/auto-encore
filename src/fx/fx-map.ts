@@ -2,7 +2,6 @@ import * as aurora from "pixelfx/fx/weather/aurora";
 import * as shootingStars from "pixelfx/fx/weather/shooting-stars";
 import * as comboCounter from "pixelfx/fx/ui/combo-counter";
 import * as confetti from "pixelfx/fx/ui/confetti";
-import * as levelUp from "pixelfx/fx/ui/level-up";
 import * as coinSpin from "pixelfx/fx/pickups/coin-spin";
 import * as heartPickup from "pixelfx/fx/pickups/heart-pickup";
 import * as keyGlint from "pixelfx/fx/pickups/key-glint";
@@ -10,6 +9,7 @@ import * as glitch from "pixelfx/fx/scifi/glitch";
 import * as crtOff from "pixelfx/fx/transitions/crt-off";
 import * as hitSpark from "pixelfx/fx/impacts/hit-spark";
 import type { FxModule, FxOptions } from "pixelfx";
+import * as levelUpScaled from "./levelUpScaled";
 import type { SfxName } from "../audio/sounds";
 
 /**
@@ -60,6 +60,8 @@ export interface FxSpec {
    * 結果画面のカード（DOM）は画面の大きさで配置が変わるため、演出の位置も合わせる（Issue #132）。
    */
   originFor?: (viewportW: number, viewportH: number) => { x: number; y: number };
+  /** 画面の大きさに応じて追加オプションを決める（LEVEL UP! の文字倍率など）。Issue #132 */
+  optionsFor?: (viewportW: number, viewportH: number) => FxOptions;
   options?: FxOptions;
   /** ループ系を一発ものとして使うときの再生秒数 */
   ttl?: number;
@@ -91,14 +93,24 @@ export const FX_PRIORITY: Readonly<Record<FxEventName, number>> = {
  * LEVEL UP! の origin（内部ドット）。画面の大きさで選ぶ（結果画面のカードの文字・バッジに重ならない位置。Issue #132）。
  * 文字は origin の左右に約 ±47 ドット（canvas 幅 320 ドット）に広がるので、canvas 内に収まる x を選ぶ。
  * - 広い画面（幅1000px以上、1280x720 など）: 左寄り x:52。中央（x:160）は数値に重なる。
- * - 横長の狭い画面（844x390）: x:268, y:196。表の右側の空き（表の右端〜canvas 右端）に置き、文字は表の下・ボタンの上の高さに収める。柱は「音量」ボタン・表に触れない（不透明度 50% 超で計測）。
+ * - 横長の狭い画面（844x390）: x:277, y:196。文字を 0.7 倍（levelUpOptions）にして、表の右側の空き（表の右端 約235 ドット〜canvas 右端 320 ドット）に収める。文字幅は約 84 ドット。
  * - 縦長（390x844）: x:110, y:177（見出しの火花を避けて y を 5 下げた）。canvas がカードの下半分（ボタン・グラフ）の上に重なるので、グラフ左側の空いた枠内（見出しの下・折れ線の上）に置く。
  *   右側の「目標」ラベル・目盛り、「工房にもどる」ボタン、見出しの文字には重ならない。
  */
 export function levelUpOrigin(viewportW: number, viewportH: number): { x: number; y: number } {
   if (viewportW >= 1000) return { x: 52, y: 118 };
   if (viewportH > viewportW) return { x: 110, y: 177 };
-  return { x: 268, y: 196 };
+  return { x: 277, y: 196 };
+}
+
+/**
+ * LEVEL UP! の文字倍率。横長の狭い画面（844x390 など。originFor の第3分岐と同じ条件）だけ 0.7 倍にし、
+ * 表の右の空き（約 85 ドット）に収める。0.8 倍では文字幅 約 96 ドットで表に重なるため 0.7 にした（Issue #132）。
+ * それ以外は 1（pixelfx の既定と同じ見た目）。
+ */
+export function levelUpOptions(viewportW: number, viewportH: number): FxOptions {
+  const narrowLandscape = viewportW < 1000 && viewportH <= viewportW;
+  return { textScale: narrowLandscape ? 0.7 : 1 };
 }
 
 export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
@@ -134,7 +146,7 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   // 結果は日本語のカードが主役。pixelfx の文字は英数字のみ（日本語不可）で、ACHIEVEMENT バナーは
   // 画面上端で切れてカードに重なっていたので外した（AE#128）。メダル演出は medalEarned が担う。
   // LEVEL UP! はカード（DOM）の後ろに隠れないよう overlay。文言・座標はそのまま（Issue #132 案A）
-  result: [{ mod: levelUp, x: 160, y: 118, layer: "overlay", originFor: levelUpOrigin }],
+  result: [{ mod: levelUpScaled, x: 160, y: 118, layer: "overlay", originFor: levelUpOrigin, optionsFor: levelUpOptions }],
 };
 
 /** 演出に付ける SE。「演出 → 音」の対応はここだけ（シーンは playSfx を呼ばず emit するだけ）。 */

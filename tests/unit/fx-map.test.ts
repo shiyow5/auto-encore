@@ -177,7 +177,14 @@ describe("levelUpOrigin（Issue #132）", () => {
   it("広い画面は左寄り、横長は表の右・ボタンの上の余白、縦長はグラフ左側の空き枠に置く（文字が canvas 内に収まる）", async () => {
     const { levelUpOrigin } = await import("../../src/fx/fx-map");
     expect(levelUpOrigin(1280, 720)).toEqual({ x: 52, y: 118 });
-    expect(levelUpOrigin(844, 390)).toEqual({ x: 268, y: 196 });
+    expect(levelUpOrigin(844, 390)).toEqual({ x: 277, y: 196 });
     expect(levelUpOrigin(390, 844)).toEqual({ x: 110, y: 177 });
+  });
+
+  it("levelUpOptions: 横長の狭い画面だけ文字 0.7 倍（Issue #132）", async () => {
+    const { levelUpOptions } = await import("../../src/fx/fx-map");
+    expect(levelUpOptions(844, 390)).toEqual({ textScale: 0.7 });
+    expect(levelUpOptions(390, 844)).toEqual({ textScale: 1 });
+    expect(levelUpOptions(1280, 720)).toEqual({ textScale: 1 });
   });
 });

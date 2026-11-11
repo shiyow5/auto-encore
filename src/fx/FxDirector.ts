@@ -94,6 +94,7 @@ export class FxDirector {
         seed: seed + i,
         palette: WORKSHOP_PALETTE,
         ...spec.options,
+        ...this.specOptionsFor(spec),
         ...extra,
       };
       opts.x = at.x;
@@ -123,6 +124,13 @@ export class FxDirector {
     this.sinks?.back.destroy();
     this.sinks?.front.destroy();
     this.sinks?.overlay?.destroy();
+  }
+
+  /** 画面の大きさに応じた追加オプション（optionsFor）。画面が分からなければ空。 */
+  private specOptionsFor(spec: FxSpec): FxOptions {
+    if (!spec.optionsFor) return {};
+    const vp = this.opts.viewport?.();
+    return vp ? spec.optionsFor(vp.w, vp.h) : {};
   }
 
   /** 位置を決める。band 指定は帯の割合から、無ければ x / y。帯が無ければ null（出さない）。 */
