@@ -370,7 +370,8 @@ export function create(o) {
             -2,
             Math.cos(an) * sp,
             Math.sin(an) * sp,
-            R.range(0.35, 0.8),
+            // 火花は文字が現れる前（0.5s）に消す。0.8s で LEVEL UP! の文字と重ならないため（条件4）
+            Math.min(R.range(0.35, 0.8), 0.2),
           );
         }
         for (let i = 0; i < 16; i++)
