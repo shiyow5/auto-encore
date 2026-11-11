@@ -52,11 +52,17 @@ jobs:
             await page.waitForTimeout(1000);
             await page.screenshot({ path: `${out}/01-top.png` });
             note('01-top.png saved');
-            for (const [i, label] of [[2, 'はじめる'], [3, '開店前の試し弾き']]) {
+            const steps = [[2, 'はじめる'], [3, '開店前の試し弾き'], [4, 'order-01']];
+            for (const [i, label] of steps) {
               const el = page.locator(`text=${label}`).first();
-              if (await el.count()) { await el.click({ timeout: 10000 }).catch((e) => note(`click ${label} failed: ${e.message.split('\n')[0]}`)); }
-              else { note(`not found: ${label}`); }
-              await page.waitForTimeout(800);
+              try {
+                await el.waitFor({ state: 'visible', timeout: 20000 });
+                await el.click({ timeout: 10000 });
+                note(`clicked: ${label}`);
+              } catch (e) {
+                note(`not clicked: ${label} (${e.message.split('\n')[0]})`);
+              }
+              await page.waitForTimeout(1200);
               await page.screenshot({ path: `${out}/0${i}-after-${label}.png` });
               note(`0${i}-after-${label}.png saved`);
             }
