@@ -646,7 +646,11 @@ export class WorkshopScene extends Phaser.Scene {
         "data-machine": id,
         "data-allowed": String(allowed),
       });
-      b.append(iconCanvas(id), document.createTextNode(`${MACHINE_NAME[id]} ${cost}G`));
+      b.append(
+        iconCanvas(id),
+        h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
+        h("span", { class: "ws-tool-cost" }, `${cost}G`),
+      );
       b.addEventListener("click", () => {
         this.selected = id;
         this.refreshOverlay();
@@ -683,14 +687,38 @@ export class WorkshopScene extends Phaser.Scene {
     actions.append(this.muteButton);
     // スライダーでの自動ミュート解除など、このボタン以外で音のオン/オフが変わっても表示を合わせる
     this.unsubSound = onSoundToggle((on) => this.syncMuteButton(on));
+
+    // 全消しは棚から外し、盤面の右下に置く（#94）。押すと確認を出す
     const clear = h(
       "button",
-      { type: "button", class: "ws-btn", "aria-label": "配置を全部消す" },
+      { type: "button", class: "ws-btn ws-clear", "aria-label": "配置を全部消す" },
       "全消し",
     );
-    clear.addEventListener("click", () => this.clearAll());
+    const confirm = h("div", {
+      class: "ws-confirm",
+      role: "alertdialog",
+      "aria-label": "全消しの確認",
+      hidden: "",
+    });
+    const yes = h("button", { type: "button", class: "ws-btn ws-danger" }, "はい");
+    const no = h("button", { type: "button", class: "ws-btn" }, "やめる");
+    confirm.append(h("p", {}, "全部消します。よろしいですか？"), yes, no);
+    clear.addEventListener("click", () => {
+      if (this.playing || this.placements.length === 0) return;
+      confirm.hidden = false;
+      no.focus();
+    });
+    yes.addEventListener("click", () => {
+      confirm.hidden = true;
+      this.clearAll();
+      clear.focus();
+    });
+    no.addEventListener("click", () => {
+      confirm.hidden = true;
+      clear.focus();
+    });
     actions.append(clear);
-    ov.append(shelf);
+    ov.append(shelf, confirm);
 
     // グリッド（中央）
     const grid = h("div", {
@@ -798,7 +826,7 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: "font-size: 12px; color: #8a8090; text-align: center; margin: 4px 0;",
+      style: "color: #8a8090;",
     });
     helpLine.textContent = this.portrait
       ? "タップ=置く／消すボタン=消す／向きボタン=向き"

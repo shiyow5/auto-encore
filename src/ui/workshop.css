@@ -54,7 +54,7 @@
 .ws-shelf,
 .ws-order {
   position: absolute;
-  top: calc(var(--u) * 26);
+  top: calc(var(--u) * 10);
   box-sizing: border-box;
   padding: calc(var(--u) * 3);
   background: var(--ae-surface);
@@ -64,10 +64,99 @@
 
 .ws-shelf {
   left: calc(var(--u) * 4);
-  width: calc(var(--u) * 66);
+  width: calc(var(--u) * 50);
   display: flex;
   flex-direction: column;
+  gap: calc(var(--u) * 2);
+}
+
+.ws-shelf h2 {
+  margin: 0;
+  font-size: calc(var(--u) * 5);
+}
+
+/* 機械ボタンは 2 列。1280×720 で 96×44px（#94） */
+.ws-palette,
+.ws-actions {
+  display: grid;
+  grid-template-columns: repeat(2, calc(var(--u) * 24));
+  gap: calc(var(--u) * 2);
+}
+
+.ws-palette .ws-btn,
+.ws-actions .ws-btn {
+  box-sizing: border-box;
+  height: calc(var(--u) * 11);
+  padding: 0 calc(var(--u) * 2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: calc(var(--u) * 4);
+  line-height: 1.1;
+}
+
+.ws-tool-cost {
+  font-size: calc(var(--u) * 3);
+  color: var(--ae-text-weak);
+}
+
+.ws-clear,
+.ws-confirm {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.ws-clear {
+  box-sizing: border-box;
+  left: calc(var(--u) * 214);
+  top: calc(var(--u) * 141);
+  width: calc(var(--u) * 30);
+  height: calc(var(--u) * 11);
+  font-size: calc(var(--u) * 4);
+  text-align: center;
+  border: calc(var(--u) * 0.5) solid #7a6888;
+}
+
+.ws-confirm {
+  left: calc(var(--u) * 76);
+  top: calc(var(--u) * 60);
+  width: calc(var(--u) * 168);
+  z-index: 10;
+  box-sizing: border-box;
+  padding: calc(var(--u) * 4);
+  display: flex;
+  align-items: center;
   gap: calc(var(--u) * 3);
+  background: var(--ae-surface);
+  border: calc(var(--u) * 0.5) solid var(--ae-danger);
+  font-size: calc(var(--u) * 4.5);
+}
+
+.ws-confirm[hidden] {
+  display: none;
+}
+
+.ws-confirm p {
+  flex: 1;
+  margin: 0;
+}
+
+.ws-confirm .ws-btn {
+  font-size: calc(var(--u) * 4);
+}
+
+.ws-danger {
+  border-color: var(--ae-danger);
+}
+
+.ws-help-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--u) * 2);
+  margin: 0;
+  text-align: center;
+  font-size: calc(var(--u) * 4);
 }
 
 .ws-order {
@@ -145,7 +234,7 @@
   position: absolute;
   left: calc(var(--u) * 76);
   top: calc(var(--u) * 142);
-  width: calc(var(--u) * 168);
+  width: calc(var(--u) * 134);
   min-height: 1.35em;
 }
 
@@ -184,12 +273,7 @@
   cursor: progress;
 }
 
-/* 横持ち・PC: 棚の中の入れ物は無いものとして縦に並べる。「消す」ボタンは縦持ち専用 */
-.ws-palette,
-.ws-actions {
-  display: contents;
-}
-
+/* 横持ち・PC: 機械ボタンも操作ボタンも 2 列の格子（上の .ws-palette/.ws-actions）。「消す」ボタンは縦持ち専用 */
 .ws-erase {
   display: none;
 }
@@ -267,6 +351,26 @@
   display: block;
 }
 
+/* 縦持ちの全消しは操作の列の一員（横持ちの右下固定を打ち消す）。確認は盤面の上に出す */
+.ws-portrait .ws-actions .ws-clear {
+  position: static;
+  width: auto;
+  height: auto;
+}
+
+.ws-portrait .ws-confirm .ws-btn {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-confirm {
+  left: 16px;
+  right: 16px;
+  top: calc(var(--grid-y-px) + 40px);
+  width: auto;
+  font-size: 16px;
+}
+
 .ws-portrait .ws-palette {
   position: absolute;
   top: calc(var(--grid-y-px) + var(--grid-h-px) + 60px);
@@ -284,6 +388,12 @@
   background:
     linear-gradient(to right, var(--ae-surface), transparent 16px),
     linear-gradient(to left, var(--ae-surface), transparent 16px);
+}
+
+.ws-portrait .ws-palette .ws-btn,
+.ws-portrait .ws-actions .ws-btn,
+.ws-portrait .ws-tool-cost {
+  font-size: 16px;
 }
 
 .ws-portrait .ws-palette .ws-btn {
