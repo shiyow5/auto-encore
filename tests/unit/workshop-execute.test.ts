@@ -55,7 +55,7 @@ describe("工房の実行（order-01）", () => {
     ]);
   });
 
-  it("途中が切れていると詰まる: 速度は記録なし・不合格", () => {
+  it("途中が切れていると詰まる: 速度は未達・不合格", () => {
     const placements = frugal.placements.filter((p) => p.pos.x !== 6);
     const ex = execute(order, data.machines, placements);
     expect(ex.report.metrics.result).not.toBe("completed");
@@ -63,7 +63,7 @@ describe("工房の実行（order-01）", () => {
     expect(verdictOf(ex.report)).toBe("fail");
     const rows = metricRows(ex.report);
     expect(rows[0]?.value).toBe("0%（0/8）");
-    expect(rows[1]).toMatchObject({ value: "記録なし", medal: "none" });
+    expect(rows[1]).toMatchObject({ value: "— (未達)", medal: "none" });
     expect(rows[2]?.value).toBe("9G");
   });
 
