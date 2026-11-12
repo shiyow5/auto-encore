@@ -10,6 +10,7 @@ import Phaser from "phaser";
 
 import { TITLE } from "./BootScene";
 import "../ui/workshop.css";
+import { iconCanvas } from "../art/sprites";
 import { playSfx } from "../audio/player";
 import { setQaBusy } from "../ui/qa";
 
@@ -48,6 +49,11 @@ class TitleOverlay {
     title.append(titleNoWrap);
     title.style.cssText =
       "font-size: 32px; line-height: 32px; color: var(--ae-amber); margin: 0 0 24px; text-align: center; padding: 0 16px;";
+    // タイトルの上に ♪ のドット絵（飾り。aria-hidden。#112）
+    const mark = iconCanvas("note-on", "ae-title-mark");
+    mark.style.cssText =
+      "width: 40px; height: 40px; image-rendering: pixelated; margin-bottom: 12px;";
+    ov.append(mark);
     ov.append(title);
 
     const btnStart = h("button", {

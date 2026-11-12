@@ -429,7 +429,7 @@
 
 /* ---- 縦持ち（スマホ幅, Issue #95）----
  * canvas を画面の CSS ピクセルと同じ大きさにしてあるので --u は 1px。文字はすべて 16px 以上、
- * 押す所は 44×44px 以上。上から: ヒント(y=8) → 盤面(y=56) → 操作の列 → 機械の横スクロール → 注文票 → 実行ボタン(下固定)。 */
+ * 押す所は 44×44px 以上。上から: ヒント(y=8) → 盤面(y=64) → 操作の列 → 機械の横スクロール → 注文票 → 実行ボタン(下固定)。 */
 #ws-overlay.ws-portrait {
   font-size: 16px;
   line-height: 1.4;
@@ -1000,7 +1000,8 @@ body[data-scene="workshop"] #audio-toggle {
 }
 
 /* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
-#audio-toggle .ae-icon {
+#audio-toggle .ae-icon,
+#volume-toggle .ae-icon {
   width: 24px;
   height: 24px;
   image-rendering: pixelated;
