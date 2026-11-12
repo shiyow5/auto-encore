@@ -272,6 +272,14 @@
   pointer-events: auto;
 }
 
+/* 稼働灯（#113 / #160 回帰の修正）: 台座の box-shadow（.ws-grid）より前に出す。見た目は琥珀色の細い帯 */
+.ws-lamp {
+  position: absolute;
+  z-index: 2;
+  background: #f6c77f;
+  pointer-events: none;
+}
+
 .ws-cell {
   touch-action: none; /* 指でなぞって連続配置するため、盤面上ではスクロール・拡大を起こさない（#120） */
   margin: 0;
