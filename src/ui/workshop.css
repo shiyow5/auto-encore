@@ -1174,6 +1174,13 @@ body[data-scene="workshop"] #audio-toggle {
   height: 48px;
 }
 
+/* チュートリアルの吹き出しは盤面の幅より広く取り、右端の ♪・音量（右 60px）の手前まで伸ばす。
+ * 盤面の上の帯（高さ 48px）に 1〜2 行で収め、盤面は覆わない */
+.ws-compact .ws-guide {
+  width: min(340px, calc(100vw - var(--grid-x-px) + 8px - 60px));
+  padding: 0 8px;
+}
+
 .ws-compact .ws-help-line {
   display: flex;
   align-items: center;
@@ -1287,4 +1294,41 @@ body[data-scene="workshop"] #audio-toggle {
 .ws-compact .ws-actions .ws-btn {
   display: flex;
   align-items: center;
+}
+
+/* ---- チュートリアル吹き出し（スマホ縦）: 盤面の外、パレットと注文票の間に置く ----
+ * 盤面を覆わない。注文票の本文はその分だけ下げる（本文はスクロールできる）。 */
+.ws-portrait .ws-guide {
+  left: 8px;
+  right: 8px;
+  width: auto;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 124px);
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 2px 8px;
+  gap: 8px;
+  border-width: 2px;
+  font-size: 16px;
+  line-height: 20px;
+}
+.ws-portrait .ws-guide-skip {
+  min-width: 64px;
+  min-height: 44px;
+  font-size: 16px;
+}
+.ws-portrait:has(.ws-guide) .ws-order-body {
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 124px + 56px);
+}
+/* 注文票の本文: 末尾が下の帯（合計）に潜らないよう、帯の高さ分の余白を足す */
+.ws-compact .ws-order-body {
+  padding-bottom: 4px;
+}
+
+/* 縦持ちで吹き出しが出ている間は、注文票の本文が狭い。合計の帯は本文の流れの末尾に置き、文に重ねない */
+.ws-portrait:has(.ws-guide) .ws-order-total {
+  position: static;
+  box-shadow: none;
+}
+.ws-portrait:has(.ws-guide) .ws-client {
+  display: none;
 }
