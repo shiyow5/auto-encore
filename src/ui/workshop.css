@@ -1321,7 +1321,7 @@ body[data-scene="workshop"] #audio-toggle {
 }
 /* 注文票の本文: 末尾が下の帯（合計）に潜らないよう、帯の高さ分の余白を足す */
 .ws-compact .ws-order-body {
-  padding-bottom: 4px;
+  padding-bottom: 32px; /* 合計の帯（約22px）+ 余白。最後の行が帯に隠れない */
 }
 
 /* 縦持ちで吹き出しが出ている間は、注文票の本文が狭い。合計の帯は本文の流れの末尾に置き、文に重ねない */
