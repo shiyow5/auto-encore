@@ -128,6 +128,37 @@ export function metricRows(r: ScoreReport): readonly MetricRow[] {
   ];
 }
 
+const NEXT_MEDAL: Record<Exclude<Medal, "gold">, "bronze" | "silver" | "gold"> = {
+  none: "bronze",
+  bronze: "silver",
+  silver: "gold",
+};
+
+/** 数字は基準内なのにメダルが付かない（正確さ未達で判定対象外）ときの説明。 */
+const WRONG_ANSWER_HINT = "正解すると判定";
+
+/**
+ * 結果表のメダル列に出す「次の基準」1行（#120）。金なら「最高」。
+ * 正確さは % が上がると、速度は tick・コストは G が下がると次のメダルに届く。
+ * 速度が未達（完走せず）のときは数字の差を出せないので、銅の基準だけ伝える。
+ */
+export function nextMedalHint(order: Order, r: ScoreReport, key: MetricRow["key"]): string {
+  const medal = r.medals[key];
+  if (medal === "gold") return "最高";
+  const target = NEXT_MEDAL[medal];
+  const name = MEDAL_TEXT[target];
+  const th = order.scoring[key];
+  const goal = th[target];
+  if (key === "accuracy") return `${name}まであと${goal - r.metrics.accuracy}%`;
+  if (key === "ticks") {
+    if (r.metrics.ticks === null) return `${name}は${goal}tick以内`;
+    if (r.metrics.ticks <= goal) return WRONG_ANSWER_HINT;
+    return `${name}まであと${r.metrics.ticks - goal}tick`;
+  }
+  if (r.metrics.cost <= goal) return WRONG_ANSWER_HINT;
+  return `${name}まであと${r.metrics.cost - goal}G`;
+}
+
 export type Verdict = "encore" | "pass" | "fail";
 
 export function verdictOf(r: ScoreReport): Verdict {
