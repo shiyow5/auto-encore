@@ -1165,3 +1165,285 @@ body[data-scene="workshop"] #audio-toggle {
     margin-top: 4px;
   }
 }
+
+/* ---- スマホ横（844×390 など, Issue #165 / #161）----
+ * canvas は画面の CSS ピクセルと同じ大きさ（--u = 1px）。縦持ちと同じく px 指定で並べる。
+ * 左: 棚（機械 2 列 × 56px、操作 2 列 × 44px）/ 中央: 盤面 / 右: 注文票（実行ボタンは下に固定）。
+ * 上の ♪・音量（右上 8〜52px）は注文票の上端 60px で避ける。文字は 16px 以上、価格だけ脚注 12px。 */
+#ws-overlay.ws-compact {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+#ws-overlay.ws-compact h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.ws-compact .ws-shelf {
+  left: 8px;
+  top: 8px;
+  width: 216px;
+  padding: 6px;
+  gap: 8px;
+  border-radius: 4px;
+  /* 低い横画面(844×300 等)でも画面内に収め、棚の中だけスクロールさせる */
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
+}
+
+.ws-compact .ws-shelf > h2 {
+  display: none;
+}
+
+.ws-compact .ws-palette,
+.ws-compact .ws-actions {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+/* 機械ボタン: 絵 → 名前 → 価格 を縦に積み、すべて枠の内側に収める（価格が枠に重ならない） */
+.ws-compact .ws-palette .ws-btn {
+  height: 56px;
+  padding: 2px 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  text-align: center;
+  font-size: 16px;
+  line-height: 18px;
+  overflow: hidden;
+}
+
+.ws-compact .ws-palette .ws-btn .ae-icon {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.ws-compact .ws-tool-name {
+  display: block;
+  white-space: nowrap;
+}
+
+.ws-compact .ws-tool-cost {
+  display: block;
+  line-height: 14px;
+}
+
+.ws-compact .ws-actions .ws-btn {
+  height: auto;
+  min-height: 44px;
+  padding: 0 4px;
+  flex-direction: row;
+  justify-content: center;
+  text-align: center;
+  font-size: 16px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.ws-compact .ws-actions .ws-btn .ae-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+.ws-compact .ws-erase {
+  display: flex;
+}
+
+/* 全消しは操作の一員（右下固定を打ち消す）。確認は盤面の上に出す */
+.ws-compact .ws-actions .ws-clear {
+  position: static;
+  width: auto;
+  height: auto;
+  border-width: 2px;
+}
+
+.ws-compact .ws-confirm {
+  left: var(--grid-x-px);
+  top: calc(var(--grid-y-px) + 40px);
+  width: var(--grid-w-px);
+  padding: 12px;
+  font-size: 16px;
+}
+
+.ws-compact .ws-confirm .ws-btn {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* 盤面の上: 操作説明（チュートリアルの案内が出ている間はそちらを見せる） */
+.ws-compact .ws-help-line,
+.ws-compact .ws-guide {
+  left: calc(var(--grid-x-px) - 8px);
+  right: auto;
+  top: 4px;
+  width: calc(var(--grid-w-px) + 16px);
+  box-sizing: border-box;
+  height: 48px;
+}
+
+/* チュートリアルの吹き出しは盤面の幅より広く取り、右端の ♪・音量（右 60px）の手前まで伸ばす。
+ * 盤面の上の帯（高さ 48px）に 1〜2 行で収め、盤面は覆わない */
+.ws-compact .ws-guide {
+  width: min(340px, calc(100vw - var(--grid-x-px) + 8px - 60px));
+  padding: 0 8px;
+}
+
+.ws-compact .ws-help-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 4px;
+  overflow: hidden;
+  font-size: 16px !important;
+  line-height: 20px;
+  color: var(--ae-text-weak) !important;
+  text-align: center !important;
+}
+
+.ws-compact:has(.ws-guide) .ws-help-line {
+  visibility: hidden;
+}
+
+.ws-compact .ws-guide {
+  padding: 2px 8px;
+  gap: 8px;
+  border-width: 2px;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.ws-compact .ws-guide-skip {
+  min-width: 64px;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* 盤面の下: 直前の操作 */
+.ws-compact .ws-status {
+  left: calc(var(--grid-x-px) - 8px);
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 14px);
+  width: calc(var(--grid-w-px) + 16px);
+  font-size: 16px;
+  line-height: 20px;
+  margin: 0;
+}
+
+/* 注文票: 右端に固定。本文だけスクロールし、合計と実行ボタンは下に残す（途中で切れない・白い矩形を出さない） */
+.ws-compact .ws-order {
+  left: auto;
+  right: 8px;
+  top: 60px;
+  bottom: 8px;
+  width: 220px;
+  max-height: none;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.ws-compact .ws-order-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
+}
+
+.ws-compact .ws-order-body::-webkit-scrollbar {
+  width: 8px;
+}
+.ws-compact .ws-order-body::-webkit-scrollbar-track {
+  background: var(--ae-surface-up);
+  border-radius: 4px;
+}
+.ws-compact .ws-order-body::-webkit-scrollbar-thumb {
+  background: var(--ae-text-weak);
+  border-radius: 4px;
+}
+
+.ws-compact .ws-order-body p,
+.ws-compact .ws-order-body ul {
+  margin: 0 0 6px;
+}
+
+.ws-compact .ws-order-body ul {
+  padding-left: 20px;
+}
+
+.ws-compact .ws-tutorial {
+  font-size: 16px !important;
+  margin: 0 0 6px !important;
+}
+
+#ws-overlay.ws-compact .ws-order-total {
+  position: sticky;
+  bottom: 0;
+}
+
+#ws-overlay.ws-compact .ws-run {
+  position: static;
+  flex: none;
+  margin-top: 6px;
+  min-height: 44px;
+  font-size: 18px;
+}
+
+/* 盤面の台座は棚・注文票に食い込まない幅（8px）にする */
+.ws-compact .ws-grid {
+  box-shadow:
+    0 0 0 2px #7a6888,
+    0 0 0 5px #f3e9dc,
+    0 0 0 8px #2a2030;
+}
+
+.ws-compact .ws-actions .ws-btn {
+  display: flex;
+  align-items: center;
+}
+
+/* ---- チュートリアル吹き出し（スマホ縦）: 盤面の外、パレットと注文票の間に置く ----
+ * 盤面を覆わない。注文票の本文はその分だけ下げる（本文はスクロールできる）。 */
+.ws-portrait .ws-guide {
+  left: 8px;
+  right: 8px;
+  width: auto;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 124px);
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 2px 8px;
+  gap: 8px;
+  border-width: 2px;
+  font-size: 16px;
+  line-height: 20px;
+}
+.ws-portrait .ws-guide-skip {
+  min-width: 64px;
+  min-height: 44px;
+  font-size: 16px;
+}
+.ws-portrait:has(.ws-guide) .ws-order-body {
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 124px + 56px);
+  /* 600×650 など背の低い縦画面でも本文を 96px 以上残す: 実行ボタン(52px)の上に 44px だけ空ける */
+  bottom: calc(52px + 44px + env(safe-area-inset-bottom, 0px));
+  min-height: 96px;
+}
+/* 注文票の本文: 末尾が下の帯（合計）に潜らないよう、帯の高さ分の余白を足す */
+.ws-compact .ws-order-body {
+  padding-bottom: 32px; /* 合計の帯（約22px）+ 余白。最後の行が帯に隠れない */
+}
+
+/* 縦持ちで吹き出しが出ている間は、注文票の本文が狭い。合計の帯は本文の流れの末尾に置き、文に重ねない */
+.ws-portrait:has(.ws-guide) .ws-order-total {
+  position: static;
+  box-shadow: none;
+}
+.ws-portrait:has(.ws-guide) .ws-client {
+  display: none;
+}
