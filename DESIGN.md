@@ -176,6 +176,15 @@ Game element tiles use a slightly lighter background (`--ae-surface-up` #3A2D42)
 - Combo counter: oversized amber text at 1.75rem
 - Medal display: medal colors (gold/silver/bronze) for special rewards
 
+### Run effects (Issue #113, workshop)
+
+Drawn with the board `gfx` only, redrawn every tick (110ms). No new canvas. Only while a run plays (`fxEnabled()` true; with `?fx=0` / reduced motion the run is not animated at all).
+
+- Run lamp: 14px x 2px amber (#F6C77F) bar on the 2px outside the board's top edge (moves left to right) and bottom edge (right to left), 10px per tick.
+- Note tail: previous tick's note position, radius 2px, same pitch color at 30% alpha. Skipped when a note is still on that cell.
+- Merger sparks: while a note sits on a merger cell, four 2x2 white dots near the cell corners, shifting 1px every tick.
+- Never covers a note, a machine glyph or text.
+
 ### Pixel Icons (Issue #112)
 
 Defined as strings in `src/art/sprites.ts`; drawn with `iconCanvas()` and scaled with `image-rendering: pixelated` (never blurred).

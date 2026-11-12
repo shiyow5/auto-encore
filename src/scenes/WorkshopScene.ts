@@ -60,6 +60,7 @@ import {
 } from "./workshop/placements";
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
+import { DragStroke, strokeButtonHeld } from "./workshop/drag";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import {
   activeTexture,
@@ -71,6 +72,15 @@ import {
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
 import { duckBgm, onSoundToggle, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
+
+/** 操作説明（#120）。PC は1操作1行、スマホは1行。 */
+export const HELP_PC: readonly string[] = [
+  "置く: クリック（押したままなぞると連続で置く）",
+  "向き: R",
+  "音高: P か Shift+クリック",
+  "消す: 右クリック（右ドラッグで連続で消す）",
+];
+export const HELP_TOUCH = "タップかなぞる=置く／消すボタン=消す／向きボタン=向き";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
 export const PLAY_MS_PER_TICK = 110;
@@ -170,6 +180,12 @@ export class WorkshopScene extends Phaser.Scene {
   private lastInput: "pointer" | "keyboard" = "keyboard";
   /** クリックで focus が来た途中か（そのときは入力の種類をキーボードに戻さない） */
   private pointerPressing = false;
+  /** 押したままなぞっている最中のドラッグ（#120）。無ければ null。 */
+  private stroke: DragStroke | null = null;
+  /** ストロークを始めたボタン（PointerEvent.button）。pointermove の buttons と突き合わせて取りこぼしを検出する */
+  private strokeButton = 0;
+  /** ドラッグ直後に出る click を無視するための印（クリック1回の挙動は変えない）。 */
+  private suppressClick = false;
 
   private gfx!: Phaser.GameObjects.Graphics;
   /** 盤面のドット絵（床・機械・入口/出口）。再描画のたびに作り直す。gfx（線・矢印・音符）より下に置く。 */
@@ -178,6 +194,8 @@ export class WorkshopScene extends Phaser.Scene {
   /** 再生中に bin へ入った音符の数（combo 表示用） */
   private combo = 0;
   private overlay!: HTMLElement;
+  /** 稼働灯（上縁・下縁の2本）。canvas ではなく DOM に置き、.ws-grid の台座 box-shadow より前に出す（#160 回帰） */
+  private lamps: HTMLElement[] = [];
   /** 縦持ち（スマホ幅）レイアウトか。create で決める。 */
   private portrait = false;
   /** スマホ横（844×390 など）の専用配置。canvas は画面と同じ大きさ（#165） */
@@ -292,6 +310,9 @@ export class WorkshopScene extends Phaser.Scene {
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.onResize);
     window.addEventListener("resize", this.onResize);
+    window.addEventListener("pointerup", this.endStroke);
+    window.addEventListener("pointercancel", this.endStroke);
+    window.addEventListener("blur", this.endStroke);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
     this.layout();
 
@@ -403,6 +424,18 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   // ---- 操作 -------------------------------------------------------------
+
+  /** ドラッグの終わり（ボタンを離す・キャンセル）。ウィンドウ全体で受ける＝盤面の外で離しても止まる。 */
+  private readonly endStroke = (): void => {
+    if (this.stroke?.dragged) {
+      // ドラッグ後に同じマスで出る click / contextmenu を、この直後の1回だけ無視する
+      this.suppressClick = true;
+      setTimeout(() => {
+        this.suppressClick = false;
+      }, 0);
+    }
+    this.stroke = null;
+  };
 
   private placeAt(pos: Point): void {
     if (this.playing) return;
@@ -558,6 +591,8 @@ export class WorkshopScene extends Phaser.Scene {
     const g = this.gfx;
     const { width, height } = this.rules;
     g.clear();
+    // 稼働灯は drawRunFx（再生中の tick）でだけ出す。それ以外は隠す
+    for (const el of this.lamps) el.hidden = true;
     for (const t of this.tiles) t.destroy();
     this.tiles = [];
     // 画像は TILE(14px) 基準なので、盤面の cell（縦持ちで変わる）に合わせて伸縮する
@@ -603,7 +638,75 @@ export class WorkshopScene extends Phaser.Scene {
     }
 
     const frame = this.playing?.ex.frames[this.playing.frame];
-    if (frame) this.drawNotes(frame);
+    if (frame) {
+      this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
+      this.drawNotes(frame);
+    }
+  }
+
+  /**
+   * 実行中の演出（Issue #113）。tick ごとに描き直す gfx だけで作る（新規 canvas なし）。
+   * - 稼働灯: 盤面の上縁を左→右、下縁を右→左へ流れる琥珀色の灯り（1 tick で 10px）
+   * - 音符の尾: 1 tick 前の位置に、小さく薄い点（流れの向きが分かる）。今いるマスには重ねない
+   * - 合流機の火花: 音符が合流機のマスにいる tick だけ、四隅に白い点（#57 の連動）
+   * 音符・文字・マスの絵は隠さない（尾は alpha 0.3、火花は 1px 角）。
+   */
+  private drawRunFx(frame: SimState, prev: SimState | undefined): void {
+    const { width, height } = this.rules;
+    const g = this.gfx;
+    const tick = this.playing?.frame ?? 0;
+    // 稼働灯: 盤面の上下の縁を、琥珀色の灯り（幅 14px）が左→右へ流れる。縁の外側 2px なのでマスや文字に重ならない
+    // 縦画面では cell / 盤面原点が変わるので、this.cell / this.gridX / this.gridY と倍率 k で換算する
+    // 灯りは DOM（.ws-lamp）で描く。.ws-grid の台座 box-shadow（DOM）に隠れないようにするため（sota 判断 A）
+    const k = this.cell / CELL;
+    const gridW = width * this.cell;
+    const lx = this.gridX + ((tick * 10 * k) % gridW);
+    const lw = Math.min(14 * k, this.gridX + gridW - lx);
+    const [topLamp, bottomLamp] = this.lamps;
+    if (topLamp && bottomLamp) {
+      this.showLamp(topLamp, lx, this.gridY - 3, lw);
+      this.showLamp(
+        bottomLamp,
+        this.gridX + gridW - (lx - this.gridX) - lw,
+        this.gridY + height * this.cell + 1,
+        lw,
+      );
+    }
+    const here = new Set(frame.cells.map((c) => c.key));
+    for (const c of prev?.cells ?? []) {
+      if (here.has(c.key)) continue;
+      const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      g.fillStyle(NOTE_COLOR[c.note.pitch], 0.3);
+      g.fillCircle(x + this.cell / 2 + 0.5, y + this.cell / 2 + 0.5, 2);
+    }
+    const mergers = new Set(
+      this.placements.filter((p) => p.machine === "merger").map((p) => p.pos.y * width + p.pos.x),
+    );
+    for (const c of frame.cells) {
+      if (!mergers.has(c.key)) continue;
+      const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      const o = tick % 2 === 0 ? 0 : 1;
+      const far = this.cell - 3 - o;
+      g.fillStyle(0xffffff, 1);
+      for (const [dx, dy] of [
+        [1 + o, 1],
+        [far, 1],
+        [1 + o, this.cell - 3],
+        [far, this.cell - 3],
+      ] as const) {
+        g.fillRect(x + dx, y + dy, 2, 2);
+      }
+    }
+  }
+
+  /** 稼働灯の DOM を canvas 座標（px）の位置・幅に合わせる。.ws-grid と同じく scale 基準の % で置く。 */
+  private showLamp(el: HTMLElement, x: number, y: number, w: number): void {
+    const { width, height } = this.scale;
+    el.style.left = `${(x / width) * 100}%`;
+    el.style.top = `${(y / height) * 100}%`;
+    el.style.width = `${(w / width) * 100}%`;
+    el.style.height = `${(2 / height) * 100}%`;
+    el.hidden = false;
   }
 
   /** その tick の音符をマスの中央に置く（移動の補間なし＝最小の再生）。長い音は大きめ。 */
@@ -763,6 +866,11 @@ export class WorkshopScene extends Phaser.Scene {
         const b = h("button", { type: "button", class: "ws-cell", tabindex: "-1" });
         let tapType: string | undefined; // 直近の pointerdown の入力種別（キーボード由来の click では undefined）
         b.addEventListener("click", (e) => {
+          if (this.suppressClick) {
+            this.suppressClick = false;
+            tapType = undefined;
+            return;
+          }
           if (e.shiftKey) this.cyclePitch(pos);
           else if (this.eraseMode) this.removeAtPos(pos);
           else if (
@@ -779,6 +887,7 @@ export class WorkshopScene extends Phaser.Scene {
         });
         b.addEventListener("contextmenu", (e) => {
           e.preventDefault();
+          if (this.suppressClick) return; // 右ドラッグの終わりに出る contextmenu（削除済み）
           this.removeAtPos(pos);
         });
         b.addEventListener("pointerenter", () => {
@@ -795,6 +904,14 @@ export class WorkshopScene extends Phaser.Scene {
         b.addEventListener("pointerdown", (e) => {
           tapType = e.pointerType;
           this.pointerPressing = true;
+          // 押したままなぞる連続配置・連続削除（#120）。Shift+クリックは音高の巡回なので対象外
+          if (e.shiftKey) return;
+          this.strokeButton = e.button;
+          if (e.button === 2 || (e.button === 0 && this.eraseMode)) {
+            this.stroke = new DragStroke("erase", pos);
+          } else if (e.button === 0) {
+            this.stroke = new DragStroke("place", pos);
+          }
         });
         b.addEventListener("pointerup", () => {
           this.pointerPressing = false;
@@ -810,7 +927,37 @@ export class WorkshopScene extends Phaser.Scene {
         grid.append(b);
       }
     }
+    // ドラッグ: 通ったマスに連続で置く／消す。座標からマスを求めるので、速く動かしても・指でも効く
+    grid.addEventListener("pointermove", (e) => {
+      if (!this.stroke || this.playing) return;
+      // 盤の外でボタンを離すと pointerup が来ないことがある。始めたボタンが離れていたらここで終える
+      if (!strokeButtonHeld(e.buttons, this.strokeButton)) {
+        this.endStroke();
+        return;
+      }
+      const r = grid.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      const cx = Math.floor(((e.clientX - r.left) / r.width) * this.rules.width);
+      const cy = Math.floor(((e.clientY - r.top) / r.height) * this.rules.height);
+      if (cx < 0 || cy < 0 || cx >= this.rules.width || cy >= this.rules.height) {
+        this.stroke.leave();
+        return;
+      }
+      for (const c of this.stroke.move({ x: cx, y: cy })) {
+        if (this.stroke.mode === "erase") this.removeAtPos(c);
+        else this.placeAt(c);
+      }
+    });
     ov.append(grid);
+    // 稼働灯（.ws-grid の兄弟。後から追加するので台座 box-shadow の上に出る）
+    this.lamps = [0, 1].map(() => {
+      const el = document.createElement("div");
+      el.className = "ws-lamp";
+      el.setAttribute("aria-hidden", "true");
+      el.hidden = true;
+      return el;
+    });
+    ov.append(...this.lamps);
 
     // 注文票（右）
     const card = h("section", { class: "ws-order", "aria-label": "注文票" });
@@ -892,19 +1039,16 @@ export class WorkshopScene extends Phaser.Scene {
     this.status = h("p", { class: "ws-status", role: "status", "aria-live": "polite" });
     ov.append(this.status);
 
-    // Issue #48: 操作説明の常時1行
-    const helpLine = h("p", {
-      class: "ws-help-line",
-      style:
-        this.portrait || this.compact
-          ? "color: var(--ae-text-muted);"
-          : "font-size: 16px; line-height: 24px; color: var(--ae-text-muted); text-align: center; margin: 4px auto; max-width: 560px;",
-    });
+    // Issue #48 / #120: 操作説明は常設。PC は左下のパネル（16px・4.5:1 以上）、スマホは盤面の上の帯。
+    const touchLike = this.portrait || this.compact || isHoverNone();
+    const helpLine = h("p", { class: touchLike ? "ws-help-line" : "ws-help-line ws-help-panel" });
     // タッチ端末（ホバーできない）はスマホ向けの言い方にする。向きではなく入力の種類で決める（#165）
-    helpLine.textContent =
-      this.portrait || this.compact || isHoverNone()
-        ? "タップ=置く／消すボタン=消す／向きボタン=向き"
-        : "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
+    if (touchLike) {
+      helpLine.textContent = HELP_TOUCH;
+    } else {
+      helpLine.append(h("strong", { class: "ws-help-title" }, "操作"));
+      for (const line of HELP_PC) helpLine.append(h("span", { class: "ws-help-row" }, line));
+    }
     ov.append(helpLine);
     this.tutorialPanel = null;
 
@@ -1062,6 +1206,9 @@ export class WorkshopScene extends Phaser.Scene {
     setQaBusy("fade", false);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);
     window.removeEventListener("resize", this.onResize);
+    window.removeEventListener("pointerup", this.endStroke);
+    window.removeEventListener("pointercancel", this.endStroke);
+    window.removeEventListener("blur", this.endStroke);
     this.overlay.remove();
     this.cells = [];
     this.tiles = [];
