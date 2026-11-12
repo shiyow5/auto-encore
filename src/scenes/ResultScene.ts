@@ -266,7 +266,9 @@ export class ResultScene extends Phaser.Scene {
     const chartBox = data.throughput ? appendChart(ov) : null;
 
     (document.getElementById("game") ?? document.body).append(ov);
-    back.focus();
+    // 注目だけ移す。focus() 既定だと 844×390 で .rs-back までスクロールして見出しが隠れる（#194）
+    back.focus({ preventScroll: true });
+    ov.scrollTop = 0;
 
     // autoSize は大きさの決まった要素が要るので、DOM に入れてから描く
     if (chartBox && data.throughput) {

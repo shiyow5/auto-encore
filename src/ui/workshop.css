@@ -1272,9 +1272,20 @@ body[data-scene="workshop"] #audio-toggle {
   justify-content: safe center;
   overflow-y: auto;
   padding: 16px 16px 72px;
-  background: rgba(15, 12, 20, 0.95);
+  /* 背景は塗らない: 後ろの canvas（タイトルと同じ星空）を見せる (#176) */
+  background: transparent;
   color: var(--ae-text);
   font-family: var(--ae-font);
+  /* 後ろの星と文字が重なっても読めるように、暗いにじみを付ける（背景のベタ塗りはしない）(#176) */
+  text-shadow: 0 0 4px rgba(15, 12, 20, 0.9);
+}
+
+/* スマホ縦: 中央寄せだと上に約200pxの空白が出るので、上寄せにして上端から48pxに置く (#176) */
+@media (max-width: 600px) and (min-height: 501px) {
+  .os-overlay {
+    justify-content: flex-start;
+    padding-top: 48px;
+  }
 }
 
 .os-heading {
@@ -1525,7 +1536,9 @@ body[data-scene="workshop"] #audio-toggle {
   margin: 0 0 6px !important;
 }
 
-#ws-overlay.ws-compact .ws-order-total {
+/* #161: 本文(.ws-order-body)の下端に付ける。実行ボタンは本文の外(flex の下段)にあるので、
+ * 汎用の :not(.ws-portrait) 規則の bottom:46px（実行ボタン分）を打ち消す。残すと合計の帯が本文に重なる */
+#ws-overlay.ws-compact:not(.ws-portrait) .ws-order-total {
   position: sticky;
   bottom: 0;
 }
@@ -1578,10 +1591,8 @@ body[data-scene="workshop"] #audio-toggle {
   bottom: calc(52px + 44px + env(safe-area-inset-bottom, 0px));
   min-height: 96px;
 }
-/* 注文票の本文: 末尾が下の帯（合計）に潜らないよう、帯の高さ分の余白を足す */
-.ws-compact .ws-order-body {
-  padding-bottom: 32px; /* 合計の帯（約22px）+ 余白。最後の行が帯に隠れない */
-}
+/* #161: 合計の帯は本文の末尾（流れの最後）にあり、sticky で本文の下端に付く。ここに padding-bottom を足すと
+ * sticky の基準線が持ち上がり、帯の下に本文が覗いて「合計が本文に重なる」ので、余白は足さない */
 
 /* 縦持ちで吹き出しが出ている間は、注文票の本文が狭い。合計の帯は本文の流れの末尾に置き、文に重ねない */
 .ws-portrait:has(.ws-guide) .ws-order-total {
@@ -1590,4 +1601,17 @@ body[data-scene="workshop"] #audio-toggle {
 }
 .ws-portrait:has(.ws-guide) .ws-client {
   display: none;
+}
+
+/* 横向き（844×390 など）は縦が足りないので、結果画面の上余白・紙吹雪帯・見出しを詰めて表の下端まで初期表示に収める (#198) */
+@media (max-height: 500px) {
+  #rs-overlay:has(.rs-confetti) {
+    padding-top: 2rem;
+  }
+  .rs-confetti {
+    height: 1.75rem;
+  }
+  #rs-overlay h2 {
+    font-size: 1.6rem;
+  }
 }
