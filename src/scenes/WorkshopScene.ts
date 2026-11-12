@@ -61,7 +61,7 @@ import {
 } from "./workshop/placements";
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
-import { DragStroke, strokeButtonHeld } from "./workshop/drag";
+import { DragStroke, SeThrottle, strokeButtonHeld } from "./workshop/drag";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import {
   activeTexture,
@@ -183,6 +183,8 @@ export class WorkshopScene extends Phaser.Scene {
   private pointerPressing = false;
   /** 押したままなぞっている最中のドラッグ（#120）。無ければ null。 */
   private stroke: DragStroke | null = null;
+  /** ドラッグ中の「置く」SE の間引き（#191） */
+  private placeSe: SeThrottle | null = null;
   /** ストロークを始めたボタン（PointerEvent.button）。pointermove の buttons と突き合わせて取りこぼしを検出する */
   private strokeButton = 0;
   /** ドラッグ直後に出る click を無視するための印（クリック1回の挙動は変えない）。 */
@@ -441,7 +443,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.stroke = null;
   };
 
-  private placeAt(pos: Point): void {
+  private placeAt(pos: Point, quiet = false): void {
     if (this.playing) return;
     const hasPitch = pitchChoices(this.machines, this.selected).length > 0;
     const res = place(
@@ -459,7 +461,7 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     this.placements = res.placements;
-    playSfx("place");
+    if (!quiet) playSfx("place");
     this.tutorialEvent("placed");
     const pitch = hasPitch ? `（音高 ${pitchLabel(this.nextPitchValue)}）` : "";
     this.say(
@@ -921,6 +923,7 @@ export class WorkshopScene extends Phaser.Scene {
             this.stroke = new DragStroke("erase", pos);
           } else if (e.button === 0) {
             this.stroke = new DragStroke("place", pos);
+            this.placeSe = new SeThrottle();
           }
         });
         b.addEventListener("pointerup", () => {
@@ -955,7 +958,7 @@ export class WorkshopScene extends Phaser.Scene {
       }
       for (const c of this.stroke.move({ x: cx, y: cy })) {
         if (this.stroke.mode === "erase") this.removeAtPos(c);
-        else this.placeAt(c);
+        else this.placeAt(c, !(this.placeSe?.allow(performance.now()) ?? true));
       }
     });
     ov.append(grid);

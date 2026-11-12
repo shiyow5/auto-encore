@@ -84,3 +84,23 @@ export class DragStroke {
     return fresh;
   }
 }
+
+/** ドラッグ中の「置く」SE を鳴らす最短間隔（ms）。 */
+export const DRAG_SE_MIN_INTERVAL_MS = 80;
+
+/**
+ * ドラッグ中の SE の間引き（#191）。前回の発音から minMs 未満なら鳴らさない（配置自体は行う）。
+ * 最初の move は1マス目と2マス目を同時に返すので、2発目がここで落ちて1発になる。
+ */
+export class SeThrottle {
+  private lastAt: number | null = null;
+
+  constructor(private readonly minMs: number = DRAG_SE_MIN_INTERVAL_MS) {}
+
+  /** now（ms）に鳴らしてよいか。鳴らしてよければ発音時刻として記録する。 */
+  allow(now: number): boolean {
+    if (this.lastAt !== null && now - this.lastAt < this.minMs) return false;
+    this.lastAt = now;
+    return true;
+  }
+}
