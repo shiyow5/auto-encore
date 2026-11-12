@@ -24,7 +24,7 @@ test("AE#101: board frame, grid lines, cursor and shelf borders", async ({ page 
     "rgb(243, 233, 220) 0px 0px 0px 2px inset",
   );
 
-  // 棚ボタン: 破線は注文で使えない機械(data-allowed=false)だけ。選択中は琥珀地
+  // 棚ボタン: 破線なし（AE#111）。選択中は琥珀地
   const tools = await page.locator(".ws-tool").evaluateAll((els) =>
     els.map((el) => {
       const cs = getComputedStyle(el);
@@ -39,7 +39,8 @@ test("AE#101: board frame, grid lines, cursor and shelf borders", async ({ page 
   );
   expect(tools.length).toBeGreaterThan(0);
   for (const t of tools) {
-    expect(t.style).toBe(t.allowed === "false" ? "dashed" : "solid");
+    // AE#111: 破線は廃止。使えない機械も実線（暗枠＋鍵で区別）
+    expect(t.style).toBe("solid");
     if (t.pressed === "true") {
       expect(t.bg).toBe("rgb(242, 180, 90)");
       expect(t.color).toBe("rgb(30, 23, 34)");

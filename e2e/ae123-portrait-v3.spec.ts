@@ -107,13 +107,13 @@ for (const size of SIZES) {
 
 test.describe("使えない機械の棚ボタンの文字色", () => {
   test.use({ viewport: SIZES[0], hasTouch: true, isMobile: true });
-  test("#B8A8C0（点線枠は維持）", async ({ page }) => {
+  test("#B8A8C0（AE#111: 破線は廃止、実線の暗枠）", async ({ page }) => {
     await open(page);
     const s = await page
       .locator('.ws-tool[data-allowed="false"]')
       .first()
       .evaluate((e) => ({ c: getComputedStyle(e).color, b: getComputedStyle(e).borderStyle }));
     expect(s.c).toBe("rgb(184, 168, 192)");
-    expect(s.b).toBe("dashed");
+    expect(s.b).toBe("solid");
   });
 });

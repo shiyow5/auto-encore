@@ -153,7 +153,18 @@ Primary buttons use amber with dark text (`#1E1722`); at most one per screen. Se
 
 ### Panels
 
-Main UI panels use the neutral base (`--ae-surface` #2A2030) with a subtle border (`--ae-line`). Interior padding is 16px.
+Main UI panels use the neutral base (`--ae-surface` #2A2030). Interior padding is 16px.
+
+**Frame token (#111, shared with log-dive #102)** — drawn with `box-shadow` + corner gradients only, so layout sizes do not change. Applied to `.ae-frame`, `.ws-shelf`, `.ws-order`, `.ws-confirm`, `.volume-panel`.
+
+| Part             | Variable            | Value                                                                                       |
+| ---------------- | ------------------- | ------------------------------------------------------------------------------------------- |
+| Outer line       | `--ae-frame-outer`  | 1px #C4B4C9 (8.93:1 on bg, 7.95:1 on panel)                                                 |
+| Inner band       | `--ae-frame-inner`  | 2px #120D16 (inset)                                                                         |
+| Corner dots      | `--ae-frame-corner` | 3×3px #F3E9DC at the 4 inner corners (2px inset)                                            |
+| Selected         | `--ae-amber`        | solid 2px amber + corner brackets `--ae-bracket` #F3E9DC (6px long, 2px thick, 4px outside) |
+| Locked           | `--ae-frame-lock`   | solid 2px #5A4A64 + 🔒 (never dashed; dashed reads as "disabled")                           |
+| Danger (confirm) | `--ae-danger`       | border of the "はい" button (`.ws-btn.ws-danger`)                                           |
 
 ### Tiles
 

@@ -26,6 +26,12 @@
   --ae-medal-gold: #ffd27a;
   --ae-medal-silver: #d8d3e0;
   --ae-medal-bronze: #d98e5f;
+  /* 枠トークン（#111）: 外枠 1px 明色 → 内側 2px 暗色 → 角飾り 3px の四角。選択=実線 2px 琥珀＋角ブラケット。ロック=暗枠＋鍵 */
+  --ae-frame-outer: #c4b4c9; /* 外枠 1px。bg 8.93:1 / surface 7.95:1 */
+  --ae-frame-inner: #120d16; /* 内側 2px */
+  --ae-frame-corner: #f3e9dc; /* 角飾り 3×3px */
+  --ae-frame-lock: #5a4a64; /* ロックの暗枠 2px */
+  --ae-bracket: #f3e9dc; /* 選択の角ブラケット（長さ 6px・太さ 2px） */
   /* フォントは1か所で管理。Phaser の text もこの値を参照して「DotGothic16", monospace */
   --ae-font: "DotGothic16", monospace;
 }
@@ -69,6 +75,54 @@
   background: var(--ae-surface);
   border-radius: calc(var(--u) * 2);
   pointer-events: auto;
+}
+
+/* 共通の枠（#111）。.ae-frame を足すか、下のセレクタに並べる。レイアウトの寸法は変えない（影だけで描く） */
+.ae-frame,
+.ws-shelf,
+.ws-order,
+.ws-confirm,
+.volume-panel {
+  background-image:
+    linear-gradient(var(--ae-frame-corner), var(--ae-frame-corner)),
+    linear-gradient(var(--ae-frame-corner), var(--ae-frame-corner)),
+    linear-gradient(var(--ae-frame-corner), var(--ae-frame-corner)),
+    linear-gradient(var(--ae-frame-corner), var(--ae-frame-corner));
+  background-size: 3px 3px;
+  background-repeat: no-repeat;
+  background-position:
+    2px 2px,
+    calc(100% - 2px) 2px,
+    2px calc(100% - 2px),
+    calc(100% - 2px) calc(100% - 2px);
+  border: 0;
+  box-shadow:
+    inset 0 0 0 2px var(--ae-frame-inner),
+    0 0 0 1px var(--ae-frame-outer);
+}
+
+/* 選択の角ブラケット（実線の琥珀枠の外側に 4 隅）。親は position: relative */
+.ws-tool[aria-pressed="true"]::after,
+.os-row:hover::after,
+.os-row:focus-within::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--ae-bracket), var(--ae-bracket)) 0 0 / 6px 2px no-repeat,
+    linear-gradient(var(--ae-bracket), var(--ae-bracket)) 0 0 / 2px 6px no-repeat,
+    linear-gradient(var(--ae-bracket), var(--ae-bracket)) 100% 0 / 6px 2px no-repeat,
+    linear-gradient(var(--ae-bracket), var(--ae-bracket)) 100% 0 / 2px 6px no-repeat,
+    linear-gradient(var(--ae-bracket), var(--ae-bracket)) 0 100% / 6px 2px no-repeat,
+    linear-gradient(var(--ae-bracket), var(--ae-bracket)) 0 100% / 2px 6px no-repeat,
+    linear-gradient(var(--ae-bracket), var(--ae-bracket)) 100% 100% / 6px 2px no-repeat,
+    linear-gradient(var(--ae-bracket), var(--ae-bracket)) 100% 100% / 2px 6px no-repeat;
+}
+
+.os-row-locked:hover::after,
+.os-row-locked:focus-within::after {
+  content: none;
 }
 
 .ws-shelf {
@@ -136,8 +190,7 @@
   display: flex;
   align-items: center;
   gap: calc(var(--u) * 3);
-  background: var(--ae-surface);
-  border: calc(var(--u) * 0.5) solid var(--ae-danger);
+  background-color: var(--ae-surface);
   font-size: calc(var(--u) * 4.5);
 }
 
@@ -155,7 +208,8 @@
   font-size: calc(var(--u) * 4);
 }
 
-.ws-danger {
+/* 全消去の「はい」。.ws-btn の border 指定より後勝ちさせるため 2 クラスで指定する（Codex P2 / #111） */
+.ws-btn.ws-danger {
   border-color: var(--ae-danger);
 }
 
@@ -231,6 +285,10 @@
   transition: background-color 120ms ease-out;
 }
 
+.ws-tool {
+  position: relative; /* 鍵・選択ブラケットの基準 */
+}
+
 .ws-btn:hover {
   background: #4a3a54;
 }
@@ -248,8 +306,19 @@
 /* 注文で使えない機械も棚には出す（置けるが「実行」で止まる）。色だけに頼らず点線の枠でも区別 */
 .ws-tool[data-allowed="false"] {
   color: #b8a8c0; /* #123: #3a2d42 上で 5.75:1（旧 #9a88a8 は 3.95:1 で AA 不合格）。点線枠は #9a88a8 のまま */
-  border-style: dashed;
-  border-color: #9a88a8;
+  border-style: solid; /* #111: 破線は「無効」に見えるので実線にし、暗枠＋鍵で区別 */
+  border-color: var(--ae-frame-lock);
+}
+
+/* 鍵（注文選択の行は文言に 🔒 あり。棚の機械には右上に小さく足す。色だけに頼らない） */
+.ws-tool[data-allowed="false"]::before {
+  content: "🔒";
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .ws-tool[data-allowed="false"][aria-pressed="true"] {
@@ -1064,8 +1133,7 @@ body[data-scene="workshop"] #audio-toggle {
   font-family: var(--ae-font);
   font-size: 16px;
   color: var(--ae-text);
-  background: var(--ae-surface);
-  border: 1px solid var(--ae-amber);
+  background-color: var(--ae-surface);
   border-radius: 6px;
 }
 .volume-panel[hidden] {
@@ -1094,6 +1162,7 @@ body[data-scene="workshop"] #audio-toggle {
 }
 
 .os-row {
+  position: relative;
   box-sizing: border-box;
   min-height: 56px;
   margin: 8px 0;
@@ -1140,11 +1209,12 @@ body[data-scene="workshop"] #audio-toggle {
 
 .os-row-locked {
   color: var(--ae-text-muted);
+  border-color: var(--ae-frame-lock);
 }
 
 .os-row-locked:hover {
   background: var(--ae-surface);
-  border-color: var(--ae-surface-up);
+  border-color: var(--ae-frame-lock);
 }
 
 .os-lock-title,
