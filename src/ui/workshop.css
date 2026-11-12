@@ -1568,3 +1568,16 @@ body[data-scene="workshop"] #audio-toggle {
 .ws-portrait:has(.ws-guide) .ws-client {
   display: none;
 }
+
+/* 横向き（844×390 など）は縦が足りないので、結果画面の上余白・紙吹雪帯・見出しを詰めて表の下端まで初期表示に収める (#198) */
+@media (max-height: 500px) {
+  #rs-overlay:has(.rs-confetti) {
+    padding-top: 2rem;
+  }
+  .rs-confetti {
+    height: 1.75rem;
+  }
+  #rs-overlay h2 {
+    font-size: 1.6rem;
+  }
+}

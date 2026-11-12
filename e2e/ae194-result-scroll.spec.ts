@@ -28,18 +28,27 @@ async function check(page: Page) {
         b.top >= 0 && b.bottom <= window.innerHeight && b.left >= 0 && b.right <= window.innerWidth
       );
     };
+    const bottomOf = (sel: string) => ov.querySelector(sel)!.getBoundingClientRect().bottom;
     return {
+      tableBottom: bottomOf("table"),
+      costBottom: bottomOf('[data-next-medal="cost"]'),
+      vh: window.innerHeight,
       top: ov.scrollTop,
       h2: inView(ov.querySelector("h2")!),
-      // 844×390 は表の下端が数px はみ出す（パネル内スクロールで読める）ので、表の先頭行が見えていればよしとする
+      // 表全体（下端まで）とコスト行の「最高」が画面内にあること（#198）
       table: (() => {
-        const b = ov.querySelector("table thead")!.getBoundingClientRect();
+        const b = ov.querySelector("table")!.getBoundingClientRect();
         return b.top >= 0 && b.bottom <= window.innerHeight;
       })(),
+      costNext: inView(ov.querySelector('[data-next-medal="cost"]')!),
       active: document.activeElement?.classList.contains("rs-back") ?? false,
     };
   });
-  expect(r).toEqual({ top: 0, h2: true, table: true, active: true });
+  if (process.env.AE198_LOG) {
+    console.log(`AE198 vh=${r.vh} table.bottom=${r.tableBottom} cost.bottom=${r.costBottom}`);
+  }
+  const { tableBottom: _t, costBottom: _c, vh: _v, ...rest } = r;
+  expect(rest).toEqual({ top: 0, h2: true, table: true, costNext: true, active: true });
 }
 
 for (const [w, h] of [
