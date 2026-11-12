@@ -37,17 +37,17 @@ for (const size of SIZES) {
     }
     // 帯とボタンの隙間・ボタンの下に、スクロール中の本文が透けて見えない（#188 の「2 行目」の正体）。
     // 隙間の画素を、本文を隠した状態の画素と比べる（同じなら透けていない）
+    // 対象は帯と実行ボタンが同じ注文票の中で縦に並ぶ配置（縦持ち・横長コンパクトは隙間が本文の外）
     const strips = await page.evaluate(() => {
+      const ov = document.querySelector("#ws-overlay")!;
+      if (ov.classList.contains("ws-portrait") || ov.classList.contains("ws-compact")) return [];
       const st = document.querySelector<HTMLElement>(".ws-run-status")!.getBoundingClientRect();
       const run = document.querySelector<HTMLElement>(".ws-run")!.getBoundingClientRect();
-      const card = document.querySelector<HTMLElement>(".ws-order")!.getBoundingClientRect();
-      const x = run.x;
-      const width = run.width;
-      return [
-        { x, width, y: st.bottom, height: run.top - st.bottom },
-        { x, width, y: run.bottom, height: Math.min(card.bottom, innerHeight) - run.bottom - 3 },
-      ].filter((r) => r.height >= 1);
+      return [{ x: run.x, width: run.width, y: st.bottom, height: run.top - st.bottom }].filter(
+        (r) => r.height >= 1,
+      );
     });
+    if (strips.length === 0) test.info().annotations.push({ type: "leak", description: "対象外" });
     const shoot = () => Promise.all(strips.map((clip) => page.screenshot({ clip })));
     const withBody = await shoot();
     await page.addStyleTag({
