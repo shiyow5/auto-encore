@@ -627,7 +627,7 @@ export class WorkshopScene extends Phaser.Scene {
       }
       // 入口/出口: 色（ミント=入口/ピンク=出口）+ 矢印のみ。文字は右パネルの注文票に出す（#112 方針c）
       put(portTexture(this.textures, r.kind), r.pos);
-      this.arrow(x, y, r.dir ?? "E", COLOR.floor);
+      this.arrow(x, y + Math.round(this.cell * 0.15), r.dir ?? "E", COLOR.floor); // ラベルのチップ（左上）と重ならないよう少し下げる
     }
 
     for (const p of this.placements) {
@@ -790,10 +790,11 @@ export class WorkshopScene extends Phaser.Scene {
         "data-allowed": String(allowed),
       });
       b.append(
-        iconCanvas(id),
+        iconCanvas(`icon-${id}`),
         h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
         h("span", { class: "ws-tool-cost ae-footnote" }, `${cost}G`),
       );
+      if (!allowed) b.append(iconCanvas("lock", "ae-icon ws-tool-lock"));
       b.addEventListener("click", () => {
         this.selected = id;
         this.refreshOverlay();
@@ -822,7 +823,7 @@ export class WorkshopScene extends Phaser.Scene {
     // ミュートボタン (audio.ts の共有設定を使用)
     this.muteButton = h("button", {
       type: "button",
-      class: "ws-btn",
+      class: "ws-btn ws-mute",
       "aria-label": isAudioEnabled() ? "音を切る" : "音をオンにする",
     });
     this.setMuteLabel(isAudioEnabled());
@@ -877,6 +878,17 @@ export class WorkshopScene extends Phaser.Scene {
       for (let x = 0; x < this.rules.width; x++) {
         const pos = { x, y };
         const b = h("button", { type: "button", class: "ws-cell", tabindex: "-1" });
+        // 入口/出口のラベル（#102: ドット絵の上に「A」「OUT」のチップ）。表記は右パネルの注文票と同じ
+        const port = this.rules.reserved.find(
+          (r) => (r.kind === "input" || r.kind === "output") && r.pos.x === x && r.pos.y === y,
+        );
+        if (port && (port.kind === "input" || port.kind === "output")) {
+          const label = port.id ?? (port.kind === "input" ? "A" : "OUT");
+          const chip = h("span", { class: "ws-port-chip", "aria-hidden": "true" }, label);
+          chip.dataset.kind = port.kind;
+          chip.dataset.wide = String(label.length >= 3);
+          b.append(chip);
+        }
         let tapType: string | undefined; // 直近の pointerdown の入力種別（キーボード由来の click では undefined）
         b.addEventListener("click", (e) => {
           if (this.suppressClick) {
@@ -1192,6 +1204,7 @@ export class WorkshopScene extends Phaser.Scene {
 
   /** 音ボタン: ドット絵のスピーカー + 『音: ON/OFF』（絵文字・色だけに頼らない）。 */
   private setMuteLabel(enabled: boolean): void {
+    this.muteButton.dataset.sound = enabled ? "on" : "off";
     this.muteButton.replaceChildren(
       iconCanvas(enabled ? "speaker-on" : "speaker-off"),
       document.createTextNode(enabled ? "音: ON" : "音: OFF"),

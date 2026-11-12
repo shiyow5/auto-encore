@@ -335,14 +335,12 @@
   border-color: var(--ae-frame-lock);
 }
 
-/* 鍵（注文選択の行は文言に 🔒 あり。棚の機械には右上に小さく足す。色だけに頼らない） */
-.ws-tool[data-allowed="false"]::before {
-  content: "🔒";
+/* 鍵（#102: 16x16 のドット絵。注文選択の行は「鍵 + タイトル」。棚の機械には右上に足す。色だけに頼らない） */
+.ws-tool .ws-tool-lock {
   position: absolute;
-  top: 2px;
+  bottom: 2px; /* 名前（上段）と重ならない右下 */
   right: 3px;
-  font-size: 10px;
-  line-height: 1;
+  margin: 0;
   pointer-events: none;
 }
 
@@ -1034,6 +1032,69 @@ body[data-scene="workshop"] #audio-toggle {
   display: flex;
   align-items: center;
 }
+/* 棚アイコン・音量・鍵（#102 指定）: 16×16px 固定。棚はボタン左 8px・縦中央 */
+.ws-tool .ae-icon,
+.ws-mute .ae-icon,
+.os-lock-title .ae-icon {
+  width: 16px;
+  height: 16px;
+}
+#ws-overlay .ws-palette .ws-tool {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  column-gap: 4px; /* 96px幅に「仕分け機」(64px)を1行で収める */
+  align-items: center;
+  align-content: center;
+  padding-left: 6px; /* 枠 2px + 6px = ボタン左端からアイコンまで 8px */
+  padding-right: 0;
+}
+#ws-overlay .ws-palette .ws-tool > .ae-icon:not(.ws-tool-lock) {
+  grid-row: 1 / 3;
+  grid-column: 1;
+  margin: 0;
+}
+#ws-overlay .ws-palette .ws-tool > .ws-tool-name,
+#ws-overlay .ws-palette .ws-tool > .ws-tool-cost {
+  grid-column: 2;
+  min-width: 0;
+  white-space: nowrap;
+}
+/* 音量ボタン（#102 指定）: 高さ 44px、OFF の文字色 #9A88A8 */
+.ws-mute {
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.ws-mute[data-sound="off"] {
+  color: #9a88a8;
+}
+/* 入口/出口ラベル（#102 指定）: チップ 24×16（OUT は 32×16）・12px・文字 #1E1722・セル左上 2px */
+.ws-cell {
+  position: relative;
+}
+.ws-port-chip {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  box-sizing: border-box;
+  width: 24px;
+  height: 16px;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  color: #1e1722;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ws-port-chip[data-kind="input"] {
+  background: #92ddcc;
+}
+.ws-port-chip[data-kind="output"] {
+  background: #f29bb8;
+}
+.ws-port-chip[data-wide="true"] {
+  width: 32px;
+}
 
 /* 読み上げ専用（見えないが、アクセシブルネームには残る） */
 .visually-hidden {
@@ -1263,10 +1324,15 @@ body[data-scene="workshop"] #audio-toggle {
 }
 
 /* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
-#audio-toggle .ae-icon,
-#volume-toggle .ae-icon {
+#audio-toggle .ae-icon {
   width: 24px;
   height: 24px;
+  image-rendering: pixelated;
+}
+/* スピーカーは 16x16 なので 2 倍の 32px（整数倍） */
+#volume-toggle .ae-icon {
+  width: 32px;
+  height: 32px;
   image-rendering: pixelated;
 }
 
