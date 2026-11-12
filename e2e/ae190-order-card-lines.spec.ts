@@ -43,6 +43,8 @@ for (const id of IDS) {
     test(`AE#190 ${id} 844×390 ${running ? "実行中" : "待機中"}: 注文票のテキスト行が交差しない`, async ({
       page,
     }) => {
+      // 演出ありの CI では 20 台前後の配置クリックに時間がかかる
+      test.setTimeout(150_000);
       await page.addInitScript((v) => localStorage.setItem("ae-order-unlocked", v), unlockAll);
       // 実行中の表示は演出あり(?fx なし)のときだけ出る（?fx=0 は再生せず結果へ）
       await page.goto(running ? "/" : "/?fx=0");
