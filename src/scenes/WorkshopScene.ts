@@ -37,7 +37,12 @@ import {
   type TutorialEvent,
   type TutorialStep,
 } from "./workshop/tutorial";
-import { isPortraitLayout, portraitMetrics } from "./workshop/portrait";
+import {
+  compactMetrics,
+  isCompactLandscape,
+  isPortraitLayout,
+  portraitMetrics,
+} from "./workshop/portrait";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
 import {
@@ -177,6 +182,8 @@ export class WorkshopScene extends Phaser.Scene {
   private lamps: HTMLElement[] = [];
   /** 縦持ち（スマホ幅）レイアウトか。create で決める。 */
   private portrait = false;
+  /** スマホ横（844×390 など）の専用配置。canvas は画面と同じ大きさ（#165） */
+  private compact = false;
   private cell = CELL;
   private gridX = GRID_X;
   private gridY = GRID_Y;
@@ -199,7 +206,10 @@ export class WorkshopScene extends Phaser.Scene {
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => {
-    if (isPortraitLayout(window.innerWidth, window.innerHeight) !== this.portrait) {
+    if (
+      isPortraitLayout(window.innerWidth, window.innerHeight) !== this.portrait ||
+      isCompactLandscape(window.innerWidth, window.innerHeight) !== this.compact
+    ) {
       // 再生中は作り直さない（restart すると再生が消えて結果画面に届かない）。見た目だけ合わせ、
       // 再生は最後まで進めて結果画面へ。結果画面から戻れば新しい向きで create される。
       if (this.playing) {
@@ -210,7 +220,7 @@ export class WorkshopScene extends Phaser.Scene {
       this.scene.restart({ placements: this.placements, orderId: this.order.id });
       return;
     }
-    if (this.portrait && this.applyViewport()) this.redraw();
+    if ((this.portrait || this.compact) && this.applyViewport()) this.redraw();
     this.layout();
   };
 
@@ -220,12 +230,17 @@ export class WorkshopScene extends Phaser.Scene {
    */
   private applyViewport(): boolean {
     const portrait = isPortraitLayout(window.innerWidth, window.innerHeight);
+    const compact = !portrait && isCompactLandscape(window.innerWidth, window.innerHeight);
     this.portrait = portrait;
-    const w = portrait ? window.innerWidth : GAME_WIDTH;
-    const hgt = portrait ? window.innerHeight : GAME_HEIGHT;
+    this.compact = compact;
+    const full = portrait || compact;
+    const w = full ? window.innerWidth : GAME_WIDTH;
+    const hgt = full ? window.innerHeight : GAME_HEIGHT;
     const m = portrait
       ? portraitMetrics(w, this.rules.width, hgt, this.rules.height)
-      : { cell: CELL, gridX: GRID_X, gridY: GRID_Y };
+      : compact
+        ? compactMetrics(w, hgt, this.rules.width, this.rules.height)
+        : { cell: CELL, gridX: GRID_X, gridY: GRID_Y };
     const changed =
       this.scale.width !== w ||
       this.scale.height !== hgt ||
@@ -703,7 +718,12 @@ export class WorkshopScene extends Phaser.Scene {
     document.getElementById("ws-overlay")?.remove();
     const ov = h("div", { id: "ws-overlay", "data-scene": "workshop" });
     if (this.portrait) ov.classList.add("ws-portrait");
-    document.body.dataset.layout = this.portrait ? "portrait" : "landscape";
+    if (this.compact) ov.classList.add("ws-compact");
+    document.body.dataset.layout = this.portrait
+      ? "portrait"
+      : this.compact
+        ? "compact"
+        : "landscape";
     this.overlay = ov;
     this.eraseMode = false;
 
@@ -956,13 +976,16 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: this.portrait
-        ? "color: var(--ae-text-muted);"
-        : "font-size: 16px; line-height: 24px; color: var(--ae-text-muted); text-align: center; margin: 4px auto; max-width: 560px;",
+      style:
+        this.portrait || this.compact
+          ? "color: var(--ae-text-muted);"
+          : "font-size: 16px; line-height: 24px; color: var(--ae-text-muted); text-align: center; margin: 4px auto; max-width: 560px;",
     });
-    helpLine.textContent = this.portrait
-      ? "タップ=置く／消すボタン=消す／向きボタン=向き"
-      : "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
+    // タッチ端末（ホバーできない）はスマホ向けの言い方にする。向きではなく入力の種類で決める（#165）
+    helpLine.textContent =
+      this.portrait || this.compact || isHoverNone()
+        ? "タップ=置く／消すボタン=消す／向きボタン=向き"
+        : "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
     ov.append(helpLine);
     this.tutorialPanel = null;
 
@@ -1081,6 +1104,8 @@ export class WorkshopScene extends Phaser.Scene {
     s.height = `${c.height}px`;
     s.setProperty("--u", `${c.width / this.scale.width}px`);
     s.setProperty("--grid-y-px", `${this.gridY}px`);
+    s.setProperty("--grid-x-px", `${this.gridX}px`);
+    s.setProperty("--grid-w-px", `${this.rules.width * this.cell}px`);
     s.setProperty("--grid-h-px", `${this.rules.height * this.cell}px`);
     s.setProperty("--grid-x", `${(this.gridX / this.scale.width) * 100}%`);
     s.setProperty("--grid-y", `${(this.gridY / this.scale.height) * 100}%`);
