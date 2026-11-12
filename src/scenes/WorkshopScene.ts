@@ -288,7 +288,8 @@ export class WorkshopScene extends Phaser.Scene {
     });
     this.fx.emit("ambient");
     this.combo = 0;
-    this.bgGfx = this.add.graphics().setDepth(0);
+    // ambient の後景 FX(depth -10)より奥に置く。手前だと不透明な床がオーロラ等を覆う(#110 Codex P2)
+    this.bgGfx = this.add.graphics().setDepth(-20);
     this.gfx = this.add.graphics().setDepth(5);
     // ?seed= の QA 実行では出さない（押下を遮らない）
     this.tutorial = flags().seed !== null ? "done" : initialStep(orderId, isTutorialDone());

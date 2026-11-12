@@ -133,7 +133,7 @@ Entry/exit must not rely on color alone: add the "入"/"出" label or an arrow s
 
 ### Workshop background (#110 / #101)
 
-Implementation: `src/art/workshopBg.ts` (canvas, depth 0) and `.ws-grid` box-shadow in `src/ui/workshop.css`. Layers from back to front: floor tile (16px checker `#241B29`/`#2B2131`, grout `#1A131F`) → drop shadow → workbench top (wood `#8C6642`, edge `#4A3322`; 16px ring on landscape, 3px on portrait/compact) → corner vignette (`#0B0710`, 5 steps, ~10% of the short side). Board cell `#1E1722` vs bench `#8C6642` = 3.41:1 (≥3:1). Text areas (side panels, bottom band) stay on the dark floor.
+Implementation: `src/art/workshopBg.ts` (canvas, depth -20 — behind the ambient FX back layer at -10) and `.ws-grid` box-shadow in `src/ui/workshop.css`. Layers from back to front: floor tile (16px checker `#241B29`/`#2B2131`, grout `#1A131F`) → drop shadow → workbench top (wood `#8C6642`, edge `#4A3322`; 16px ring on landscape, 3px on portrait/compact) → corner vignette (`#0B0710`, 5 steps, ~10% of the short side). Board cell `#1E1722` vs bench `#8C6642` = 3.41:1 (≥3:1). Text areas (side panels, bottom band) stay on the dark floor.
 
 ## Typography
 
