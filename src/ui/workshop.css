@@ -1064,36 +1064,9 @@ body[data-scene="workshop"] #audio-toggle {
   min-height: 44px;
   box-sizing: border-box;
 }
+/* OFF の文字色: #9a88a8 は面 #3a2d42 上で 3.95:1（AA 未達）。#b8a8c0 は 5.75:1（#123 と同じ色）。指定値からの変更は PR 本文に記載 */
 .ws-mute[data-sound="off"] {
-  color: #9a88a8;
-}
-/* 入口/出口ラベル（#102 指定）: チップ 24×16（OUT は 32×16）・12px・文字 #1E1722・セル左上 2px */
-.ws-cell {
-  position: relative;
-}
-.ws-port-chip {
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  box-sizing: border-box;
-  width: 24px;
-  height: 16px;
-  font-size: 12px;
-  line-height: 16px;
-  text-align: center;
-  color: #1e1722;
-  pointer-events: none;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.ws-port-chip[data-kind="input"] {
-  background: #92ddcc;
-}
-.ws-port-chip[data-kind="output"] {
-  background: #f29bb8;
-}
-.ws-port-chip[data-wide="true"] {
-  width: 32px;
+  color: #b8a8c0;
 }
 
 /* 読み上げ専用（見えないが、アクセシブルネームには残る） */

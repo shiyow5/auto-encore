@@ -627,7 +627,7 @@ export class WorkshopScene extends Phaser.Scene {
       }
       // 入口/出口: 色（ミント=入口/ピンク=出口）+ 矢印のみ。文字は右パネルの注文票に出す（#112 方針c）
       put(portTexture(this.textures, r.kind), r.pos);
-      this.arrow(x, y + Math.round(this.cell * 0.15), r.dir ?? "E", COLOR.floor); // ラベルのチップ（左上）と重ならないよう少し下げる
+      this.arrow(x, y, r.dir ?? "E", COLOR.floor);
     }
 
     for (const p of this.placements) {
@@ -878,17 +878,6 @@ export class WorkshopScene extends Phaser.Scene {
       for (let x = 0; x < this.rules.width; x++) {
         const pos = { x, y };
         const b = h("button", { type: "button", class: "ws-cell", tabindex: "-1" });
-        // 入口/出口のラベル（#102: ドット絵の上に「A」「OUT」のチップ）。表記は右パネルの注文票と同じ
-        const port = this.rules.reserved.find(
-          (r) => (r.kind === "input" || r.kind === "output") && r.pos.x === x && r.pos.y === y,
-        );
-        if (port && (port.kind === "input" || port.kind === "output")) {
-          const label = port.id ?? (port.kind === "input" ? "A" : "OUT");
-          const chip = h("span", { class: "ws-port-chip", "aria-hidden": "true" }, label);
-          chip.dataset.kind = port.kind;
-          chip.dataset.wide = String(label.length >= 3);
-          b.append(chip);
-        }
         let tapType: string | undefined; // 直近の pointerdown の入力種別（キーボード由来の click では undefined）
         b.addEventListener("click", (e) => {
           if (this.suppressClick) {
