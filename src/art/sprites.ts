@@ -367,33 +367,36 @@ export function iconCanvas(name: SpriteName, className = "ae-icon"): HTMLCanvasE
   return c;
 }
 
-/** 音符（長さ1=大 / 2以上=小）。c=音高色 h=ハイライト d=輪郭。10x10。 */
+/**
+ * 音符（長さ1=♪ 旗つき / 2以上=♩ 旗なし）。c=音高色 h=ハイライト。輪郭(暗色)は drawNote が外周のみ縁取る（♪の旗と棒の隙間は空ける）。10x10。
+ * ♪と同じシルエット（左下に符頭・右に棒・上に旗）。隙間が多いので下のベルト矢印が透けて読める（#153）。
+ */
 const NOTE_ROWS: Readonly<Record<"short" | "long", readonly string[]>> = {
   // 丸ではなく「♪」の形（玉＋棒＋旗）。短い音は旗つき
   short: [
-    "......dd..",
-    "......dcdd",
-    "......dccd",
-    "......dcd.",
-    "......dc..",
-    "..ddd.dc..",
-    ".dcchdcd..",
-    ".dchccd...",
-    ".dcccdd...",
-    "..ddd.....",
+    "....c.....",
+    "....cc....",
+    "....c.cc..",
+    "....c..cc.",
+    "....c...c.",
+    "....c.....",
+    "..ccc.....",
+    ".hccc.....",
+    "..cc......",
+    "..........",
   ],
   // 長い音は旗なし（玉＋棒）で大きめ
   long: [
-    "......dd..",
-    "......dcd.",
-    "......dcd.",
-    "......dcd.",
-    "......dcd.",
-    ".dddd.dcd.",
-    "dcchhddcd.",
-    "dchccccd..",
-    "dccccccd..",
-    ".dddddd...",
+    "....c.....",
+    "....c.....",
+    "....c.....",
+    "....c.....",
+    "....c.....",
+    "....c.....",
+    "..ccc.....",
+    ".hccc.....",
+    "..cc......",
+    "..........",
   ],
 };
 export const NOTE_SIZE = 10;
@@ -407,10 +410,27 @@ export function drawNote(
   length: "short" | "long",
   color: number,
 ): void {
-  NOTE_ROWS[length].forEach((row, y) => {
+  const rows = NOTE_ROWS[length];
+  const filled = (x: number, y: number): boolean => {
+    const ch = rows[y]?.[x];
+    return ch !== undefined && ch !== ".";
+  };
+  rows.forEach((row, y) => {
     [...row].forEach((ch, x) => {
-      if (ch === ".") return;
-      ctx.fillStyle = ch === "d" ? "#140f18" : ch === "h" ? "#ffffff" : hex(color);
+      if (ch === ".") {
+        // 塗りに接する空きは輪郭色（縁取り）
+        // ♪の旗と棒の隙間（列5・棒の高さ）は縁取りせず空けて、ベルト矢印を透けさせる
+        const gap = length === "short" && x === 5 && y <= 5;
+        if (
+          !gap &&
+          (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1))
+        ) {
+          ctx.fillStyle = "#140f18";
+          ctx.fillRect(x, y, 1, 1);
+        }
+        return;
+      }
+      ctx.fillStyle = ch === "h" ? "#ffffff" : hex(color);
       ctx.fillRect(x, y, 1, 1);
     });
   });
