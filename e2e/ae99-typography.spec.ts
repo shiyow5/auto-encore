@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
-/** AE#99: タイポスケール。全テキスト要素の font-size ∈ {12,16,24,32}、12px は脚注/凡例クラスのみ。 */
-const ALLOWED = [12, 16, 24, 32];
+/** AE#99 / #114: タイポスケール。全テキスト要素の font-size ∈ {14,16,24,32}、14px は脚注/凡例クラスのみ。 */
+const ALLOWED = [14, 16, 24, 32];
 
 async function badFonts(page: Page): Promise<string[]> {
   return page.evaluate((allowed) => {
@@ -17,7 +17,7 @@ async function badFonts(page: Page): Promise<string[]> {
         if (!hasText) continue;
         const px = parseFloat(getComputedStyle(el).fontSize);
         const foot = el.closest(".rs-footer, .ae-footnote, .ae-legend") !== null;
-        if (!allowed.includes(px) || (px === 12 && !foot)) {
+        if (!allowed.includes(px) || (px === 14 && !foot)) {
           bad.push(
             `${el.tagName}.${el.className}=${px}px "${(el.textContent ?? "").slice(0, 20)}"`,
           );
@@ -28,7 +28,7 @@ async function badFonts(page: Page): Promise<string[]> {
   }, ALLOWED);
 }
 
-test("AE#99: タイトルと工房の文字サイズは 12/16/24/32 のみ", async ({ page }) => {
+test("AE#99: タイトルと工房の文字サイズは 14/16/24/32 のみ", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/");
   await expect(page.getByLabel("はじめる")).toBeVisible({ timeout: 10_000 });
