@@ -368,7 +368,7 @@ export function iconCanvas(name: SpriteName, className = "ae-icon"): HTMLCanvasE
 }
 
 /**
- * 音符（長さ1=♪ 旗つき / 2以上=♩ 旗なし）。c=音高色 h=ハイライト。輪郭(暗色)は drawNote が自動で縁取る。10x10。
+ * 音符（長さ1=♪ 旗つき / 2以上=♩ 旗なし）。c=音高色 h=ハイライト。輪郭(暗色)は drawNote が外周のみ縁取る（♪の旗と棒の隙間は空ける）。10x10。
  * ♪と同じシルエット（左下に符頭・右に棒・上に旗）。隙間が多いので下のベルト矢印が透けて読める（#153）。
  */
 const NOTE_ROWS: Readonly<Record<"short" | "long", readonly string[]>> = {
@@ -419,7 +419,9 @@ export function drawNote(
     [...row].forEach((ch, x) => {
       if (ch === ".") {
         // 塗りに接する空きは輪郭色（縁取り）
-        if (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1)) {
+        // ♪の旗と棒の隙間（列5・棒の高さ）は縁取りせず空けて、ベルト矢印を透けさせる
+        const gap = length === "short" && x === 5 && y <= 5;
+        if (!gap && (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1))) {
           ctx.fillStyle = "#140f18";
           ctx.fillRect(x, y, 1, 1);
         }
