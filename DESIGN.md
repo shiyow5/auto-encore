@@ -131,6 +131,10 @@ The implementation is the source of truth: all colors live in CSS variables `--a
 
 Entry/exit must not rely on color alone: add the "入"/"出" label or an arrow shape. Medals also carry a shape (●/▲/■).
 
+### Workshop background (#110 / #101)
+
+Implementation: `src/art/workshopBg.ts` (canvas, depth -20 — behind the ambient FX back layer at -10) and `.ws-grid` box-shadow in `src/ui/workshop.css`. Layers from back to front: floor tile (16px checker `#241B29`/`#2B2131`, grout `#1A131F`) → drop shadow → workbench top (wood `#8C6642`, edge `#4A3322`; 16px ring on landscape, 3px on portrait/compact) → corner vignette (`#0B0710`, 5 steps, ~10% of the short side). Board cell `#1E1722` vs bench `#8C6642` = 3.41:1 (≥3:1). Text areas (side panels, bottom band) stay on the dark floor.
+
 ## Typography
 
 The entire UI uses **DotGothic16** (SIL OFL 1.1). The same font as log-dive ensures visual consistency across both games in the project. The font is bundled in `assets/font/` with the OFL license file.
@@ -153,7 +157,18 @@ Primary buttons use amber with dark text (`#1E1722`); at most one per screen. Se
 
 ### Panels
 
-Main UI panels use the neutral base (`--ae-surface` #2A2030) with a subtle border (`--ae-line`). Interior padding is 16px.
+Main UI panels use the neutral base (`--ae-surface` #2A2030). Interior padding is 16px.
+
+**Frame token (#111, shared with log-dive #102)** — drawn with `box-shadow` + corner gradients only, so layout sizes do not change. Applied to `.ae-frame`, `.ws-shelf`, `.ws-order`, `.ws-confirm`, `.volume-panel`.
+
+| Part             | Variable            | Value                                                                                       |
+| ---------------- | ------------------- | ------------------------------------------------------------------------------------------- |
+| Outer line       | `--ae-frame-outer`  | 1px #C4B4C9 (8.93:1 on bg, 7.95:1 on panel)                                                 |
+| Inner band       | `--ae-frame-inner`  | 2px #120D16 (inset)                                                                         |
+| Corner dots      | `--ae-frame-corner` | 3×3px #F3E9DC at the 4 inner corners (2px inset)                                            |
+| Selected         | `--ae-amber`        | solid 2px amber + corner brackets `--ae-bracket` #F3E9DC (6px long, 2px thick, 4px outside) |
+| Locked           | `--ae-frame-lock`   | solid 2px #5A4A64 + 🔒 (never dashed; dashed reads as "disabled")                           |
+| Danger (confirm) | `--ae-danger`       | border of the "はい" button (`.ws-btn.ws-danger`)                                           |
 
 ### Tiles
 

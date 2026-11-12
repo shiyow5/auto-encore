@@ -11,6 +11,7 @@
  * - 「実行」（K4）: execute() で step() を止まるまで回して採点 → 音符を tick ごとに置き直して見せる → 結果画面。
  *   ?fx=0 / 視差効果を減らす のときは再生せず、すぐ結果画面へ
  */
+import { drawWorkshopBg } from "../art/workshopBg";
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { rotateCW } from "../core/grid";
@@ -60,6 +61,7 @@ import {
 } from "./workshop/placements";
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
+import { DragStroke, strokeButtonHeld } from "./workshop/drag";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import {
   activeTexture,
@@ -71,6 +73,15 @@ import {
 import { playNote, initAudio, isAudioEnabled } from "../fx/audio";
 import { duckBgm, onSoundToggle, playSfx, toggleSound } from "../audio/player";
 import type { ResultData } from "./ResultScene";
+
+/** 操作説明（#120）。PC は1操作1行、スマホは1行。 */
+export const HELP_PC: readonly string[] = [
+  "置く: クリック（押したままなぞると連続で置く）",
+  "向き: R",
+  "音高: P か Shift+クリック",
+  "消す: 右クリック（右ドラッグで連続で消す）",
+];
+export const HELP_TOUCH = "タップかなぞる=置く／消すボタン=消す／向きボタン=向き";
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
 export const PLAY_MS_PER_TICK = 110;
@@ -170,6 +181,12 @@ export class WorkshopScene extends Phaser.Scene {
   private lastInput: "pointer" | "keyboard" = "keyboard";
   /** クリックで focus が来た途中か（そのときは入力の種類をキーボードに戻さない） */
   private pointerPressing = false;
+  /** 押したままなぞっている最中のドラッグ（#120）。無ければ null。 */
+  private stroke: DragStroke | null = null;
+  /** ストロークを始めたボタン（PointerEvent.button）。pointermove の buttons と突き合わせて取りこぼしを検出する */
+  private strokeButton = 0;
+  /** ドラッグ直後に出る click を無視するための印（クリック1回の挙動は変えない）。 */
+  private suppressClick = false;
 
   private gfx!: Phaser.GameObjects.Graphics;
   /** 盤面のドット絵（床・機械・入口/出口）。再描画のたびに作り直す。gfx（線・矢印・音符）より下に置く。 */
@@ -185,6 +202,7 @@ export class WorkshopScene extends Phaser.Scene {
   /** スマホ横（844×390 など）の専用配置。canvas は画面と同じ大きさ（#165） */
   private compact = false;
   private cell = CELL;
+  private bgGfx!: Phaser.GameObjects.Graphics;
   private gridX = GRID_X;
   private gridY = GRID_Y;
   /** 縦持ちの「消す」モード: 入っている間はマスのタップで機械を消す（長押し・右クリックの代わり）。 */
@@ -286,6 +304,8 @@ export class WorkshopScene extends Phaser.Scene {
     });
     this.fx.emit("ambient");
     this.combo = 0;
+    // ambient の後景 FX(depth -10)より奥に置く。手前だと不透明な床がオーロラ等を覆う(#110 Codex P2)
+    this.bgGfx = this.add.graphics().setDepth(-20);
     this.gfx = this.add.graphics().setDepth(5);
     // ?seed= の QA 実行では出さない（押下を遮らない）
     this.tutorial = flags().seed !== null ? "done" : initialStep(orderId, isTutorialDone());
@@ -294,6 +314,9 @@ export class WorkshopScene extends Phaser.Scene {
 
     this.scale.on(Phaser.Scale.Events.RESIZE, this.onResize);
     window.addEventListener("resize", this.onResize);
+    window.addEventListener("pointerup", this.endStroke);
+    window.addEventListener("pointercancel", this.endStroke);
+    window.addEventListener("blur", this.endStroke);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
     this.layout();
 
@@ -405,6 +428,18 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   // ---- 操作 -------------------------------------------------------------
+
+  /** ドラッグの終わり（ボタンを離す・キャンセル）。ウィンドウ全体で受ける＝盤面の外で離しても止まる。 */
+  private readonly endStroke = (): void => {
+    if (this.stroke?.dragged) {
+      // ドラッグ後に同じマスで出る click / contextmenu を、この直後の1回だけ無視する
+      this.suppressClick = true;
+      setTimeout(() => {
+        this.suppressClick = false;
+      }, 0);
+    }
+    this.stroke = null;
+  };
 
   private placeAt(pos: Point): void {
     if (this.playing) return;
@@ -560,6 +595,12 @@ export class WorkshopScene extends Phaser.Scene {
     const g = this.gfx;
     const { width, height } = this.rules;
     g.clear();
+    drawWorkshopBg(this.bgGfx, this.scale.width, this.scale.height, {
+      x: this.gridX,
+      y: this.gridY,
+      w: width * this.cell,
+      h: height * this.cell,
+    });
     // 稼働灯は drawRunFx（再生中の tick）でだけ出す。それ以外は隠す
     for (const el of this.lamps) el.hidden = true;
     for (const t of this.tiles) t.destroy();
@@ -835,6 +876,11 @@ export class WorkshopScene extends Phaser.Scene {
         const b = h("button", { type: "button", class: "ws-cell", tabindex: "-1" });
         let tapType: string | undefined; // 直近の pointerdown の入力種別（キーボード由来の click では undefined）
         b.addEventListener("click", (e) => {
+          if (this.suppressClick) {
+            this.suppressClick = false;
+            tapType = undefined;
+            return;
+          }
           if (e.shiftKey) this.cyclePitch(pos);
           else if (this.eraseMode) this.removeAtPos(pos);
           else if (
@@ -851,6 +897,7 @@ export class WorkshopScene extends Phaser.Scene {
         });
         b.addEventListener("contextmenu", (e) => {
           e.preventDefault();
+          if (this.suppressClick) return; // 右ドラッグの終わりに出る contextmenu（削除済み）
           this.removeAtPos(pos);
         });
         b.addEventListener("pointerenter", () => {
@@ -867,6 +914,14 @@ export class WorkshopScene extends Phaser.Scene {
         b.addEventListener("pointerdown", (e) => {
           tapType = e.pointerType;
           this.pointerPressing = true;
+          // 押したままなぞる連続配置・連続削除（#120）。Shift+クリックは音高の巡回なので対象外
+          if (e.shiftKey) return;
+          this.strokeButton = e.button;
+          if (e.button === 2 || (e.button === 0 && this.eraseMode)) {
+            this.stroke = new DragStroke("erase", pos);
+          } else if (e.button === 0) {
+            this.stroke = new DragStroke("place", pos);
+          }
         });
         b.addEventListener("pointerup", () => {
           this.pointerPressing = false;
@@ -882,6 +937,27 @@ export class WorkshopScene extends Phaser.Scene {
         grid.append(b);
       }
     }
+    // ドラッグ: 通ったマスに連続で置く／消す。座標からマスを求めるので、速く動かしても・指でも効く
+    grid.addEventListener("pointermove", (e) => {
+      if (!this.stroke || this.playing) return;
+      // 盤の外でボタンを離すと pointerup が来ないことがある。始めたボタンが離れていたらここで終える
+      if (!strokeButtonHeld(e.buttons, this.strokeButton)) {
+        this.endStroke();
+        return;
+      }
+      const r = grid.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      const cx = Math.floor(((e.clientX - r.left) / r.width) * this.rules.width);
+      const cy = Math.floor(((e.clientY - r.top) / r.height) * this.rules.height);
+      if (cx < 0 || cy < 0 || cx >= this.rules.width || cy >= this.rules.height) {
+        this.stroke.leave();
+        return;
+      }
+      for (const c of this.stroke.move({ x: cx, y: cy })) {
+        if (this.stroke.mode === "erase") this.removeAtPos(c);
+        else this.placeAt(c);
+      }
+    });
     ov.append(grid);
     // 稼働灯（.ws-grid の兄弟。後から追加するので台座 box-shadow の上に出る）
     this.lamps = [0, 1].map(() => {
@@ -973,19 +1049,16 @@ export class WorkshopScene extends Phaser.Scene {
     this.status = h("p", { class: "ws-status", role: "status", "aria-live": "polite" });
     ov.append(this.status);
 
-    // Issue #48: 操作説明の常時1行
-    const helpLine = h("p", {
-      class: "ws-help-line",
-      style:
-        this.portrait || this.compact
-          ? "color: var(--ae-text-muted);"
-          : "font-size: 16px; line-height: 24px; color: var(--ae-text-muted); text-align: center; margin: 4px auto; max-width: 560px;",
-    });
+    // Issue #48 / #120: 操作説明は常設。PC は左下のパネル（16px・4.5:1 以上）、スマホは盤面の上の帯。
+    const touchLike = this.portrait || this.compact || isHoverNone();
+    const helpLine = h("p", { class: touchLike ? "ws-help-line" : "ws-help-line ws-help-panel" });
     // タッチ端末（ホバーできない）はスマホ向けの言い方にする。向きではなく入力の種類で決める（#165）
-    helpLine.textContent =
-      this.portrait || this.compact || isHoverNone()
-        ? "タップ=置く／消すボタン=消す／向きボタン=向き"
-        : "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
+    if (touchLike) {
+      helpLine.textContent = HELP_TOUCH;
+    } else {
+      helpLine.append(h("strong", { class: "ws-help-title" }, "操作"));
+      for (const line of HELP_PC) helpLine.append(h("span", { class: "ws-help-row" }, line));
+    }
     ov.append(helpLine);
     this.tutorialPanel = null;
 
@@ -1143,6 +1216,9 @@ export class WorkshopScene extends Phaser.Scene {
     setQaBusy("fade", false);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);
     window.removeEventListener("resize", this.onResize);
+    window.removeEventListener("pointerup", this.endStroke);
+    window.removeEventListener("pointercancel", this.endStroke);
+    window.removeEventListener("blur", this.endStroke);
     this.overlay.remove();
     this.cells = [];
     this.tiles = [];
