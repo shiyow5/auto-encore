@@ -119,7 +119,7 @@ test.describe("spec-e §2: 最初にずれた位置", () => {
           ),
         }));
         expect(c.clipped).toBe(false);
-        expect(c.lines).toBeLessThanOrEqual(2); // padding 込みで 1 行 = 40px 前後
+        expect(c.lines).toBeLessThanOrEqual(3); // padding 込みで 1 行 = 40px 前後。メダル列は次の基準の行で +1（#120）
       }
       for (const th of await page.locator(".rs-table thead th").all()) {
         expect((await th.boundingBox())?.height ?? 99).toBeLessThanOrEqual(44);

@@ -27,6 +27,7 @@ import {
   STOP_TEXT,
   VERDICT_TEXT,
   metricRows,
+  nextMedalHint,
   verdictMessage,
   verdictOf,
   type ThroughputPoint,
@@ -161,6 +162,14 @@ export class ResultScene extends Phaser.Scene {
           h("span", { class: "rs-medal-label" }, MEDAL_TEXT[r.medal]),
         );
       }
+      // 次のメダルの基準を1行（金なら「最高」）。「もっと速く・安く」の目標が見えるように（#120）
+      medalCell.append(
+        h(
+          "span",
+          { class: "rs-medal-next", "data-next-medal": r.key },
+          nextMedalHint(order, report, r.key),
+        ),
+      );
       tr.append(medalCell);
       body.append(tr);
     }
