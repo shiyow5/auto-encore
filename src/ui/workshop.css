@@ -1249,9 +1249,18 @@ body[data-scene="workshop"] #audio-toggle {
   justify-content: safe center;
   overflow-y: auto;
   padding: 16px 16px 72px;
-  background: rgba(15, 12, 20, 0.95);
+  /* 背景は塗らない: 後ろの canvas（タイトルと同じ星空）を見せる (#176) */
+  background: transparent;
   color: var(--ae-text);
   font-family: var(--ae-font);
+}
+
+/* スマホ縦: 中央寄せだと上に約200pxの空白が出るので、上寄せにして上端から48pxに置く (#176) */
+@media (max-width: 600px) and (min-height: 501px) {
+  .os-overlay {
+    justify-content: flex-start;
+    padding-top: 48px;
+  }
 }
 
 .os-heading {
