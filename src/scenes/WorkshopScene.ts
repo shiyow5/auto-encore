@@ -37,7 +37,12 @@ import {
   type TutorialEvent,
   type TutorialStep,
 } from "./workshop/tutorial";
-import { isPortraitLayout, portraitMetrics } from "./workshop/portrait";
+import {
+  compactMetrics,
+  isCompactLandscape,
+  isPortraitLayout,
+  portraitMetrics,
+} from "./workshop/portrait";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
 import {
@@ -82,7 +87,6 @@ const FX_ALPHA = 0.5;
 
 const COLOR = {
   floor: 0x1e1722,
-  line: 0x3a2f40,
   belt: 0x5c4a66,
   merger: 0x4a5c66,
   sorter: 0x66584a,
@@ -91,7 +95,6 @@ const COLOR = {
   arrow: 0xf2b45a,
   input: 0x8fd6c8,
   output: 0xf28f9a,
-  hover: 0xffffff,
 };
 
 /** 音符の色（ド・ミ・ソ）。 */
@@ -140,6 +143,16 @@ function h<K extends keyof HTMLElementTagNameMap>(
   return e;
 }
 
+/** 改行（\n）を <br> にして 1 つの <p> に入れる（注文票の文面用）。 */
+function multiLine(text: string, cls: string): HTMLParagraphElement {
+  const p = h("p", { class: cls });
+  text.split("\n").forEach((line, i) => {
+    if (i > 0) p.append(document.createElement("br"));
+    p.append(document.createTextNode(line));
+  });
+  return p;
+}
+
 export class WorkshopScene extends Phaser.Scene {
   private order!: Order;
   private machines!: MachineTable;
@@ -165,8 +178,12 @@ export class WorkshopScene extends Phaser.Scene {
   /** 再生中に bin へ入った音符の数（combo 表示用） */
   private combo = 0;
   private overlay!: HTMLElement;
+  /** 稼働灯（上縁・下縁の2本）。canvas ではなく DOM に置き、.ws-grid の台座 box-shadow より前に出す（#160 回帰） */
+  private lamps: HTMLElement[] = [];
   /** 縦持ち（スマホ幅）レイアウトか。create で決める。 */
   private portrait = false;
+  /** スマホ横（844×390 など）の専用配置。canvas は画面と同じ大きさ（#165） */
+  private compact = false;
   private cell = CELL;
   private gridX = GRID_X;
   private gridY = GRID_Y;
@@ -189,7 +206,10 @@ export class WorkshopScene extends Phaser.Scene {
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => {
-    if (isPortraitLayout(window.innerWidth, window.innerHeight) !== this.portrait) {
+    if (
+      isPortraitLayout(window.innerWidth, window.innerHeight) !== this.portrait ||
+      isCompactLandscape(window.innerWidth, window.innerHeight) !== this.compact
+    ) {
       // 再生中は作り直さない（restart すると再生が消えて結果画面に届かない）。見た目だけ合わせ、
       // 再生は最後まで進めて結果画面へ。結果画面から戻れば新しい向きで create される。
       if (this.playing) {
@@ -200,7 +220,7 @@ export class WorkshopScene extends Phaser.Scene {
       this.scene.restart({ placements: this.placements, orderId: this.order.id });
       return;
     }
-    if (this.portrait && this.applyViewport()) this.redraw();
+    if ((this.portrait || this.compact) && this.applyViewport()) this.redraw();
     this.layout();
   };
 
@@ -210,12 +230,17 @@ export class WorkshopScene extends Phaser.Scene {
    */
   private applyViewport(): boolean {
     const portrait = isPortraitLayout(window.innerWidth, window.innerHeight);
+    const compact = !portrait && isCompactLandscape(window.innerWidth, window.innerHeight);
     this.portrait = portrait;
-    const w = portrait ? window.innerWidth : GAME_WIDTH;
-    const hgt = portrait ? window.innerHeight : GAME_HEIGHT;
+    this.compact = compact;
+    const full = portrait || compact;
+    const w = full ? window.innerWidth : GAME_WIDTH;
+    const hgt = full ? window.innerHeight : GAME_HEIGHT;
     const m = portrait
       ? portraitMetrics(w, this.rules.width, hgt, this.rules.height)
-      : { cell: CELL, gridX: GRID_X, gridY: GRID_Y };
+      : compact
+        ? compactMetrics(w, hgt, this.rules.width, this.rules.height)
+        : { cell: CELL, gridX: GRID_X, gridY: GRID_Y };
     const changed =
       this.scale.width !== w ||
       this.scale.height !== hgt ||
@@ -511,7 +536,10 @@ export class WorkshopScene extends Phaser.Scene {
     const skip = h("button", { type: "button", class: "ws-guide-skip" }, "スキップ");
     skip.addEventListener("click", () => this.tutorialEvent("skip"));
     panel.append(skip);
-    this.overlay.append(panel);
+    // 縦持ちは注文票の要約の下（詳細の上）に置き、盤面に重ねない（#123）
+    const detail = this.portrait ? this.overlay.querySelector(".ws-order-detail") : null;
+    if (detail?.parentElement) detail.parentElement.insertBefore(panel, detail);
+    else this.overlay.append(panel);
     this.tutorialPanel = panel;
     this.renderTutorial();
   }
@@ -532,6 +560,8 @@ export class WorkshopScene extends Phaser.Scene {
     const g = this.gfx;
     const { width, height } = this.rules;
     g.clear();
+    // 稼働灯は drawRunFx（再生中の tick）でだけ出す。それ以外は隠す
+    for (const el of this.lamps) el.hidden = true;
     for (const t of this.tiles) t.destroy();
     this.tiles = [];
     // 画像は TILE(14px) 基準なので、盤面の cell（縦持ちで変わる）に合わせて伸縮する
@@ -543,23 +573,7 @@ export class WorkshopScene extends Phaser.Scene {
     };
     // 床（木板ではなく暗い床タイル。グリッドは薄い線）
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) put("ae-floor", { x, y });
-    g.lineStyle(1, COLOR.line, 0.45);
-    for (let x = 0; x <= width; x++) {
-      g.lineBetween(
-        this.gridX + x * this.cell + 0.5,
-        this.gridY,
-        this.gridX + x * this.cell + 0.5,
-        this.gridY + height * this.cell,
-      );
-    }
-    for (let y = 0; y <= height; y++) {
-      g.lineBetween(
-        this.gridX,
-        this.gridY + y * this.cell + 0.5,
-        this.gridX + width * this.cell,
-        this.gridY + y * this.cell + 0.5,
-      );
-    }
+    // グリッド線・外枠・台座・カーソル枠は DOM(workshop.css .ws-grid / .ws-cell)で描く(#101: px 指定値を正確に出すため)
 
     for (const r of this.rules.reserved) {
       const { x, y } = this.cellXY(r.pos);
@@ -567,9 +581,9 @@ export class WorkshopScene extends Phaser.Scene {
         put("ae-blocked", r.pos);
         continue;
       }
-      // 入口/出口: 地色の上にラベル（A / OUT など）をドットで描く
-      put(portTexture(this.textures, r.kind, r.id ?? (r.kind === "input" ? "A" : "OUT")), r.pos);
-      this.arrow(x, y + 2, r.dir ?? "E", COLOR.floor);
+      // 入口/出口: 色（ミント=入口/ピンク=出口）+ 矢印のみ。文字は右パネルの注文票に出す（#112 方針c）
+      put(portTexture(this.textures, r.kind), r.pos);
+      this.arrow(x, y, r.dir ?? "E", COLOR.floor);
     }
 
     for (const p of this.placements) {
@@ -593,13 +607,75 @@ export class WorkshopScene extends Phaser.Scene {
     }
 
     const frame = this.playing?.ex.frames[this.playing.frame];
-    if (frame) this.drawNotes(frame);
-
-    if (this.hover && !this.playing) {
-      const { x, y } = this.cellXY(this.hover);
-      g.lineStyle(1, COLOR.hover, 0.9);
-      g.strokeRect(x + 1.5, y + 1.5, this.cell - 2, this.cell - 2);
+    if (frame) {
+      this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
+      this.drawNotes(frame);
     }
+  }
+
+  /**
+   * 実行中の演出（Issue #113）。tick ごとに描き直す gfx だけで作る（新規 canvas なし）。
+   * - 稼働灯: 盤面の上縁を左→右、下縁を右→左へ流れる琥珀色の灯り（1 tick で 10px）
+   * - 音符の尾: 1 tick 前の位置に、小さく薄い点（流れの向きが分かる）。今いるマスには重ねない
+   * - 合流機の火花: 音符が合流機のマスにいる tick だけ、四隅に白い点（#57 の連動）
+   * 音符・文字・マスの絵は隠さない（尾は alpha 0.3、火花は 1px 角）。
+   */
+  private drawRunFx(frame: SimState, prev: SimState | undefined): void {
+    const { width, height } = this.rules;
+    const g = this.gfx;
+    const tick = this.playing?.frame ?? 0;
+    // 稼働灯: 盤面の上下の縁を、琥珀色の灯り（幅 14px）が左→右へ流れる。縁の外側 2px なのでマスや文字に重ならない
+    // 縦画面では cell / 盤面原点が変わるので、this.cell / this.gridX / this.gridY と倍率 k で換算する
+    // 灯りは DOM（.ws-lamp）で描く。.ws-grid の台座 box-shadow（DOM）に隠れないようにするため（sota 判断 A）
+    const k = this.cell / CELL;
+    const gridW = width * this.cell;
+    const lx = this.gridX + ((tick * 10 * k) % gridW);
+    const lw = Math.min(14 * k, this.gridX + gridW - lx);
+    const [topLamp, bottomLamp] = this.lamps;
+    if (topLamp && bottomLamp) {
+      this.showLamp(topLamp, lx, this.gridY - 3, lw);
+      this.showLamp(
+        bottomLamp,
+        this.gridX + gridW - (lx - this.gridX) - lw,
+        this.gridY + height * this.cell + 1,
+        lw,
+      );
+    }
+    const here = new Set(frame.cells.map((c) => c.key));
+    for (const c of prev?.cells ?? []) {
+      if (here.has(c.key)) continue;
+      const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      g.fillStyle(NOTE_COLOR[c.note.pitch], 0.3);
+      g.fillCircle(x + this.cell / 2 + 0.5, y + this.cell / 2 + 0.5, 2);
+    }
+    const mergers = new Set(
+      this.placements.filter((p) => p.machine === "merger").map((p) => p.pos.y * width + p.pos.x),
+    );
+    for (const c of frame.cells) {
+      if (!mergers.has(c.key)) continue;
+      const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      const o = tick % 2 === 0 ? 0 : 1;
+      const far = this.cell - 3 - o;
+      g.fillStyle(0xffffff, 1);
+      for (const [dx, dy] of [
+        [1 + o, 1],
+        [far, 1],
+        [1 + o, this.cell - 3],
+        [far, this.cell - 3],
+      ] as const) {
+        g.fillRect(x + dx, y + dy, 2, 2);
+      }
+    }
+  }
+
+  /** 稼働灯の DOM を canvas 座標（px）の位置・幅に合わせる。.ws-grid と同じく scale 基準の % で置く。 */
+  private showLamp(el: HTMLElement, x: number, y: number, w: number): void {
+    const { width, height } = this.scale;
+    el.style.left = `${(x / width) * 100}%`;
+    el.style.top = `${(y / height) * 100}%`;
+    el.style.width = `${(w / width) * 100}%`;
+    el.style.height = `${(2 / height) * 100}%`;
+    el.hidden = false;
   }
 
   /** その tick の音符をマスの中央に置く（移動の補間なし＝最小の再生）。長い音は大きめ。 */
@@ -642,7 +718,12 @@ export class WorkshopScene extends Phaser.Scene {
     document.getElementById("ws-overlay")?.remove();
     const ov = h("div", { id: "ws-overlay", "data-scene": "workshop" });
     if (this.portrait) ov.classList.add("ws-portrait");
-    document.body.dataset.layout = this.portrait ? "portrait" : "landscape";
+    if (this.compact) ov.classList.add("ws-compact");
+    document.body.dataset.layout = this.portrait
+      ? "portrait"
+      : this.compact
+        ? "compact"
+        : "landscape";
     this.overlay = ov;
     this.eraseMode = false;
 
@@ -667,7 +748,7 @@ export class WorkshopScene extends Phaser.Scene {
       b.append(
         iconCanvas(id),
         h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
-        h("span", { class: "ws-tool-cost" }, `${cost}G`),
+        h("span", { class: "ws-tool-cost ae-footnote" }, `${cost}G`),
       );
       b.addEventListener("click", () => {
         this.selected = id;
@@ -735,7 +816,8 @@ export class WorkshopScene extends Phaser.Scene {
       confirm.hidden = true;
       clear.focus();
     });
-    actions.append(clear);
+    // 縦持ちの全消しは下部固定バーの左（#123）。横持ち・PC は従来どおり盤面の右下
+    if (!this.portrait) actions.append(clear);
     ov.append(shelf, confirm);
 
     // グリッド（中央）
@@ -801,24 +883,37 @@ export class WorkshopScene extends Phaser.Scene {
       }
     }
     ov.append(grid);
+    // 稼働灯（.ws-grid の兄弟。後から追加するので台座 box-shadow の上に出る）
+    this.lamps = [0, 1].map(() => {
+      const el = document.createElement("div");
+      el.className = "ws-lamp";
+      el.setAttribute("aria-hidden", "true");
+      el.hidden = true;
+      return el;
+    });
+    ov.append(...this.lamps);
 
     // 注文票（右）
     const card = h("section", { class: "ws-order", "aria-label": "注文票" });
     const body = h("div", { class: "ws-order-body" });
     card.append(body);
-    body.append(h("h2", {}, this.order.title));
+    const title = h("h2", { class: "ws-order-title" }, this.order.title);
+    // 詳細（依頼人・依頼文・説明・入口出口の一覧）。縦持ちは既定で閉じ、「詳細」ボタンで押し下げ展開（#123）
+    const detail = h("div", { class: "ws-order-detail", id: "ws-order-detail" });
     const intro = this.order.texts["intro"];
-    if (typeof intro === "string") body.append(h("p", {}, intro));
+    if (this.order.client) {
+      detail.append(h("p", { class: "ws-client" }, `依頼人: ${this.order.client.name}`));
+    }
+    if (typeof intro === "string") detail.append(multiLine(intro, "ws-intro"));
     // Issue #48: tutorial 文を表示
     const tutorial = this.order.texts["tutorial"];
     if (typeof tutorial === "string") {
-      body.append(
-        h(
-          "p",
-          { class: "ws-tutorial", style: "font-size: 12px; color: #b0a0c0; margin: 6px 0;" },
-          tutorial,
-        ),
+      const p = multiLine(tutorial, "ws-tutorial");
+      p.setAttribute(
+        "style",
+        "font-size: 16px; line-height: 24px; color: var(--ae-text-weak); margin: 8px 0;",
       );
+      detail.append(p);
     }
     const list = h("ul", {});
     // Issue #49: 座標文字は出さず、マス目上の入口・出口の記号（矢印）で示す
@@ -826,16 +921,53 @@ export class WorkshopScene extends Phaser.Scene {
       list.append(h("li", {}, `入口 ${i.id} ${DIR_ARROW[i.dir]}（${DIR_NAME[i.dir]}へ出す）`));
     for (const o of this.order.outputs)
       list.append(h("li", {}, `出口 ${o.id} ${DIR_ARROW[o.dir]}（${DIR_NAME[o.dir]}向き）`));
-    body.append(list);
+    detail.append(list);
+    if (this.portrait) {
+      detail.hidden = true;
+      const head = h("div", { class: "ws-order-head" });
+      const toggle = h(
+        "button",
+        {
+          type: "button",
+          class: "ws-btn ws-order-toggle",
+          "aria-expanded": "false",
+          "aria-controls": "ws-order-detail",
+        },
+        "詳細 ▾",
+      );
+      toggle.addEventListener("click", () => {
+        const open = detail.hidden;
+        detail.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.textContent = open ? "閉じる ▴" : "詳細 ▾";
+      });
+      head.append(title, toggle);
+      const ins = this.order.inputs.map((i) => i.id).join("・");
+      const outs = this.order.outputs.map((o) => o.id).join("・");
+      body.append(head, h("p", { class: "ws-order-goal" }, `目標: 入口 ${ins} → 出口 ${outs}`));
+    } else {
+      body.append(title, detail);
+    }
     this.costText = h("p", { "aria-label": "配置の合計" });
     // 実行中は同じ位置（実行ボタンの直上）に「実行中…(tick n)」を出す。配置の合計は実行中は隠す
     this.runStatus = h("p", { class: "ws-run-status", "aria-hidden": "true" });
     this.runStatus.hidden = true;
-    body.append(this.costText, this.runStatus);
+    // 合計と実行中表示は注文票の下端に固定（入口・出口が長くても見える。#136）
+    const total = h("div", { class: "ws-order-total" });
+    total.append(this.costText, this.runStatus);
+    body.append(total);
     this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
     this.runButton.addEventListener("click", () => this.runSim());
-    card.append(this.runButton);
-    ov.append(card);
+    if (this.portrait) {
+      card.append(detail);
+      // 下部固定バー: 左に全消し、右に実行（#123）
+      const bar = h("div", { class: "ws-bar" });
+      bar.append(clear, this.runButton);
+      ov.append(card, bar);
+    } else {
+      card.append(this.runButton);
+      ov.append(card);
+    }
 
     // 直前の操作（読み上げにも流す）
     this.status = h("p", { class: "ws-status", role: "status", "aria-live": "polite" });
@@ -844,11 +976,16 @@ export class WorkshopScene extends Phaser.Scene {
     // Issue #48: 操作説明の常時1行
     const helpLine = h("p", {
       class: "ws-help-line",
-      style: "color: #8a8090;",
+      style:
+        this.portrait || this.compact
+          ? "color: var(--ae-text-muted);"
+          : "font-size: 16px; line-height: 24px; color: var(--ae-text-muted); text-align: center; margin: 4px auto; max-width: 560px;",
     });
-    helpLine.textContent = this.portrait
-      ? "タップ=置く／消すボタン=消す／向きボタン=向き"
-      : "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
+    // タッチ端末（ホバーできない）はスマホ向けの言い方にする。向きではなく入力の種類で決める（#165）
+    helpLine.textContent =
+      this.portrait || this.compact || isHoverNone()
+        ? "タップ=置く／消すボタン=消す／向きボタン=向き"
+        : "置く=クリック / 向き=R / 音高=P か Shift+クリック / 消す=右クリック";
     ov.append(helpLine);
     this.tutorialPanel = null;
 
@@ -944,7 +1081,9 @@ export class WorkshopScene extends Phaser.Scene {
     this.runButton.textContent = running ? "結果へスキップ" : "実行";
     this.runStatus.hidden = !running;
     this.costText.hidden = running;
-    for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(".ws-shelf .ws-btn")) {
+    for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(
+      ".ws-shelf .ws-btn, .ws-bar .ws-clear",
+    )) {
       b.disabled = running;
     }
     this.cells.forEach((b) => b.setAttribute("aria-disabled", String(running)));
@@ -965,6 +1104,8 @@ export class WorkshopScene extends Phaser.Scene {
     s.height = `${c.height}px`;
     s.setProperty("--u", `${c.width / this.scale.width}px`);
     s.setProperty("--grid-y-px", `${this.gridY}px`);
+    s.setProperty("--grid-x-px", `${this.gridX}px`);
+    s.setProperty("--grid-w-px", `${this.rules.width * this.cell}px`);
     s.setProperty("--grid-h-px", `${this.rules.height * this.cell}px`);
     s.setProperty("--grid-x", `${(this.gridX / this.scale.width) * 100}%`);
     s.setProperty("--grid-y", `${(this.gridY / this.scale.height) * 100}%`);

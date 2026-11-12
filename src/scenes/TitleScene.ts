@@ -10,7 +10,9 @@ import Phaser from "phaser";
 
 import { TITLE } from "./BootScene";
 import "../ui/workshop.css";
+import { iconCanvas } from "../art/sprites";
 import { playSfx } from "../audio/player";
+import { setQaBusy } from "../ui/qa";
 
 function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -34,28 +36,34 @@ class TitleOverlay {
     ov.style.cssText = `
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(15, 12, 20, 0.95); color: var(--ae-text); font-family: var(--ae-font);
+      background: radial-gradient(ellipse at center, rgba(52, 40, 62, 0.72) 0%, rgba(15, 12, 20, 0.94) 100%); color: var(--ae-text); font-family: var(--ae-font);
       z-index: 100;
     `;
 
-    const title = h("h1", {}, TITLE);
-    title.style.cssText = "font-size: 14px; margin: 0 0 8px;";
+    // 狭い画面では「夜更け」と「のオルゴール工房」の間で折れないよう、後半を nowrap にまとめる
+    const title = h("h1", {});
+    const [titleHead, titleTail] = TITLE.split(" ― ");
+    title.append(`${titleHead} ― `);
+    const titleNoWrap = h("span", {}, titleTail);
+    titleNoWrap.style.whiteSpace = "nowrap";
+    title.append(titleNoWrap);
+    title.style.cssText =
+      "font-size: 32px; line-height: 32px; color: var(--ae-amber); margin: 0 0 24px; text-align: center; padding: 0 16px;";
+    // タイトルの上に ♪ のドット絵（飾り。aria-hidden。#112）
+    const mark = iconCanvas("note-on", "ae-title-mark");
+    mark.style.cssText =
+      "width: 40px; height: 40px; image-rendering: pixelated; margin-bottom: 12px;";
+    ov.append(mark);
     ov.append(title);
-
-    const subtitle = h("p", {}, "夜更けのオルゴール工房");
-    subtitle.style.cssText = "font-size: 12px; color: var(--ae-text-weak); margin: 0 0 24px;";
-    ov.append(subtitle);
 
     const btnStart = h("button", {
       type: "button",
-      class: "ws-btn",
+      class: "ws-btn ae-btn ae-btn-primary",
       "aria-label": "はじめる",
     });
     btnStart.textContent = "はじめる";
     btnStart.style.cssText = `
-      padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
-      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
-      cursor: pointer; margin: 4px;
+      font-family: var(--ae-font); margin: 4px;
     `;
     btnStart.addEventListener("click", () => {
       playSfx("start");
@@ -66,14 +74,12 @@ class TitleOverlay {
 
     const btnGuide = h("button", {
       type: "button",
-      class: "ws-btn",
+      class: "ws-btn ae-btn ae-btn-secondary",
       "aria-label": "遊び方",
     });
     btnGuide.textContent = "遊び方";
     btnGuide.style.cssText = `
-      padding: 8px 24px; font-size: 12px; font-family: var(--ae-font);
-      background: var(--ae-surface); color: var(--ae-text-weak); border: 1px solid #3a2f40;
-      cursor: pointer; margin: 4px;
+      font-family: var(--ae-font); margin: 4px;
     `;
     btnGuide.addEventListener("click", () => this.toggleGuide());
     ov.append(btnGuide);
@@ -95,13 +101,13 @@ class TitleOverlay {
     guide.style.cssText = `
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      background: var(--ae-bg); border: 1px solid #5c4a66;
-      padding: 20px; max-width: 300px; color: var(--ae-text);
-      font-size: 12px; line-height: 1.6;
+      background: var(--ae-bg); border: 1px solid var(--ae-line);
+      padding: 20px; max-width: 420px; color: var(--ae-text);
+      font-size: 16px; line-height: 24px;
     `;
 
     const title = h("h2", {}, "遊び方");
-    title.style.cssText = "margin: 0 0 12px; font-size: 13px;";
+    title.style.cssText = "margin: 0 0 12px; font-size: 24px; line-height: 32px;";
     guide.append(title);
 
     const ops = [
@@ -120,8 +126,8 @@ class TitleOverlay {
     const close = h("button", { type: "button", class: "ws-btn" });
     close.textContent = "閉じる";
     close.style.cssText = `
-      margin-top: 12px; padding: 4px 16px; font-size: 12px;
-      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid #5c4a66;
+      margin-top: 12px; min-height: 44px; padding: 4px 16px; font-size: 16px;
+      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid var(--ae-line);
       cursor: pointer;
     `;
     close.addEventListener("click", () => {
@@ -148,6 +154,8 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     document.body.dataset.scene = "title";
+    // 結果画面の「タイトル」から来た場合の遷移フラグを外す（waitForIdle が止まらないように）
+    setQaBusy("transition", false);
     createSceneFx(this, "fx-title").emit("ambient");
 
     const gameEl = document.getElementById("game") ?? document.body;

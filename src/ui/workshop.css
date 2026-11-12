@@ -18,6 +18,14 @@
   --ae-text-weak: #c4b4c9;
   --ae-amber: #f2b45a;
   --ae-danger: #ff8a7a;
+  --ae-amber-hover: #f6c77f;
+  --ae-line: #7a6888;
+  --ae-text-muted: #9a88a8;
+  --ae-entry: #92ddcc;
+  --ae-exit: #f29bb8;
+  --ae-medal-gold: #ffd27a;
+  --ae-medal-silver: #d8d3e0;
+  --ae-medal-bronze: #d98e5f;
   /* フォントは1か所で管理。Phaser の text もこの値を参照して「DotGothic16", monospace */
   --ae-font: "DotGothic16", monospace;
 }
@@ -30,21 +38,22 @@
   position: absolute;
   --u: 1px;
   font-family: var(--ae-font);
-  font-size: calc(var(--u) * 6);
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--ae-text);
   pointer-events: none;
 }
 
 #ws-overlay h2 {
-  margin: 0 0 calc(var(--u) * 3);
-  font-size: calc(var(--u) * 7);
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 32px;
   color: var(--ae-amber);
 }
 
 #ws-overlay p,
 #ws-overlay ul {
-  margin: 0 0 calc(var(--u) * 3);
+  margin: 0 0 8px;
 }
 
 #ws-overlay ul {
@@ -96,7 +105,7 @@
 }
 
 .ws-tool-cost {
-  font-size: calc(var(--u) * 3);
+  font-size: 12px; /* #99: 脚注扱い（12px は .ae-footnote のみ） */
   color: var(--ae-text-weak);
 }
 
@@ -114,7 +123,7 @@
   height: calc(var(--u) * 11);
   font-size: calc(var(--u) * 4);
   text-align: center;
-  border: calc(var(--u) * 0.5) solid #7a6888;
+  border: calc(var(--u) * 0.5) solid var(--ae-line);
 }
 
 .ws-confirm {
@@ -138,6 +147,7 @@
 
 .ws-confirm p {
   flex: 1;
+  font-size: 16px; /* #99 */
   margin: 0;
 }
 
@@ -162,7 +172,7 @@
 .ws-order {
   right: calc(var(--u) * 4);
   width: calc(var(--u) * 68);
-  max-height: calc(var(--u) * 112);
+  max-height: calc(var(--u) * 140); /* #136: 注文3でも内側スクロールを出さない */
   overflow: auto;
   scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
 }
@@ -184,7 +194,7 @@
   font: inherit;
   color: var(--ae-text);
   background: var(--ae-surface-up);
-  border: calc(var(--u) * 1) solid transparent;
+  border: calc(var(--u) * 0.5) solid #7a6888;
   border-radius: calc(var(--u) * 2);
   padding: calc(var(--u) * 2) calc(var(--u) * 3);
   cursor: pointer;
@@ -197,18 +207,25 @@
 }
 
 .ws-btn[aria-pressed="true"] {
+  background: var(--ae-amber);
   border-color: var(--ae-amber);
+  color: #1e1722;
+}
+
+.ws-btn[aria-pressed="true"] .ws-tool-cost {
+  color: #1e1722;
 }
 
 /* 注文で使えない機械も棚には出す（置けるが「実行」で止まる）。色だけに頼らず点線の枠でも区別 */
 .ws-tool[data-allowed="false"] {
-  color: var(--ae-text-weak);
+  color: #b8a8c0; /* #123: #3a2d42 上で 5.75:1（旧 #9a88a8 は 3.95:1 で AA 不合格）。点線枠は #9a88a8 のまま */
   border-style: dashed;
-  border-color: var(--ae-text-weak);
+  border-color: #9a88a8;
 }
 
 .ws-tool[data-allowed="false"][aria-pressed="true"] {
   border-color: var(--ae-amber);
+  color: #1e1722;
 }
 
 /* マスのボタンは透明（見た目は canvas が描く）。フォーカスだけは DOM で見せる */
@@ -219,9 +236,22 @@
   width: var(--grid-w);
   height: var(--grid-h);
   display: grid;
+  /* #101: 内側 2px #7A6888 → 外枠 3px #F3E9DC → 台座 16px #2A2030（盤面の外周） */
+  box-shadow:
+    0 0 0 2px #7a6888,
+    0 0 0 5px #f3e9dc,
+    0 0 0 21px #2a2030;
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   pointer-events: auto;
+}
+
+/* 稼働灯（#113 / #160 回帰の修正）: 台座の box-shadow（.ws-grid）より前に出す。見た目は琥珀色の細い帯 */
+.ws-lamp {
+  position: absolute;
+  z-index: 2;
+  background: #f6c77f;
+  pointer-events: none;
 }
 
 .ws-cell {
@@ -230,6 +260,13 @@
   border: 0;
   background: transparent;
   cursor: pointer;
+  /* グリッド線 2px #7A6888（隣り合うセルの 1px 内側線が重なって 2px） */
+  box-shadow: inset 0 0 0 1px #7a6888;
+}
+
+/* カーソル枠: 2px #F3E9DC 実線（置いたベルトの琥珀と区別できる） */
+#ws-overlay:not([data-running="true"]) .ws-cell:hover {
+  box-shadow: inset 0 0 0 2px #f3e9dc;
 }
 
 .ws-cell[data-kind="input"],
@@ -281,7 +318,7 @@
 }
 
 .ae-btn-primary:hover {
-  background: #f6c77f;
+  background: var(--ae-amber-hover);
 }
 
 .ae-btn-primary:active {
@@ -291,7 +328,7 @@
 .ae-btn-secondary {
   color: var(--ae-text);
   background: transparent;
-  border-color: #7a6888;
+  border-color: var(--ae-line);
 }
 
 .ae-btn-secondary:hover {
@@ -302,12 +339,14 @@
 .rs-actions {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 8px;
 }
 
 .rs-actions .ae-btn {
   width: 160px;
+  flex: none; /* ボタンが4つ並んでも縮めない（足りなければ折り返す） */
 }
 
 @media (max-width: 480px) {
@@ -335,14 +374,44 @@
   display: block;
   width: 100%;
   margin-top: calc(var(--u) * 2);
+  min-height: 44px; /* #99 P2: 横長でもタップ目標 44px を確保 */
   text-align: center;
   font-weight: bold;
   color: var(--ae-bg);
   background: var(--ae-amber);
 }
 
+/* 配置の合計: 注文票の下端（実行ボタンの直上）に固定。上に影を出して「続きがある」手がかりにする（#136） */
+.ws-order-total {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--ae-surface);
+  box-shadow: 0 -6px 6px -4px rgba(0, 0, 0, 0.4);
+}
+
+.ws-order-total p:last-child {
+  margin-bottom: 0;
+}
+
+/* スマホ縦は注文票が地色の上に直接のるので、合計の帯も地色にそろえる */
+.ws-portrait .ws-order-total {
+  background: var(--ae-bg);
+}
+
+#ws-overlay:not(.ws-portrait) .ws-order-total {
+  bottom: calc(44px + var(--u) * 2); /* 実行ボタン(min-height 44px + margin)の分 */
+}
+
+/* 横長で注文票が縦に収まらないときも「実行」を下端に残す（パネル内スクロールの末尾まで行かなくてよい） */
+#ws-overlay:not(.ws-portrait) .ws-run {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
 .ws-run:hover {
-  background: #f6c77f;
+  background: var(--ae-amber-hover);
 }
 
 /* 実行中の「実行中…(tick n)」。実行ボタンの真下に出す（盤面・演出の帯には重ねない） */
@@ -368,7 +437,7 @@
 
 /* ---- 縦持ち（スマホ幅, Issue #95）----
  * canvas を画面の CSS ピクセルと同じ大きさにしてあるので --u は 1px。文字はすべて 16px 以上、
- * 押す所は 44×44px 以上。上から: ヒント(y=8) → 盤面(y=56) → 操作の列 → 機械の横スクロール → 注文票 → 実行ボタン(下固定)。 */
+ * 押す所は 44×44px 以上。上から: ヒント(y=8) → 盤面(y=64) → 操作の列 → 機械の横スクロール → 注文票 → 実行ボタン(下固定)。 */
 #ws-overlay.ws-portrait {
   font-size: 16px;
   line-height: 1.4;
@@ -388,9 +457,26 @@
   padding-left: 24px;
 }
 
-.ws-portrait .ws-shelf,
-.ws-portrait .ws-order {
+.ws-portrait .ws-shelf {
   display: contents;
+}
+
+/* 注文票（縦持ち, #123）: 盤面・棚の下に縦に並べる。上から 要約(96px 固定) → 吹き出し → 詳細（既定は閉じる）。
+ * 内部スクロールなし。詳細を開くとこの列が下に伸び、収まらなければページ側がスクロールする。 */
+.ws-portrait .ws-order {
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 136px);
+  left: 0;
+  right: 0;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0 calc(52px + 24px + env(safe-area-inset-bottom, 0px));
+  background: none;
+  border-radius: 0;
+  pointer-events: none;
 }
 
 .ws-portrait .ws-shelf > h2 {
@@ -405,18 +491,27 @@
   box-sizing: border-box;
   height: 40px;
   max-width: 100%;
-  padding: 0 12px;
+  /* #162: 右上の音量(#volume-toggle, 左端が右から約 106px)と重ねないよう、右を 112px 空けて折り返す */
+  padding: 0 112px 0 12px;
   margin: 0;
   overflow: hidden;
   font-size: 16px !important;
   color: var(--ae-text-weak) !important;
-  line-height: 20px;
+  line-height: 19px;
   text-align: center !important;
+}
+
+.ws-portrait .ws-grid {
+  /* 縦持ちは上の説明文・下の操作列との間が 8px しかないため、台座を 3px に縮めて外周 8px に収める（Codex 指摘 / #101） */
+  box-shadow:
+    0 0 0 2px #7a6888,
+    0 0 0 5px #f3e9dc,
+    0 0 0 8px #2a2030;
 }
 
 .ws-portrait .ws-actions {
   position: absolute;
-  top: calc(var(--grid-y-px) + var(--grid-h-px) + 8px);
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 12px);
   left: 0;
   right: 0;
   box-sizing: border-box;
@@ -439,13 +534,7 @@
   display: block;
 }
 
-/* 縦持ちの全消しは操作の列の一員（横持ちの右下固定を打ち消す）。確認は盤面の上に出す */
-.ws-portrait .ws-actions .ws-clear {
-  position: static;
-  width: auto;
-  height: auto;
-}
-
+/* 縦持ちの全消しの確認は盤面の上に出す（全消しボタン自体は下部固定バー） */
 .ws-portrait .ws-confirm .ws-btn {
   min-height: 44px;
   font-size: 16px;
@@ -495,15 +584,91 @@
 }
 
 .ws-portrait .ws-order-body {
-  position: absolute;
-  top: calc(var(--grid-y-px) + var(--grid-h-px) + 132px);
-  left: 0;
-  right: 0;
-  bottom: calc(52px + 56px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  height: 96px; /* 要約＋目標＋合計。TS の PORTRAIT_BELOW_GRID と揃える */
+  padding: 0 16px;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-order-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.ws-portrait .ws-order-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  line-height: 24px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ws-portrait .ws-order-toggle {
+  flex: 0 0 auto;
+  min-width: 88px;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-order-goal {
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--ae-text-weak);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-portrait .ws-order-total {
+  position: static;
+  box-shadow: none;
+  background: none;
+}
+
+#ws-overlay.ws-portrait .ws-order-total p,
+#ws-overlay.ws-portrait .ws-order-goal {
+  margin: 0;
+  line-height: 20px;
+}
+
+.ws-portrait .ws-order-detail {
   box-sizing: border-box;
   padding: 0 16px;
-  overflow-y: auto;
   pointer-events: auto;
+}
+
+.ws-portrait .ws-order-detail[hidden] {
+  display: none;
+}
+
+.ws-order-detail {
+  display: block;
+}
+
+/* 吹き出し（縦持ち）: 要約の下の列に入る。盤面には重ならない */
+.ws-portrait .ws-guide {
+  position: static;
+  width: auto;
+  margin: 0 16px;
+  padding: 8px 12px;
+  font-size: 16px;
+  line-height: 22px;
+  pointer-events: none;
+}
+
+.ws-portrait .ws-guide-skip {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
 }
 
 .ws-portrait .ws-tutorial {
@@ -522,11 +687,35 @@
   font-size: 16px;
 }
 
-.ws-portrait .ws-run {
+/* 下部固定バー（#123）: 左に全消し、右に実行。バーは幅 100%−16px・上限 358px で中央寄せ */
+.ws-portrait .ws-bar {
   position: fixed;
-  left: 16px;
-  right: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  width: min(calc(100% - 16px), 358px);
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.ws-portrait .ws-bar .ws-clear {
+  position: static;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 84px;
+  height: 52px;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-run {
+  flex: 1 1 auto;
+  min-width: 0;
   width: auto;
   height: 52px;
   margin: 0;
@@ -541,7 +730,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   box-sizing: border-box;
-  width: min(92vw, 28rem);
+  width: min(92vw, 40rem);
   max-height: 92vh;
   overflow: auto;
   padding: 1.25rem 1.5rem;
@@ -555,7 +744,7 @@
 
 #rs-overlay h2 {
   margin: 0 0 0.25rem;
-  font-size: 1.5rem;
+  font-size: 2rem;
   color: var(--ae-amber);
 }
 
@@ -612,15 +801,15 @@
 }
 
 .rs-table [data-medal="gold"] {
-  color: var(--ae-amber);
+  color: var(--ae-medal-gold);
 }
 
 .rs-table [data-medal="silver"] {
-  color: #d8dce6;
+  color: var(--ae-medal-silver);
 }
 
 .rs-table [data-medal="bronze"] {
-  color: #e0a07a;
+  color: var(--ae-medal-bronze);
 }
 
 .rs-table [data-medal="none"] {
@@ -711,6 +900,70 @@ body[data-scene="workshop"] #audio-toggle {
   align-items: center;
 }
 
+/* 読み上げ専用（見えないが、アクセシブルネームには残る） */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* メダルのドット絵（12px の絵を 2 倍=24px。ぼかさない） */
+.ae-medal {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
+/* メダル文字（色だけで区別しない）。絵の右に 16px で併記 */
+.rs-medal-label {
+  margin-left: 0.4em;
+  font-size: 16px;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+/* 成功時の紙吹雪（パネルの中だけ。動きを減らす設定では出さない） */
+#rs-overlay {
+  overflow-x: hidden;
+}
+#rs-overlay:has(.rs-confetti) {
+  padding-top: 3.5rem;
+}
+.rs-confetti {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3rem; /* 見出し・表の上の帯だけ。文字に重ねない */
+  overflow: hidden;
+  pointer-events: none;
+}
+.rs-conf {
+  position: absolute;
+  top: -8px;
+  width: 6px;
+  height: 6px;
+  animation: rs-fall 2.6s linear infinite;
+}
+@keyframes rs-fall {
+  to {
+    transform: translateY(3rem) rotate(180deg);
+    opacity: 0.2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-confetti {
+    display: none;
+  }
+}
+
 /* Issue #50: 注文1 のチュートリアル。盤面の上の帯。押せるのはスキップだけ */
 .ws-guide {
   position: absolute;
@@ -770,7 +1023,7 @@ body[data-scene="workshop"] #audio-toggle {
   gap: 4px;
   padding: 8px 12px;
   font-family: var(--ae-font);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ae-text);
   background: var(--ae-surface);
   border: 1px solid var(--ae-amber);
@@ -795,9 +1048,410 @@ body[data-scene="workshop"] #audio-toggle {
   text-align: right;
 }
 
+/* 注文選択の行（#98）。ロックは opacity ではなく色指定（#9A88A8）。選択中は枠2px琥珀＋地#3A2D42の1重 */
+.os-list {
+  width: 100%;
+  max-width: 300px;
+}
+
+.os-row {
+  box-sizing: border-box;
+  min-height: 56px;
+  margin: 8px 0;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--ae-surface);
+  border: 2px solid var(--ae-surface-up);
+  border-radius: 4px;
+}
+
+.os-row:hover,
+.os-row:focus-within {
+  background: var(--ae-surface-up);
+  border-color: var(--ae-amber);
+}
+
+/* 押せるのは行全体（ボタンが行いっぱい。44px 以上） */
+.os-row:not(.os-row-locked) {
+  padding: 0;
+}
+
+.os-row-btn {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  font: inherit;
+  text-align: left;
+  color: var(--ae-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.os-row-btn:focus-visible {
+  outline: none; /* 枠は行（:focus-within）が担う */
+}
+
+.os-row-locked {
+  color: var(--ae-text-muted);
+}
+
+.os-row-locked:hover {
+  background: var(--ae-surface);
+  border-color: var(--ae-surface-up);
+}
+
+.os-lock-title,
+.os-lock-cond > span {
+  white-space: nowrap;
+}
+
+.os-lock-cond {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
-#audio-toggle .ae-icon {
+#audio-toggle .ae-icon,
+#volume-toggle .ae-icon {
   width: 24px;
   height: 24px;
   image-rendering: pixelated;
+}
+
+/* 注文選択の全体(#158)。地色はタイトルと同じ。縦に収まらないときは上から並べてスクロール（上が切れない） */
+.os-overlay {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  overflow-y: auto;
+  padding: 16px 16px 72px;
+  background: rgba(15, 12, 20, 0.95);
+  color: var(--ae-text);
+  font-family: var(--ae-font);
+}
+
+.os-heading {
+  font-size: 24px;
+  line-height: 32px;
+  margin: 0 0 12px;
+}
+
+.os-note {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--ae-text-weak);
+  margin: 12px 0 0;
+  text-align: center;
+}
+
+/* スマホ横: 見出しと余白を詰めて 390px に収める */
+@media (max-height: 500px) {
+  .os-overlay {
+    padding: 8px 16px 8px;
+  }
+  .os-heading {
+    font-size: 16px;
+    line-height: 24px;
+    margin: 0 0 4px;
+  }
+  .os-row {
+    margin: 4px 0;
+  }
+  .os-note {
+    margin-top: 4px;
+  }
+}
+
+/* ---- スマホ横（844×390 など, Issue #165 / #161）----
+ * canvas は画面の CSS ピクセルと同じ大きさ（--u = 1px）。縦持ちと同じく px 指定で並べる。
+ * 左: 棚（機械 2 列 × 56px、操作 2 列 × 44px）/ 中央: 盤面 / 右: 注文票（実行ボタンは下に固定）。
+ * 上の ♪・音量（右上 8〜52px）は注文票の上端 60px で避ける。文字は 16px 以上、価格だけ脚注 12px。 */
+#ws-overlay.ws-compact {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+#ws-overlay.ws-compact h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.ws-compact .ws-shelf {
+  left: 8px;
+  top: 8px;
+  width: 216px;
+  padding: 6px;
+  gap: 8px;
+  border-radius: 4px;
+  /* 低い横画面(844×300 等)でも画面内に収め、棚の中だけスクロールさせる */
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
+}
+
+.ws-compact .ws-shelf > h2 {
+  display: none;
+}
+
+.ws-compact .ws-palette,
+.ws-compact .ws-actions {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+/* 機械ボタン: 絵 → 名前 → 価格 を縦に積み、すべて枠の内側に収める（価格が枠に重ならない） */
+.ws-compact .ws-palette .ws-btn {
+  height: 56px;
+  padding: 2px 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  text-align: center;
+  font-size: 16px;
+  line-height: 18px;
+  overflow: hidden;
+}
+
+.ws-compact .ws-palette .ws-btn .ae-icon {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.ws-compact .ws-tool-name {
+  display: block;
+  white-space: nowrap;
+}
+
+.ws-compact .ws-tool-cost {
+  display: block;
+  line-height: 14px;
+}
+
+.ws-compact .ws-actions .ws-btn {
+  height: auto;
+  min-height: 44px;
+  padding: 0 4px;
+  flex-direction: row;
+  justify-content: center;
+  text-align: center;
+  font-size: 16px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.ws-compact .ws-actions .ws-btn .ae-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+.ws-compact .ws-erase {
+  display: flex;
+}
+
+/* 全消しは操作の一員（右下固定を打ち消す）。確認は盤面の上に出す */
+.ws-compact .ws-actions .ws-clear {
+  position: static;
+  width: auto;
+  height: auto;
+  border-width: 2px;
+}
+
+.ws-compact .ws-confirm {
+  left: var(--grid-x-px);
+  top: calc(var(--grid-y-px) + 40px);
+  width: var(--grid-w-px);
+  padding: 12px;
+  font-size: 16px;
+}
+
+.ws-compact .ws-confirm .ws-btn {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* 盤面の上: 操作説明（チュートリアルの案内が出ている間はそちらを見せる） */
+.ws-compact .ws-help-line,
+.ws-compact .ws-guide {
+  left: calc(var(--grid-x-px) - 8px);
+  right: auto;
+  top: 4px;
+  width: calc(var(--grid-w-px) + 16px);
+  box-sizing: border-box;
+  height: 48px;
+}
+
+/* チュートリアルの吹き出しは盤面の幅より広く取り、右端の ♪・音量（右 60px）の手前まで伸ばす。
+ * 盤面の上の帯（高さ 48px）に 1〜2 行で収め、盤面は覆わない */
+.ws-compact .ws-guide {
+  width: min(340px, calc(100vw - var(--grid-x-px) + 8px - 60px));
+  padding: 0 8px;
+}
+
+.ws-compact .ws-help-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 4px;
+  overflow: hidden;
+  font-size: 16px !important;
+  line-height: 20px;
+  color: var(--ae-text-weak) !important;
+  text-align: center !important;
+}
+
+.ws-compact:has(.ws-guide) .ws-help-line {
+  visibility: hidden;
+}
+
+.ws-compact .ws-guide {
+  padding: 2px 8px;
+  gap: 8px;
+  border-width: 2px;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.ws-compact .ws-guide-skip {
+  min-width: 64px;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* 盤面の下: 直前の操作 */
+.ws-compact .ws-status {
+  left: calc(var(--grid-x-px) - 8px);
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 14px);
+  width: calc(var(--grid-w-px) + 16px);
+  font-size: 16px;
+  line-height: 20px;
+  margin: 0;
+}
+
+/* 注文票: 右端に固定。本文だけスクロールし、合計と実行ボタンは下に残す（途中で切れない・白い矩形を出さない） */
+.ws-compact .ws-order {
+  left: auto;
+  right: 8px;
+  top: 60px;
+  bottom: 8px;
+  width: 220px;
+  max-height: none;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.ws-compact .ws-order-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
+}
+
+.ws-compact .ws-order-body::-webkit-scrollbar {
+  width: 8px;
+}
+.ws-compact .ws-order-body::-webkit-scrollbar-track {
+  background: var(--ae-surface-up);
+  border-radius: 4px;
+}
+.ws-compact .ws-order-body::-webkit-scrollbar-thumb {
+  background: var(--ae-text-weak);
+  border-radius: 4px;
+}
+
+.ws-compact .ws-order-body p,
+.ws-compact .ws-order-body ul {
+  margin: 0 0 6px;
+}
+
+.ws-compact .ws-order-body ul {
+  padding-left: 20px;
+}
+
+.ws-compact .ws-tutorial {
+  font-size: 16px !important;
+  margin: 0 0 6px !important;
+}
+
+#ws-overlay.ws-compact .ws-order-total {
+  position: sticky;
+  bottom: 0;
+}
+
+#ws-overlay.ws-compact .ws-run {
+  position: static;
+  flex: none;
+  margin-top: 6px;
+  min-height: 44px;
+  font-size: 18px;
+}
+
+/* 盤面の台座は棚・注文票に食い込まない幅（8px）にする */
+.ws-compact .ws-grid {
+  box-shadow:
+    0 0 0 2px #7a6888,
+    0 0 0 5px #f3e9dc,
+    0 0 0 8px #2a2030;
+}
+
+.ws-compact .ws-actions .ws-btn {
+  display: flex;
+  align-items: center;
+}
+
+/* ---- チュートリアル吹き出し（スマホ縦）: 盤面の外、パレットと注文票の間に置く ----
+ * 盤面を覆わない。注文票の本文はその分だけ下げる（本文はスクロールできる）。 */
+.ws-portrait .ws-guide {
+  left: 8px;
+  right: 8px;
+  width: auto;
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 124px);
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: 2px 8px;
+  gap: 8px;
+  border-width: 2px;
+  font-size: 16px;
+  line-height: 20px;
+}
+.ws-portrait .ws-guide-skip {
+  min-width: 64px;
+  min-height: 44px;
+  font-size: 16px;
+}
+.ws-portrait:has(.ws-guide) .ws-order-body {
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 124px + 56px);
+  /* 600×650 など背の低い縦画面でも本文を 96px 以上残す: 実行ボタン(52px)の上に 44px だけ空ける */
+  bottom: calc(52px + 44px + env(safe-area-inset-bottom, 0px));
+  min-height: 96px;
+}
+/* 注文票の本文: 末尾が下の帯（合計）に潜らないよう、帯の高さ分の余白を足す */
+.ws-compact .ws-order-body {
+  padding-bottom: 32px; /* 合計の帯（約22px）+ 余白。最後の行が帯に隠れない */
+}
+
+/* 縦持ちで吹き出しが出ている間は、注文票の本文が狭い。合計の帯は本文の流れの末尾に置き、文に重ねない */
+.ws-portrait:has(.ws-guide) .ws-order-total {
+  position: static;
+  box-shadow: none;
+}
+.ws-portrait:has(.ws-guide) .ws-client {
+  display: none;
 }

@@ -16,7 +16,8 @@ function fakeSink(): FxSink & { play: ReturnType<typeof vi.fn> } {
 const NAMES = Object.keys(FX_MAP) as FxEventName[];
 
 /** 見た目を出さず、SE だけ鳴らすイベント（盤面を覆わないため） */
-const SOUND_ONLY: FxEventName[] = ["comboMilestone"];
+// result: LEVEL UP! を外した（カードの表・ボタンに重なるため, Issue #171）。紙吹雪・メダルは別イベントが担う
+const SOUND_ONLY: FxEventName[] = ["comboMilestone", "result"];
 
 describe("fx-map（イベント名 → エフェクト）", () => {
   it("全イベントに 1 つ以上のエフェクトがある（SE だけのものは除く）", () => {
@@ -170,5 +171,14 @@ describe("演出 → SE の対応（FX_SFX）", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("結果画面の演出（Issue #171）", () => {
+  it('"result" は LEVEL UP! を出さない（カードの表・ボタンに重なるため）。紙吹雪とメダルは出る', async () => {
+    const { FX_MAP } = await import("../../src/fx/fx-map");
+    expect(FX_MAP.result).toEqual([]);
+    expect(FX_MAP.songComplete.length).toBeGreaterThan(0);
+    expect(FX_MAP.medalEarned.length).toBeGreaterThan(0);
   });
 });

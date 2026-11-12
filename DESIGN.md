@@ -1,19 +1,25 @@
 ---
 name: Auto Encore
-description: Visual identity for shiyow5/auto-encore — a rhythm-completion game with mechanical theme. Library/live theme with cyan accents.
+description: Visual identity for shiyow5/auto-encore — a rhythm-completion game with mechanical theme. Library/live theme with amber accents on a plum base.
 omitted:
   - elevation
   - shapes
 colors:
-  primary: "#E0E0E0"
-  secondary: "#8892B0"
-  tertiary: "#00E5FF"
-  on-tertiary: "#1A1A2E"
-  neutral: "#16162A"
-  on-neutral: "#E0E0E0"
-  highlight: "#FF6B9D"
-  warning: "#FFD93D"
-  success: "#6BCB77"
+  primary: "#F2B45A"
+  on-primary: "#1E1722"
+  secondary: "#C4B4C9"
+  tertiary: "#92DDCC"
+  neutral: "#1E1722"
+  surface: "#2A2030"
+  surface-up: "#3A2D42"
+  line: "#7A6888"
+  on-neutral: "#F3E9DC"
+  text-muted: "#9A88A8"
+  highlight: "#F29BB8"
+  danger: "#FF8A7A"
+  medal-gold: "#FFD27A"
+  medal-silver: "#D8D3E0"
+  medal-bronze: "#D98E5F"
 typography:
   h1:
     fontFamily: "DotGothic16"
@@ -102,20 +108,28 @@ components:
 
 ## Overview
 
-Auto Encore is a rhythm-completion game where players arrange mechanical parts to create harmonious sequences. The visual identity is a **library/live performance theme** — part machine workshop, part concert hall. The palette uses a warm dark base (#16162A) with electric cyan (#00E5FF) as the primary accent, reflecting the energy of live performance.
+Auto Encore is a rhythm-completion game where players arrange mechanical parts to create harmonious sequences. The visual identity is a **library/live performance theme** — part machine workshop, part concert hall. The palette is a warm plum base (#1E1722) with amber (#F2B45A) as the primary accent. The warm palette also keeps it visually distinct from log-dive's cool celadon.
 
-The design philosophy is "energy at a glance." Combo counts, score progress, and completion feedback all use the brightest, most eye-catching colors. The palette feels more vibrant than log-dive while maintaining the same DotGothic16 font for consistency across both games.
+The implementation is the source of truth: all colors live in CSS variables `--ae-*` (`src/ui/workshop.css` `:root`). Change DESIGN.md and workshop.css in the same PR.
 
 ## Colors
 
-The palette centers on a dark purple-black base (#16162A) with energetic accent colors:
+| Role                              | Variable                                        | Value                       |
+| --------------------------------- | ----------------------------------------------- | --------------------------- |
+| Background (all screens)          | `--ae-bg`                                       | #1E1722                     |
+| Panel                             | `--ae-surface`                                  | #2A2030                     |
+| Raised surface / grid             | `--ae-surface-up`                               | #3A2D42                     |
+| Border / line (3.47:1 on bg)      | `--ae-line`                                     | #7A6888                     |
+| Body text (14.57:1)               | `--ae-text`                                     | #F3E9DC                     |
+| Hints / secondary text            | `--ae-text-weak`                                | #C4B4C9                     |
+| Locked / disabled text            | `--ae-text-muted`                               | #9A88A8                     |
+| Primary action, heading, selected | `--ae-amber` (hover `--ae-amber-hover` #F6C77F) | #F2B45A                     |
+| Entry                             | `--ae-entry`                                    | #92DDCC                     |
+| Exit                              | `--ae-exit`                                     | #F29BB8                     |
+| Failure / error                   | `--ae-danger`                                   | #FF8A7A                     |
+| Medals                            | `--ae-medal-gold/silver/bronze`                 | #FFD27A / #D8D3E0 / #D98E5F |
 
-- **Tertiary (#00E5FF):** "Electric Cyan" — combos, completion feedback, active elements. The signature color of the game.
-- **Highlight (#FF6B9D):** "Pink Spark" — special events, bonus rewards, rare achievements.
-- **Success (#6BCB77):** "Green Clear" — perfect completion, medal acquisition.
-- **Warning (#FFD93D):** "Yellow Caution" — timing misses, low accuracy warnings.
-
-The secondary and primary tones are desaturated to let the accent colors pop. All text uses #E0E0E0 on #16162A for a contrast ratio above 13:1 — above WCAG AA.
+Entry/exit must not rely on color alone: add the "入"/"出" label or an arrow shape. Medals also carry a shape (●/▲/■).
 
 ## Typography
 
@@ -135,36 +149,56 @@ Result screens use a full-width layout with the lightweight-charts graph compone
 
 ### Buttons
 
-Primary buttons use electric cyan with dark text. Secondary (back/cancel) buttons use outlined style.
+Primary buttons use amber with dark text (`#1E1722`); at most one per screen. Secondary buttons are outlined (2px `--ae-line`).
 
 ### Panels
 
-Main UI panels use the neutral base (#16162A) with a subtle 1px border (#2A2A4A). Interior padding is 16px.
+Main UI panels use the neutral base (`--ae-surface` #2A2030) with a subtle border (`--ae-line`). Interior padding is 16px.
 
 ### Tiles
 
-Game element tiles use a slightly lighter background (#1E1E36) with the same border color.
+Game element tiles use a slightly lighter background (`--ae-surface-up` #3A2D42) with the same border color.
 
 ### HUD Elements
 
-- Score bar: 8px high, green fill (#6BCB77) on dark gray track
-- Combo counter: oversized cyan text at 1.75rem
-- Medal display: pink highlight text for special rewards
+- Score bar: 8px high, amber fill (#F2B45A) on dark gray track
+- Combo counter: oversized amber text at 1.75rem
+- Medal display: medal colors (gold/silver/bronze) for special rewards
+
+### Run effects (Issue #113, workshop)
+
+Drawn with the board `gfx` only, redrawn every tick (110ms). No new canvas. Only while a run plays (`fxEnabled()` true; with `?fx=0` / reduced motion the run is not animated at all).
+
+- Run lamp: 14px x 2px amber (#F6C77F) bar on the 2px outside the board's top edge (moves left to right) and bottom edge (right to left), 10px per tick.
+- Note tail: previous tick's note position, radius 2px, same pitch color at 30% alpha. Skipped when a note is still on that cell.
+- Merger sparks: while a note sits on a merger cell, four 2x2 white dots near the cell corners, shifting 1px every tick.
+- Never covers a note, a machine glyph or text.
+
+### Pixel Icons (Issue #112)
+
+Defined as strings in `src/art/sprites.ts`; drawn with `iconCanvas()` and scaled with `image-rendering: pixelated` (never blurred).
+
+- Speaker (volume on/off) and ♪ note (on/off): 14px sprites, shown at `clamp(16px, 7·--u, 28px)` in `.ae-icon`. Muted state also changes shape (not colour alone).
+- Medals (gold/silver/bronze): 12px sprites at 24px (2x), always paired with a text label (金/銀/銅).
+- Title mark: ♪ (`note-on`) at 40px above the heading; decorative, `aria-hidden`.
+- Machine sprites: 14px tiles; running lamp has 2 frames (rio, #112).
+- Ports (entrance/exit panels): light/dark edge so shape reads without colour.
 
 ### Result Screen
 
-- Graph area: dark panel (#0F0F1E) with lightweight-charts for performance visualization
+- Graph area: dark panel (`--ae-bg`) with lightweight-charts for performance visualization
 - Score summary: large typography for total score and grade
 - Medal collection: grid of acquired medals with highlight color
 
 ## Do's and Don'ts
 
-- **Do** use cyan (#00E5FF) as the primary accent for combo and completion feedback
+- **Do** use amber (#F2B45A) as the primary accent (primary button, headings, selected state)
 - **Do** keep all text at 16px equivalent or larger (DotGothic16 0.75rem = ~12px, used only for non-critical HUD labels)
 - **Do** maintain consistent 8px/16px spacing throughout
 - **Do** bundle DotGothic16 with OFL license file
 - **Do** use lightweight-charts on result screens for data visualization
 - **Don't** use PixelSRPG-Forge assets (unresolved rights)
 - **Don't** introduce additional font families
-- **Don't** use pure white (#FFFFFF) — always use #E0E0E0 for a softer reading experience
+- **Don't** use pure white (#FFFFFF) or pure black — use `--ae-text` (#F3E9DC) for a softer reading experience
+- **Don't** use the retired cyan and pink-spark accents or hard-code colors; use `--ae-*` variables
 - **Don't** use rounded corners larger than 8px — the retro aesthetic calls for sharper edges

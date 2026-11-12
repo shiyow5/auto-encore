@@ -31,6 +31,16 @@ export const PALETTE: Readonly<Record<string, string>> = {
   a: "#f2b45a",
   w: "#f3e9dc",
   x: "#ff6b5e",
+  // メダル（金/銀/銅）: 1=本体 2=ハイライト 3=影
+  "1": "#f2b45a",
+  "2": "#fff1c2",
+  "3": "#b7762a",
+  "4": "#c9cfdc",
+  "5": "#f4f6fb",
+  "6": "#7d8497",
+  "7": "#d98f5f",
+  "8": "#f2c19c",
+  "9": "#8f5430",
 };
 
 export type SpriteName =
@@ -44,6 +54,9 @@ export type SpriteName =
   | "speaker-on"
   | "speaker-off"
   | "lock"
+  | "medal-gold"
+  | "medal-silver"
+  | "medal-bronze"
   | "note-on"
   | "note-off";
 
@@ -169,6 +182,48 @@ export const SPRITES: Readonly<Record<SpriteName, readonly string[]>> = {
     "..............",
   ],
   // 小アイコン（12x12）。音量・鍵
+  "medal-gold": [
+    "...dddddd...",
+    "..d111111d..",
+    ".d12211113d.",
+    ".d12111113d.",
+    "d1111111113d",
+    "d1111111113d",
+    "d1111111113d",
+    "d1111111113d",
+    ".d11111113d.",
+    ".d11111133d.",
+    "..d333333d..",
+    "...dddddd...",
+  ],
+  "medal-silver": [
+    "...dddddd...",
+    "..d444444d..",
+    ".d45544446d.",
+    ".d45444446d.",
+    "d4444444446d",
+    "d4444444446d",
+    "d4444444446d",
+    "d4444444446d",
+    ".d44444446d.",
+    ".d44444466d.",
+    "..d666666d..",
+    "...dddddd...",
+  ],
+  "medal-bronze": [
+    "...dddddd...",
+    "..d777777d..",
+    ".d78877779d.",
+    ".d78777779d.",
+    "d7777777779d",
+    "d7777777779d",
+    "d7777777779d",
+    "d7777777779d",
+    ".d77777779d.",
+    ".d77777799d.",
+    "..d999999d..",
+    "...dddddd...",
+  ],
   "speaker-on": [
     "............",
     "....w.......",
@@ -242,36 +297,6 @@ export const SPRITES: Readonly<Record<SpriteName, readonly string[]>> = {
   ],
 };
 
-/** 3x5 の小さな文字（入口・出口のラベル用）。使う文字だけ。 */
-const GLYPH: Readonly<Record<string, readonly string[]>> = {
-  A: ["010", "101", "111", "101", "101"],
-  B: ["110", "101", "110", "101", "110"],
-  C: ["011", "100", "100", "100", "011"],
-  H: ["101", "101", "111", "101", "101"],
-  I: ["111", "010", "010", "010", "111"],
-  L: ["100", "100", "100", "100", "111"],
-  O: ["111", "101", "101", "101", "111"],
-  P: ["110", "101", "110", "100", "100"],
-  T: ["111", "010", "010", "010", "010"],
-  U: ["101", "101", "101", "101", "111"],
-  "1": ["010", "110", "010", "010", "111"],
-  "2": ["110", "001", "010", "100", "111"],
-};
-
-/** ラベル文字列（例 "OUT"）を点の座標にする。幅は 4*n-1。 */
-export function labelDots(text: string): { w: number; h: number; dots: [number, number][] } {
-  const chars = [...text.toUpperCase()];
-  const dots: [number, number][] = [];
-  chars.forEach((ch, i) => {
-    (GLYPH[ch] ?? GLYPH.I ?? []).forEach((row, y) => {
-      [...row].forEach((v, x) => {
-        if (v === "1") dots.push([i * 4 + x, y]);
-      });
-    });
-  });
-  return { w: Math.max(0, chars.length * 4 - 1), h: 5, dots };
-}
-
 function drawRows(ctx: CanvasRenderingContext2D, rows: readonly string[]): void {
   rows.forEach((row, y) => {
     [...row].forEach((ch, x) => {
@@ -283,21 +308,22 @@ function drawRows(ctx: CanvasRenderingContext2D, rows: readonly string[]): void 
   });
 }
 
-/** 入口/出口のマス。地色（ミント/ピンク）の上にラベルを暗色で重ねる。 */
-export function drawPort(
-  ctx: CanvasRenderingContext2D,
-  kind: "input" | "output",
-  label: string,
-): void {
+/** 入口/出口のマス。地色（ミント=入口/ピンク=出口）の1px明暗の縁だけ。文字は右パネルの注文票に出す（#112 方針c）。 */
+export function drawPort(ctx: CanvasRenderingContext2D, kind: "input" | "output"): void {
   ctx.fillStyle = "#140f18";
   ctx.fillRect(0, 0, TILE, TILE);
-  ctx.fillStyle = kind === "input" ? "#8fd6c8" : "#f28f9a";
-  ctx.fillRect(1, 1, TILE - 2, TILE - 2);
-  const { w, dots } = labelDots(label);
-  // 上半分に置く（下半分は盤面側の向き矢印が入る）
-  const ox = Math.floor((TILE - w) / 2);
-  ctx.fillStyle = "#140f18";
-  for (const [x, y] of dots) ctx.fillRect(ox + x, 1 + y, 1, 1);
+  const base = kind === "input" ? "#8fd6c8" : "#f28f9a";
+  const light = kind === "input" ? "#c4efe6" : "#f9c3c9";
+  const shade = kind === "input" ? "#5fae9f" : "#c8606d";
+  // 平らな塗りではなく、1pxの明/暗の縁で段差をつけたドット絵のパネルにする
+  for (let y = 1; y < TILE - 1; y++) {
+    for (let x = 1; x < TILE - 1; x++) {
+      const top = y === 1 || x === 1;
+      const bottom = y === TILE - 2 || x === TILE - 2;
+      ctx.fillStyle = top && !bottom ? light : bottom ? shade : base;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
 }
 
 /** Phaser 用: 全スプライトのテクスチャを登録（既にあれば何もしない）。 */
@@ -313,17 +339,16 @@ export function registerTextures(textures: Phaser.Textures.TextureManager): void
   }
 }
 
-/** Phaser 用: 入口/出口ラベル付きテクスチャのキーを返す（なければ作る）。 */
+/** Phaser 用: 入口/出口のテクスチャのキーを返す（なければ作る）。 */
 export function portTexture(
   textures: Phaser.Textures.TextureManager,
   kind: "input" | "output",
-  label: string,
 ): string {
-  const key = `ae-port-${kind}-${label}`;
+  const key = `ae-port-${kind}`;
   if (textures.exists(key)) return key;
   const tex = textures.createCanvas(key, TILE, TILE);
   if (tex) {
-    drawPort(tex.getContext(), kind, label);
+    drawPort(tex.getContext(), kind);
     tex.refresh();
   }
   return key;
@@ -347,6 +372,7 @@ export function iconCanvas(name: SpriteName, className = "ae-icon"): HTMLCanvasE
  * ♪と同じシルエット（左下に符頭・右に棒・上に旗）。隙間が多いので下のベルト矢印が透けて読める（#153）。
  */
 const NOTE_ROWS: Readonly<Record<"short" | "long", readonly string[]>> = {
+  // 丸ではなく「♪」の形（玉＋棒＋旗）。短い音は旗つき
   short: [
     "....c.....",
     "....cc....",
@@ -359,6 +385,7 @@ const NOTE_ROWS: Readonly<Record<"short" | "long", readonly string[]>> = {
     "..cc......",
     "..........",
   ],
+  // 長い音は旗なし（玉＋棒）で大きめ
   long: [
     "....c.....",
     "....c.....",

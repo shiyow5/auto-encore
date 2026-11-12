@@ -6,6 +6,7 @@
  * - 「はじめる」(TitleScene) → ここ → WorkshopScene
  * - ResultScene から「次の注文へ」でここへ戻ってくる
  */
+import { createSceneFx } from "../fx/scene-fx";
 import { iconCanvas } from "../art/sprites";
 import Phaser from "phaser";
 import type { Order } from "../core/sim/types";
@@ -60,6 +61,9 @@ export class OrderSelectScene extends Phaser.Scene {
     // Phaser は scene の shutdown() を自動で呼ばないので、イベントで明示的に登録する
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.shutdown());
 
+    // 背景はタイトルと同じ星の演出・同じ地色にそろえる
+    createSceneFx(this, "fx-orders").emit("ambient");
+
     const data = loadGameData();
     const store = getUnlockStore();
 
@@ -73,44 +77,25 @@ export class OrderSelectScene extends Phaser.Scene {
       id: "order-select-overlay",
       "data-scene": "order-select",
     });
-    ov.style.cssText = `
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(15, 12, 20, 0.95); color: var(--ae-text); font-family: var(--ae-font);
-    `;
+    ov.className = "os-overlay";
 
-    // タイトル
-    ov.append(h("h1", { style: "font-size: 14px; margin: 0 0 4px;" }, "Auto Encore"));
-    ov.append(
-      h(
-        "p",
-        { style: "font-size: 12px; color: var(--ae-text-weak); margin: 0 0 20px;" },
-        "夜更けのオルゴール工房",
-      ),
-    );
-    ov.append(h("h2", { style: "font-size: 12px; margin: 0 0 12px;" }, "注文を選ぶ"));
+    // 見出しは「注文を選ぶ」だけ（作品名はタイトル画面で見せたので繰り返さない）
+    ov.append(h("h2", { class: "os-heading" }, "注文を選ぶ"));
 
     // 注文一覧
-    const list = h("div", { style: "width: 100%; max-width: 300px;" });
+    const list = h("div", { class: "os-list" });
     data.orders.forEach((order, index) => {
       const isUnlocked = unlocked.includes(order.id);
       const item = h("div", {
         "data-order-id": order.id,
-        style: `
-          border: 1px solid ${isUnlocked ? "#5c4a66" : "#3a2f40"};
-          border-radius: 4px; margin: 6px 0; padding: 8px 12px;
-          background: ${isUnlocked ? "#2a2530" : "#1a1520"};
-          opacity: ${isUnlocked ? 1 : 0.5};
-        `,
+        class: isUnlocked ? "os-row" : "os-row os-row-locked",
       });
 
       if (isUnlocked) {
         const btn = h("button", {
           type: "button",
-          class: "ws-btn",
+          class: "os-row-btn",
           "data-order-id": order.id,
-          style:
-            "width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;",
         });
         btn.append(h("span", {}, order.title));
         // メダルはまだ保存していないので欄ごと出さない (保存・表示は次版。Issue #70)
@@ -120,10 +105,15 @@ export class OrderSelectScene extends Phaser.Scene {
         item.append(btn);
       } else {
         const prev = data.orders[index - 1];
-        const hint = prev ? `（${prev.title} をクリアで解放）` : "";
-        const locked = h("span", {}, `ロック中: ${order.title}${hint}`);
+        const locked = h("span", { class: "os-lock-title" }, `ロック中: ${order.title}`);
         locked.prepend(iconCanvas("lock"));
         item.append(locked);
+        if (prev) {
+          // 解放条件は行を分け、各行 nowrap（語の途中で折り返さない）
+          const cond = h("span", { class: "os-lock-cond" });
+          cond.append(h("span", {}, "解放条件:"), h("span", {}, `${prev.title} をクリア`));
+          item.append(cond);
+        }
       }
       list.append(item);
     });
@@ -144,7 +134,7 @@ export class OrderSelectScene extends Phaser.Scene {
       h(
         "p",
         {
-          style: "font-size: 12px; color: var(--ae-text-weak); margin-top: 12px;",
+          class: "os-note",
         },
         "クリアすると次の注文が解放されます",
       ),
@@ -162,6 +152,8 @@ export class OrderSelectScene extends Phaser.Scene {
     });
 
     document.body.dataset.scene = "order-select";
+    // 結果画面の「注文選択」から来た場合の遷移フラグを外す（waitForIdle が止まらないように）
+    setQaBusy("transition", false);
   }
 
   shutdown(): void {

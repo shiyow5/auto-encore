@@ -2,7 +2,6 @@ import * as aurora from "pixelfx/fx/weather/aurora";
 import * as shootingStars from "pixelfx/fx/weather/shooting-stars";
 import * as comboCounter from "pixelfx/fx/ui/combo-counter";
 import * as confetti from "pixelfx/fx/ui/confetti";
-import * as levelUp from "pixelfx/fx/ui/level-up";
 import * as coinSpin from "pixelfx/fx/pickups/coin-spin";
 import * as heartPickup from "pixelfx/fx/pickups/heart-pickup";
 import * as keyGlint from "pixelfx/fx/pickups/key-glint";
@@ -55,13 +54,18 @@ export interface FxSpec {
    * 指定があると x / y より優先。帯が無いシーン（結果画面など）では出さない。
    */
   band?: { fx: number; fy: number };
+  /**
+   * 画面（ウィンドウ）の大きさに応じて origin を決める。指定があると x / y より優先。
+   * 結果画面のカード（DOM）は画面の大きさで配置が変わるため、演出の位置も合わせる（Issue #132）。
+   */
+  originFor?: (viewportW: number, viewportH: number) => { x: number; y: number };
   options?: FxOptions;
   /** ループ系を一発ものとして使うときの再生秒数 */
   ttl?: number;
   /** true なら、同じイベントの前回分を止めてから再生する（combo の表示を重ねない） */
   exclusive?: boolean;
-  /** back = 画面の背景側レイヤー / front = 手前 */
-  layer: "back" | "front";
+  /** back = 画面の背景側レイヤー / front = 手前 / overlay = DOM のカードよりさらに手前（透明 canvas） */
+  layer: "back" | "front" | "overlay";
 }
 
 /**
@@ -112,9 +116,10 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
     { mod: glitch, band: { fx: 0.5, fy: 0.5 }, ttl: 0.6, layer: "front" },
     { mod: crtOff, x: 0, y: 0, layer: "front" },
   ],
-  // 結果は日本語のカードが主役。pixelfx の文字は英数字のみ（日本語不可）で、ACHIEVEMENT バナーは
-  // 画面上端で切れてカードに重なっていたので外した（AE#128）。メダル演出は medalEarned が担う。
-  result: [{ mod: levelUp, x: 160, y: 118, layer: "front" }],
+  // 結果は日本語のカードが主役。pixelfx の LEVEL UP!（幅約94ドット・英語固定）は、カードの左余白（80ドット）に
+  // 収まらず、どの位置でも表の見出し・ボタンに重なる（スマホでは崩れかけの "UP!" が残る）ので出さない（Issue #171）。
+  // 祝いは songComplete（紙吹雪）とメダル演出が担う。イベント名は ResultScene から呼ばれるので空のまま残す。
+  result: [],
 };
 
 /** 演出に付ける SE。「演出 → 音」の対応はここだけ（シーンは playSfx を呼ばず emit するだけ）。 */
