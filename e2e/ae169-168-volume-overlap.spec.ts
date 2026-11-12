@@ -87,12 +87,12 @@ for (const vp of VIEWPORTS) {
             return w > 0 && h > 0 ? `${sel} text ${Math.round(w)}x${Math.round(h)}` : null;
           });
         });
-      const ov = document.getElementById("ws-overlay")!;
       const btns = [...document.querySelectorAll<HTMLElement>("#ws-overlay .ws-actions .ws-btn")];
       const covered = btns.filter((b) => {
         const q = rect(b);
         const top = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2);
-        return top === null || !ov.contains(top);
+        // ボタン自身（か中の子要素）が一番上にあること。overlay 内の別要素（注文票など）に覆われても検出する
+        return top === null || !b.contains(top);
       });
       return {
         overlaps: [...textHit("#ws-overlay h2"), ...textHit(".ws-help-line")].filter(Boolean),
