@@ -174,6 +174,16 @@ Drawn with the board `gfx` only, redrawn every tick (110ms). No new canvas. Only
 - Merger sparks: while a note sits on a merger cell, four 2x2 white dots near the cell corners, shifting 1px every tick.
 - Never covers a note, a machine glyph or text.
 
+### Pixel Icons (Issue #112)
+
+Defined as strings in `src/art/sprites.ts`; drawn with `iconCanvas()` and scaled with `image-rendering: pixelated` (never blurred).
+
+- Speaker (volume on/off) and ♪ note (on/off): 14px sprites, shown at `clamp(16px, 7·--u, 28px)` in `.ae-icon`. Muted state also changes shape (not colour alone).
+- Medals (gold/silver/bronze): 12px sprites at 24px (2x), always paired with a text label (金/銀/銅).
+- Title mark: ♪ (`note-on`) at 40px above the heading; decorative, `aria-hidden`.
+- Machine sprites: 14px tiles; running lamp has 2 frames (rio, #112).
+- Ports (entrance/exit panels): light/dark edge so shape reads without colour.
+
 ### Result Screen
 
 - Graph area: dark panel (`--ae-bg`) with lightweight-charts for performance visualization

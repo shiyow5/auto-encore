@@ -53,7 +53,7 @@ test("AE#95: 390×844 で本文 16px 以上・操作 44×44px 以上・盤面 30
   }
   expect(r.cell.w).toBe(30);
   expect(r.grid.w).toBe(360);
-  expect(r.grid.y).toBe(56);
+  expect(r.grid.y).toBe(64);
   expect(r.run.w).toBe(358);
   expect(r.run.h).toBe(52);
   expect(r.run.bottom).toBeLessThanOrEqual(844);

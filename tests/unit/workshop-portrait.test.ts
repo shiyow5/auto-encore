@@ -9,8 +9,8 @@ describe("縦持ちレイアウト（Issue #95）", () => {
     expect(isPortraitLayout(700, 1000)).toBe(false);
   });
 
-  it("390px・12列で 1マス30px・盤面幅360px・左右15px・上 y=56", () => {
-    expect(portraitMetrics(390, 12)).toEqual({ cell: 30, gridX: 15, gridY: 56 });
+  it("390px・12列で 1マス30px・盤面幅360px・左右15px・上 y=64", () => {
+    expect(portraitMetrics(390, 12)).toEqual({ cell: 30, gridX: 15, gridY: 64 });
   });
 
   it("幅が狭くても盤面が画面幅に収まる", () => {
@@ -19,7 +19,7 @@ describe("縦持ちレイアウト（Issue #95）", () => {
   });
 
   it("390×844・12×8 は高さを渡しても 30px のまま", () => {
-    expect(portraitMetrics(390, 12, 844, 8)).toEqual({ cell: 30, gridX: 15, gridY: 56 });
+    expect(portraitMetrics(390, 12, 844, 8)).toEqual({ cell: 30, gridX: 15, gridY: 64 });
   });
 
   it("600×650・12×8 は高さ側で縮み、注文票が 96px 以上残る", () => {
