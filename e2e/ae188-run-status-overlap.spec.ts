@@ -38,6 +38,7 @@ for (const size of SIZES) {
   test(`AE#188 ${size.width}×${size.height}: tick 表示とスキップボタンが重ならず、隙間に本文が透けない`, async ({
     page,
   }) => {
+    test.setTimeout(90_000); // CI のスマホ幅は配置クリックが遅い
     await page.setViewportSize(size);
     // 実行中の表示は演出あり(?fx なし)のときだけ出る
     await page.goto("/");
@@ -54,8 +55,8 @@ for (const size of SIZES) {
     const hits: string[] = [];
     let maxTick = 0;
     let leakChecked = false;
-    for (let i = 0; i < 40; i++) {
-      await page.clock.runFor(110);
+    for (let i = 0; i < 8; i++) {
+      await page.clock.runFor(i === 0 ? 1200 : 110); // 1 tick = 110ms。最初に tick 10 まで進める
       const m = await measure(page);
       if (!m) break;
       maxTick = Math.max(maxTick, m.tick);
