@@ -29,3 +29,38 @@ describe("音符・音アイコンのドット絵", () => {
     }
   });
 });
+
+describe("#102 指定値", () => {
+  it("棚アイコン・スピーカー・鍵は 16x16。棚アイコンは 3 色（琥珀・明・影）まで", async () => {
+    const mod = await import("../../src/art/sprites");
+    for (const n of [
+      "icon-belt",
+      "icon-merger",
+      "icon-sorter",
+      "icon-tuner",
+      "icon-bin",
+    ] as const) {
+      const rows = mod.SPRITES[n];
+      expect(rows.length).toBe(16);
+      expect(rows.every((r) => r.length === 16)).toBe(true);
+      const colors = new Set(
+        [...rows.join("")].filter((c) => c !== ".").map((c) => mod.PALETTE[c]),
+      );
+      expect([...colors].every((c) => ["#f2b45a", "#f3e9dc", "#7a6888"].includes(c ?? ""))).toBe(
+        true,
+      );
+    }
+    for (const n of ["speaker-on", "speaker-off", "lock"] as const) {
+      expect(mod.SPRITES[n].length).toBe(16);
+      expect(mod.SPRITES[n].every((r) => r.length === 16)).toBe(true);
+    }
+  });
+  it("床タイルは地 #2A2030 + 木目 #3A2D42 の 2 点", async () => {
+    const mod = await import("../../src/art/sprites");
+    const all = mod.SPRITES.floor.join("");
+    expect(mod.PALETTE.t).toBe("#2a2030");
+    expect(mod.PALETTE.T).toBe("#3a2d42");
+    expect([...all].filter((c) => c === "T").length).toBe(2);
+    expect([...all].every((c) => c === "t" || c === "T")).toBe(true);
+  });
+});
