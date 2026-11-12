@@ -20,7 +20,6 @@ const SOL = JSON.parse(
   ),
 ) as { placements: P[] };
 const NAME = { belt: "ベルト", merger: "合流機", tuner: "調律機" } as const;
-const ROT = ["E", "S", "W", "N"] as const;
 
 const IDS = ["order-01", "order-02", "order-03"];
 const unlockAll = JSON.stringify({ v: 1, sum: fnv1a(JSON.stringify(IDS)), data: IDS });
@@ -45,20 +44,31 @@ for (const vp of VIEWPORTS) {
     await page.getByRole("button", { name: "はじめる" }).click();
     await page.locator('button[data-order-id="order-03"]').click();
     await expect(page.locator("body")).toHaveAttribute("data-scene", "workshop");
-    // 注文3の模範解を置いて、実行が数秒続く状態にする
-    let cur: P["machine"] | null = null;
-    let dir: P["dir"] = "E";
-    for (const p of SOL.placements) {
-      if (p.machine !== cur) {
-        await page.getByRole("button", { name: new RegExp(`${NAME[p.machine]}を選ぶ`) }).click();
-        cur = p.machine;
-      }
-      while (dir !== p.dir) {
-        await page.getByRole("button", { name: /^次に置く向き/ }).click();
-        dir = ROT[(ROT.indexOf(dir) + 1) % 4]!;
-      }
-      await page.getByRole("button", { name: `マス ${p.pos[0]},${p.pos[1]}: 空き` }).click();
-    }
+    // 注文3の模範解を置いて、実行が数秒続く状態にする。
+    // 20台ぶんのクリックを1回の evaluate でまとめる（演出ありだと 1 クリックずつは CI で遅い）
+    await page.evaluate(
+      ({ placements, names }) => {
+        const rot = ["E", "S", "W", "N"];
+        const byLabel = (re: RegExp) =>
+          [...document.querySelectorAll<HTMLButtonElement>("#ws-overlay button")].find((b) =>
+            re.test(b.getAttribute("aria-label") ?? ""),
+          )!;
+        let cur = "";
+        let dir = "E";
+        for (const p of placements) {
+          if (p.machine !== cur) {
+            byLabel(new RegExp(`${names[p.machine]}を選ぶ`)).click();
+            cur = p.machine;
+          }
+          while (dir !== p.dir) {
+            byLabel(/^次に置く向き/).click();
+            dir = rot[(rot.indexOf(dir) + 1) % 4]!;
+          }
+          byLabel(new RegExp(`^マス ${p.pos[0]},${p.pos[1]}: 空き`)).click();
+        }
+      },
+      { placements: SOL.placements, names: NAME },
+    );
     await page.locator("#ws-overlay .ws-run").click();
     await expect(page.locator("#ws-overlay")).toHaveAttribute("data-running", "true");
     await page.waitForTimeout(300);
