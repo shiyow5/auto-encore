@@ -63,6 +63,12 @@ export class OrderSelectScene extends Phaser.Scene {
 
     // 背景はタイトルと同じ星の演出・同じ地色にそろえる
     createSceneFx(this, "fx-orders").emit("ambient");
+    // 16:9 でない画面（スマホ縦・横）では FIT だと canvas の左右/上下に余白ができ、星空に硬いエッジが出る。
+    // この画面の canvas は背景だけなので、画面いっぱいに敷く（はみ出しは切る）(#176)
+    // 表示サイズの計算モードは boot 時にしか読まれないので displaySize 側を直接切り替える
+    this.scale.displaySize.setAspectMode(Phaser.Scale.ENVELOP);
+    this.scale.refresh();
+    document.body.style.overflow = "hidden";
 
     const data = loadGameData();
     const store = getUnlockStore();
@@ -158,6 +164,10 @@ export class OrderSelectScene extends Phaser.Scene {
 
   shutdown(): void {
     this.overlay?.remove();
+    // 次の画面は FIT（全体が見える）に戻す
+    this.scale.displaySize.setAspectMode(Phaser.Scale.FIT);
+    this.scale.refresh();
+    document.body.style.overflow = "";
   }
 
   /** 注文IDで WorkshopScene を起動。解放済みなら unlock を保存。 */
