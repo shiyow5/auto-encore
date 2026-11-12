@@ -32,12 +32,12 @@ export function portraitMetrics(
 }
 
 /**
- * スマホ横（短い辺が 500px 以下・幅 760px 以上）の工房レイアウトか（Issue #165 / #161）。
+ * スマホ横（短い辺が 500px 以下・幅 600px 以上）の工房レイアウトか（Issue #165 / #161）。
  * 縦持ちと同じく canvas を画面の CSS ピクセルと同じ大きさにして、棚・注文票を px 指定で並べる。
  * 320×180 を拡大する従来の横レイアウトだと 844×390 で棚ボタンが 52×24px・価格が枠から出る・注文票が切れるため。
  */
 export const COMPACT_MAX_HEIGHT = 500;
-export const COMPACT_MIN_WIDTH = 760;
+export const COMPACT_MIN_WIDTH = 600;
 
 export function isCompactLandscape(width: number, height: number): boolean {
   return width > height && height <= COMPACT_MAX_HEIGHT && width >= COMPACT_MIN_WIDTH;
