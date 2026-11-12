@@ -54,7 +54,8 @@ test("AE#95: 390×844 で本文 16px 以上・操作 44×44px 以上・盤面 30
   expect(r.cell.w).toBe(30);
   expect(r.grid.w).toBe(360);
   expect(r.grid.y).toBe(64);
-  expect(r.run.w).toBe(358);
+  // #123: 実行は下部固定バーの右（全消しが左）。バー（358px）の中なので 358 以下
+  expect(r.run.w).toBeLessThanOrEqual(358);
   expect(r.run.h).toBe(52);
   expect(r.run.bottom).toBeLessThanOrEqual(844);
   expect(r.hintFits).toBe(true);
