@@ -130,10 +130,14 @@ test("?fx=0: ベルト10本 → 実行 → 結果に3指標が数値で出る �
   await expect(page.getByRole("heading", { name: "結果: アンコール！" })).toBeVisible();
   const table = page.getByRole("table", { name: "3指標" });
   await expect(table.getByRole("row", { name: /^正確さ/ })).toHaveAccessibleName(
-    "正確さ 100%（8/8） 金",
+    "正確さ 100%（8/8） 金 最高",
   );
-  await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName("速度 18 tick 金");
-  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName("コスト 10G 金");
+  await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName(
+    "速度 18 tick 金 最高",
+  );
+  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName(
+    "コスト 10G 金 最高",
+  );
   const back = page.getByRole("button", { name: "工房にもどる" });
   await expect(back).toBeFocused();
 
@@ -159,10 +163,14 @@ test("?fx=0: 途中が切れていると詰まって「もう一歩」・速度�
   await expect(page.getByRole("heading", { name: "結果: もう一歩" })).toBeVisible();
   const table = page.getByRole("table", { name: "3指標" });
   await expect(table.getByRole("row", { name: /^正確さ/ })).toHaveAccessibleName(
-    "正確さ 0%（0/8） —",
+    "正確さ 0%（0/8） — 銅まであと80%",
   );
-  await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName("速度 — (未達) —");
-  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName("コスト 9G —");
+  await expect(table.getByRole("row", { name: /^速度/ })).toHaveAccessibleName(
+    "速度 — (未達) — 銅は36tick以内",
+  );
+  await expect(table.getByRole("row", { name: /^コスト/ })).toHaveAccessibleName(
+    "コスト 9G — 正解すると判定",
+  );
 });
 
 test("演出あり: 実行すると音符を tick ごとに動かしてから結果へ（スキップもできる）", async ({

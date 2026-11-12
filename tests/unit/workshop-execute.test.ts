@@ -6,6 +6,7 @@ import {
   execute,
   isAllCleared,
   metricRows,
+  nextMedalHint,
   throughputSeries,
   toSolution,
   verdictMessage,
@@ -129,5 +130,53 @@ describe("全クリア判定（#137）", () => {
   });
   it("依頼人: 注文1=小暮店長 / 注文2=ひなた / 注文3=ミスズ師匠", () => {
     expect(data.orders.map((o) => o.client?.name)).toEqual(["小暮店長", "ひなた", "ミスズ師匠"]);
+  });
+});
+
+describe("結果表の次のメダル基準（#120）", () => {
+  const ex = execute(order, data.machines, frugal.placements);
+
+  it("全部金なら「最高」", () => {
+    for (const k of ["accuracy", "ticks", "cost"] as const) {
+      expect(nextMedalHint(order, ex.report, k)).toBe("最高");
+    }
+  });
+
+  it("速度が銀（金は 18 tick）なら「金まであと◯tick」、コストが銅なら銀までの差を G で出す", () => {
+    const r = {
+      ...ex.report,
+      metrics: { ...ex.report.metrics, ticks: 21, cost: 16 },
+      medals: { ...ex.report.medals, ticks: "silver", cost: "bronze" },
+    } as typeof ex.report;
+    expect(nextMedalHint(order, r, "ticks")).toBe("金まであと3tick");
+    expect(nextMedalHint(order, r, "cost")).toBe("銀まであと4G");
+  });
+
+  it("メダルなしは銅を目標にする。正確さは % で出す", () => {
+    const r = {
+      ...ex.report,
+      metrics: { ...ex.report.metrics, accuracy: 50, ticks: 40 },
+      medals: { ...ex.report.medals, accuracy: "none", ticks: "none" },
+    } as typeof ex.report;
+    expect(nextMedalHint(order, r, "accuracy")).toBe("銅まであと30%");
+    expect(nextMedalHint(order, r, "ticks")).toBe("銅まであと4tick");
+  });
+
+  it("数字は基準内なのにメダルが付かない（不正解）ときは、基準までの差を出さず理由を出す", () => {
+    const r = {
+      ...ex.report,
+      metrics: { ...ex.report.metrics, cost: 9 },
+      medals: { ...ex.report.medals, cost: "none" },
+    } as typeof ex.report;
+    expect(nextMedalHint(order, r, "cost")).toBe("正解すると判定");
+  });
+
+  it("完走せず（速度なし）のときは銅の基準を伝える", () => {
+    const r = {
+      ...ex.report,
+      metrics: { ...ex.report.metrics, ticks: null },
+      medals: { ...ex.report.medals, ticks: "none" },
+    } as typeof ex.report;
+    expect(nextMedalHint(order, r, "ticks")).toBe("銅は36tick以内");
   });
 });
