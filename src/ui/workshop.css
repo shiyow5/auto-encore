@@ -1253,6 +1253,8 @@ body[data-scene="workshop"] #audio-toggle {
   background: transparent;
   color: var(--ae-text);
   font-family: var(--ae-font);
+  /* 後ろの星と文字が重なっても読めるように、暗いにじみを付ける（背景のベタ塗りはしない）(#176) */
+  text-shadow: 0 0 4px rgba(15, 12, 20, 0.9);
 }
 
 /* スマホ縦: 中央寄せだと上に約200pxの空白が出るので、上寄せにして上端から48pxに置く (#176) */
