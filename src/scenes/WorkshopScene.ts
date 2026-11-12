@@ -559,9 +559,9 @@ export class WorkshopScene extends Phaser.Scene {
         put("ae-blocked", r.pos);
         continue;
       }
-      // 入口/出口: 地色の上にラベル（A / OUT など）をドットで描く
-      put(portTexture(this.textures, r.kind, r.id ?? (r.kind === "input" ? "A" : "OUT")), r.pos);
-      this.arrow(x, y + 2, r.dir ?? "E", COLOR.floor);
+      // 入口/出口: 色（ミント=入口/ピンク=出口）+ 矢印のみ。文字は右パネルの注文票に出す（#112 方針c）
+      put(portTexture(this.textures, r.kind), r.pos);
+      this.arrow(x, y, r.dir ?? "E", COLOR.floor);
     }
 
     for (const p of this.placements) {

@@ -297,36 +297,6 @@ export const SPRITES: Readonly<Record<SpriteName, readonly string[]>> = {
   ],
 };
 
-/** 3x5 の小さな文字（入口・出口のラベル用）。使う文字だけ。 */
-const GLYPH: Readonly<Record<string, readonly string[]>> = {
-  A: ["010", "101", "111", "101", "101"],
-  B: ["110", "101", "110", "101", "110"],
-  C: ["011", "100", "100", "100", "011"],
-  H: ["101", "101", "111", "101", "101"],
-  I: ["111", "010", "010", "010", "111"],
-  L: ["100", "100", "100", "100", "111"],
-  O: ["111", "101", "101", "101", "111"],
-  P: ["110", "101", "110", "100", "100"],
-  T: ["111", "010", "010", "010", "010"],
-  U: ["101", "101", "101", "101", "111"],
-  "1": ["010", "110", "010", "010", "111"],
-  "2": ["110", "001", "010", "100", "111"],
-};
-
-/** ラベル文字列（例 "OUT"）を点の座標にする。幅は 4*n-1。 */
-export function labelDots(text: string): { w: number; h: number; dots: [number, number][] } {
-  const chars = [...text.toUpperCase()];
-  const dots: [number, number][] = [];
-  chars.forEach((ch, i) => {
-    (GLYPH[ch] ?? GLYPH.I ?? []).forEach((row, y) => {
-      [...row].forEach((v, x) => {
-        if (v === "1") dots.push([i * 4 + x, y]);
-      });
-    });
-  });
-  return { w: Math.max(0, chars.length * 4 - 1), h: 5, dots };
-}
-
 function drawRows(ctx: CanvasRenderingContext2D, rows: readonly string[]): void {
   rows.forEach((row, y) => {
     [...row].forEach((ch, x) => {
@@ -338,21 +308,22 @@ function drawRows(ctx: CanvasRenderingContext2D, rows: readonly string[]): void 
   });
 }
 
-/** 入口/出口のマス。地色（ミント/ピンク）の上にラベルを暗色で重ねる。 */
-export function drawPort(
-  ctx: CanvasRenderingContext2D,
-  kind: "input" | "output",
-  label: string,
-): void {
+/** 入口/出口のマス。地色（ミント=入口/ピンク=出口）の1px明暗の縁だけ。文字は右パネルの注文票に出す（#112 方針c）。 */
+export function drawPort(ctx: CanvasRenderingContext2D, kind: "input" | "output"): void {
   ctx.fillStyle = "#140f18";
   ctx.fillRect(0, 0, TILE, TILE);
-  ctx.fillStyle = kind === "input" ? "#8fd6c8" : "#f28f9a";
-  ctx.fillRect(1, 1, TILE - 2, TILE - 2);
-  const { w, dots } = labelDots(label);
-  // 上半分に置く（下半分は盤面側の向き矢印が入る）
-  const ox = Math.floor((TILE - w) / 2);
-  ctx.fillStyle = "#140f18";
-  for (const [x, y] of dots) ctx.fillRect(ox + x, 1 + y, 1, 1);
+  const base = kind === "input" ? "#8fd6c8" : "#f28f9a";
+  const light = kind === "input" ? "#c4efe6" : "#f9c3c9";
+  const shade = kind === "input" ? "#5fae9f" : "#c8606d";
+  // 平らな塗りではなく、1pxの明/暗の縁で段差をつけたドット絵のパネルにする
+  for (let y = 1; y < TILE - 1; y++) {
+    for (let x = 1; x < TILE - 1; x++) {
+      const top = y === 1 || x === 1;
+      const bottom = y === TILE - 2 || x === TILE - 2;
+      ctx.fillStyle = top && !bottom ? light : bottom ? shade : base;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
 }
 
 /** Phaser 用: 全スプライトのテクスチャを登録（既にあれば何もしない）。 */
@@ -368,17 +339,16 @@ export function registerTextures(textures: Phaser.Textures.TextureManager): void
   }
 }
 
-/** Phaser 用: 入口/出口ラベル付きテクスチャのキーを返す（なければ作る）。 */
+/** Phaser 用: 入口/出口のテクスチャのキーを返す（なければ作る）。 */
 export function portTexture(
   textures: Phaser.Textures.TextureManager,
   kind: "input" | "output",
-  label: string,
 ): string {
-  const key = `ae-port-${kind}-${label}`;
+  const key = `ae-port-${kind}`;
   if (textures.exists(key)) return key;
   const tex = textures.createCanvas(key, TILE, TILE);
   if (tex) {
-    drawPort(tex.getContext(), kind, label);
+    drawPort(tex.getContext(), kind);
     tex.refresh();
   }
   return key;
@@ -399,29 +369,31 @@ export function iconCanvas(name: SpriteName, className = "ae-icon"): HTMLCanvasE
 
 /** 音符（長さ1=大 / 2以上=小）。c=音高色 h=ハイライト d=輪郭。10x10。 */
 const NOTE_ROWS: Readonly<Record<"short" | "long", readonly string[]>> = {
+  // 丸ではなく「♪」の形（玉＋棒＋旗）。短い音は旗つき
   short: [
-    "..dddddd..",
-    ".dccccccd.",
-    "dcchhccccd",
-    "dchhcccccd",
-    "dcccccccdd",
-    "dcccccccdd",
-    "dccccccdd.",
-    ".dccccccd.",
-    "..dddddd..",
-    "..........",
+    "......dd..",
+    "......dcdd",
+    "......dccd",
+    "......dcd.",
+    "......dc..",
+    "..ddd.dc..",
+    ".dcchdcd..",
+    ".dchccd...",
+    ".dcccdd...",
+    "..ddd.....",
   ],
+  // 長い音は旗なし（玉＋棒）で大きめ
   long: [
-    "..........",
-    "...dddd...",
-    "..dcchcd..",
-    ".dcchccdd.",
-    ".dcccccdd.",
-    ".dcccccdd.",
-    "..dcccdd..",
-    "...dddd...",
-    "..........",
-    "..........",
+    "......dd..",
+    "......dcd.",
+    "......dcd.",
+    "......dcd.",
+    "......dcd.",
+    ".dddd.dcd.",
+    "dcchhddcd.",
+    "dchccccd..",
+    "dccccccd..",
+    ".dddddd...",
   ],
 };
 export const NOTE_SIZE = 10;
