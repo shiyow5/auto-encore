@@ -118,3 +118,27 @@ describe("DragStroke（1回のドラッグ）", () => {
     expect(strokeButtonHeld(0, 2)).toBe(false);
   });
 });
+
+describe("SeThrottle（ドラッグ中の置く SE の間引き #191）", () => {
+  it("最初の move の2マス（同時刻）は1発だけ鳴る", async () => {
+    const { SeThrottle } = await import("../../src/scenes/workshop/drag");
+    const t = new SeThrottle();
+    expect([t.allow(1000), t.allow(1000)]).toEqual([true, false]);
+  });
+  it("50ms 間隔の move を流しても、発音の間隔はすべて 80ms 以上", async () => {
+    const { SeThrottle, DRAG_SE_MIN_INTERVAL_MS } = await import("../../src/scenes/workshop/drag");
+    const t = new SeThrottle();
+    const played: number[] = [];
+    for (let i = 0; i < 10; i++) if (t.allow(1000 + i * 50)) played.push(1000 + i * 50);
+    expect(played).toEqual([1000, 1100, 1200, 1300, 1400]);
+    for (let i = 1; i < played.length; i++)
+      expect(played[i]! - played[i - 1]!).toBeGreaterThanOrEqual(DRAG_SE_MIN_INTERVAL_MS);
+  });
+  it("ちょうど 80ms 空けば鳴る・79ms は鳴らない", async () => {
+    const { SeThrottle } = await import("../../src/scenes/workshop/drag");
+    const t = new SeThrottle();
+    t.allow(0);
+    expect(t.allow(79)).toBe(false);
+    expect(t.allow(80)).toBe(true);
+  });
+});
