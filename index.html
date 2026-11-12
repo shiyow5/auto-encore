@@ -21,6 +21,12 @@
       canvas {
         image-rendering: pixelated;
       }
+      /* #124: Chromium の合成で、WebGL canvas の上に不透明な DOM（例: チュートリアル帯）があると、
+         その上下反転の位置で canvas が描かれず穴になる（透明。スクショやビューアでは白く見える）。
+         filter で canvas を別の描画面にして避ける。見た目は変わらない */
+      #game > canvas {
+        filter: opacity(1);
+      }
     </style>
   </head>
   <body>
