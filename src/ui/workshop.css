@@ -208,8 +208,9 @@
   font-size: calc(var(--u) * 4);
 }
 
-.ws-danger {
-  --ae-frame-outer: var(--ae-danger);
+/* 全消去の「はい」。.ws-btn の border 指定より後勝ちさせるため 2 クラスで指定する（Codex P2 / #111） */
+.ws-btn.ws-danger {
+  border-color: var(--ae-danger);
 }
 
 .ws-help-line {

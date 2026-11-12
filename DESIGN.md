@@ -164,7 +164,7 @@ Main UI panels use the neutral base (`--ae-surface` #2A2030). Interior padding i
 | Corner dots      | `--ae-frame-corner` | 3×3px #F3E9DC at the 4 inner corners (2px inset)                                            |
 | Selected         | `--ae-amber`        | solid 2px amber + corner brackets `--ae-bracket` #F3E9DC (6px long, 2px thick, 4px outside) |
 | Locked           | `--ae-frame-lock`   | solid 2px #5A4A64 + 🔒 (never dashed; dashed reads as "disabled")                           |
-| Danger (confirm) | `--ae-danger`       | outer line only is replaced (`.ws-danger`)                                                  |
+| Danger (confirm) | `--ae-danger`       | border of the "はい" button (`.ws-btn.ws-danger`)                                           |
 
 ### Tiles
 
