@@ -521,7 +521,10 @@ export class WorkshopScene extends Phaser.Scene {
     const skip = h("button", { type: "button", class: "ws-guide-skip" }, "スキップ");
     skip.addEventListener("click", () => this.tutorialEvent("skip"));
     panel.append(skip);
-    this.overlay.append(panel);
+    // 縦持ちは注文票の要約の下（詳細の上）に置き、盤面に重ねない（#123）
+    const detail = this.portrait ? this.overlay.querySelector(".ws-order-detail") : null;
+    if (detail?.parentElement) detail.parentElement.insertBefore(panel, detail);
+    else this.overlay.append(panel);
     this.tutorialPanel = panel;
     this.renderTutorial();
   }
@@ -793,7 +796,8 @@ export class WorkshopScene extends Phaser.Scene {
       confirm.hidden = true;
       clear.focus();
     });
-    actions.append(clear);
+    // 縦持ちの全消しは下部固定バーの左（#123）。横持ち・PC は従来どおり盤面の右下
+    if (!this.portrait) actions.append(clear);
     ov.append(shelf, confirm);
 
     // グリッド（中央）
@@ -873,12 +877,14 @@ export class WorkshopScene extends Phaser.Scene {
     const card = h("section", { class: "ws-order", "aria-label": "注文票" });
     const body = h("div", { class: "ws-order-body" });
     card.append(body);
-    body.append(h("h2", {}, this.order.title));
+    const title = h("h2", { class: "ws-order-title" }, this.order.title);
+    // 詳細（依頼人・依頼文・説明・入口出口の一覧）。縦持ちは既定で閉じ、「詳細」ボタンで押し下げ展開（#123）
+    const detail = h("div", { class: "ws-order-detail", id: "ws-order-detail" });
     const intro = this.order.texts["intro"];
     if (this.order.client) {
-      body.append(h("p", { class: "ws-client" }, `依頼人: ${this.order.client.name}`));
+      detail.append(h("p", { class: "ws-client" }, `依頼人: ${this.order.client.name}`));
     }
-    if (typeof intro === "string") body.append(multiLine(intro, "ws-intro"));
+    if (typeof intro === "string") detail.append(multiLine(intro, "ws-intro"));
     // Issue #48: tutorial 文を表示
     const tutorial = this.order.texts["tutorial"];
     if (typeof tutorial === "string") {
@@ -887,7 +893,7 @@ export class WorkshopScene extends Phaser.Scene {
         "style",
         "font-size: 16px; line-height: 24px; color: var(--ae-text-weak); margin: 8px 0;",
       );
-      body.append(p);
+      detail.append(p);
     }
     const list = h("ul", {});
     // Issue #49: 座標文字は出さず、マス目上の入口・出口の記号（矢印）で示す
@@ -895,7 +901,33 @@ export class WorkshopScene extends Phaser.Scene {
       list.append(h("li", {}, `入口 ${i.id} ${DIR_ARROW[i.dir]}（${DIR_NAME[i.dir]}へ出す）`));
     for (const o of this.order.outputs)
       list.append(h("li", {}, `出口 ${o.id} ${DIR_ARROW[o.dir]}（${DIR_NAME[o.dir]}向き）`));
-    body.append(list);
+    detail.append(list);
+    if (this.portrait) {
+      detail.hidden = true;
+      const head = h("div", { class: "ws-order-head" });
+      const toggle = h(
+        "button",
+        {
+          type: "button",
+          class: "ws-btn ws-order-toggle",
+          "aria-expanded": "false",
+          "aria-controls": "ws-order-detail",
+        },
+        "詳細 ▾",
+      );
+      toggle.addEventListener("click", () => {
+        const open = detail.hidden;
+        detail.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.textContent = open ? "閉じる ▴" : "詳細 ▾";
+      });
+      head.append(title, toggle);
+      const ins = this.order.inputs.map((i) => i.id).join("・");
+      const outs = this.order.outputs.map((o) => o.id).join("・");
+      body.append(head, h("p", { class: "ws-order-goal" }, `目標: 入口 ${ins} → 出口 ${outs}`));
+    } else {
+      body.append(title, detail);
+    }
     this.costText = h("p", { "aria-label": "配置の合計" });
     // 実行中は同じ位置（実行ボタンの直上）に「実行中…(tick n)」を出す。配置の合計は実行中は隠す
     this.runStatus = h("p", { class: "ws-run-status", "aria-hidden": "true" });
@@ -906,8 +938,16 @@ export class WorkshopScene extends Phaser.Scene {
     body.append(total);
     this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
     this.runButton.addEventListener("click", () => this.runSim());
-    card.append(this.runButton);
-    ov.append(card);
+    if (this.portrait) {
+      card.append(detail);
+      // 下部固定バー: 左に全消し、右に実行（#123）
+      const bar = h("div", { class: "ws-bar" });
+      bar.append(clear, this.runButton);
+      ov.append(card, bar);
+    } else {
+      card.append(this.runButton);
+      ov.append(card);
+    }
 
     // 直前の操作（読み上げにも流す）
     this.status = h("p", { class: "ws-status", role: "status", "aria-live": "polite" });
@@ -1018,7 +1058,9 @@ export class WorkshopScene extends Phaser.Scene {
     this.runButton.textContent = running ? "結果へスキップ" : "実行";
     this.runStatus.hidden = !running;
     this.costText.hidden = running;
-    for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(".ws-shelf .ws-btn")) {
+    for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(
+      ".ws-shelf .ws-btn, .ws-bar .ws-clear",
+    )) {
       b.disabled = running;
     }
     this.cells.forEach((b) => b.setAttribute("aria-disabled", String(running)));

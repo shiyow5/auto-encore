@@ -218,7 +218,7 @@
 
 /* 注文で使えない機械も棚には出す（置けるが「実行」で止まる）。色だけに頼らず点線の枠でも区別 */
 .ws-tool[data-allowed="false"] {
-  color: #9a88a8;
+  color: #b8a8c0; /* #123: #3a2d42 上で 5.75:1（旧 #9a88a8 は 3.95:1 で AA 不合格）。点線枠は #9a88a8 のまま */
   border-style: dashed;
   border-color: #9a88a8;
 }
@@ -457,9 +457,26 @@
   padding-left: 24px;
 }
 
-.ws-portrait .ws-shelf,
-.ws-portrait .ws-order {
+.ws-portrait .ws-shelf {
   display: contents;
+}
+
+/* 注文票（縦持ち, #123）: 盤面・棚の下に縦に並べる。上から 要約(96px 固定) → 吹き出し → 詳細（既定は閉じる）。
+ * 内部スクロールなし。詳細を開くとこの列が下に伸び、収まらなければページ側がスクロールする。 */
+.ws-portrait .ws-order {
+  top: calc(var(--grid-y-px) + var(--grid-h-px) + 136px);
+  left: 0;
+  right: 0;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0 calc(52px + 24px + env(safe-area-inset-bottom, 0px));
+  background: none;
+  border-radius: 0;
+  pointer-events: none;
 }
 
 .ws-portrait .ws-shelf > h2 {
@@ -517,13 +534,7 @@
   display: block;
 }
 
-/* 縦持ちの全消しは操作の列の一員（横持ちの右下固定を打ち消す）。確認は盤面の上に出す */
-.ws-portrait .ws-actions .ws-clear {
-  position: static;
-  width: auto;
-  height: auto;
-}
-
+/* 縦持ちの全消しの確認は盤面の上に出す（全消しボタン自体は下部固定バー） */
 .ws-portrait .ws-confirm .ws-btn {
   min-height: 44px;
   font-size: 16px;
@@ -573,15 +584,91 @@
 }
 
 .ws-portrait .ws-order-body {
-  position: absolute;
-  top: calc(var(--grid-y-px) + var(--grid-h-px) + 136px);
-  left: 0;
-  right: 0;
-  bottom: calc(52px + 56px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  height: 96px; /* 要約＋目標＋合計。TS の PORTRAIT_BELOW_GRID と揃える */
+  padding: 0 16px;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-order-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.ws-portrait .ws-order-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  line-height: 24px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ws-portrait .ws-order-toggle {
+  flex: 0 0 auto;
+  min-width: 88px;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 16px;
+}
+
+.ws-portrait .ws-order-goal {
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--ae-text-weak);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-portrait .ws-order-total {
+  position: static;
+  box-shadow: none;
+  background: none;
+}
+
+#ws-overlay.ws-portrait .ws-order-total p,
+#ws-overlay.ws-portrait .ws-order-goal {
+  margin: 0;
+  line-height: 20px;
+}
+
+.ws-portrait .ws-order-detail {
   box-sizing: border-box;
   padding: 0 16px;
-  overflow-y: auto;
   pointer-events: auto;
+}
+
+.ws-portrait .ws-order-detail[hidden] {
+  display: none;
+}
+
+.ws-order-detail {
+  display: block;
+}
+
+/* 吹き出し（縦持ち）: 要約の下の列に入る。盤面には重ならない */
+.ws-portrait .ws-guide {
+  position: static;
+  width: auto;
+  margin: 0 16px;
+  padding: 8px 12px;
+  font-size: 16px;
+  line-height: 22px;
+  pointer-events: none;
+}
+
+.ws-portrait .ws-guide-skip {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
 }
 
 .ws-portrait .ws-tutorial {
@@ -600,11 +687,35 @@
   font-size: 16px;
 }
 
-.ws-portrait .ws-run {
+/* 下部固定バー（#123）: 左に全消し、右に実行。バーは幅 100%−16px・上限 358px で中央寄せ */
+.ws-portrait .ws-bar {
   position: fixed;
-  left: 16px;
-  right: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  width: min(calc(100% - 16px), 358px);
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.ws-portrait .ws-bar .ws-clear {
+  position: static;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 84px;
+  height: 52px;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.ws-portrait .ws-run {
+  flex: 1 1 auto;
+  min-width: 0;
   width: auto;
   height: 52px;
   margin: 0;
