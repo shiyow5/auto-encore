@@ -1,0 +1,83 @@
+name: webkit-shot-109
+
+# AE#109 の WebKit(Playwright) 撮影用（minori）。Safari 実機ではない。
+# 対象: PR #155 の基準コミット 075d937（Chromium 撮影と同じ build:e2e / preview / 3サイズ / 1400ms・1800ms）
+on:
+  push:
+    branches: [minori/webkit-shots-109]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webkit-shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 075d93733f6981d8b130a7078d21ad87f5d26b54
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install WebKit with system deps
+        run: npx playwright install --with-deps webkit
+      - name: Build e2e bundle
+        run: npm run build:e2e
+      - name: Start preview server
+        run: |
+          npx vite preview --outDir dist-e2e --strictPort --port 4410 --host 127.0.0.1 > preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4410/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:4410/ > /dev/null
+      - name: Capture WebKit screenshots
+        run: |
+          mkdir -p webkit-out
+          cat > webkit-shot-109.mjs <<'JS'
+          import { webkit } from "@playwright/test";
+          import fs from "node:fs";
+          const OUT = process.argv[2];
+          const sizes = [[1280,720],[844,390],[390,844]];
+          const browser = await webkit.launch();
+          const ver = browser.version();
+          for (const [w,h] of sizes) {
+            const ctx = await browser.newContext({ viewport:{width:w,height:h}, baseURL:"http://127.0.0.1:4410" });
+            const page = await ctx.newPage();
+            await page.goto("/");
+            await page.waitForFunction(() => document.body.dataset.scene === "title", null, {timeout:30000});
+            await page.getByRole("button", { name: "はじめる" }).click();
+            await page.getByRole("button", { name: "開店前の試し弾き" }).click();
+            await page.waitForFunction(() => window.__qa !== undefined, null, {timeout:30000});
+            await page.evaluate(() => window.__qa?.waitForIdle());
+            for (let x = 1; x <= 10; x++) await page.getByRole("button", { name: `マス ${x},3: 空き` }).click();
+            await page.getByRole("button", { name: "実行" }).click();
+            await page.waitForFunction(() => document.body.dataset.scene === "result", null, {timeout:40000});
+            const ua = await page.evaluate(() => navigator.userAgent);
+            const dpr = await page.evaluate(() => devicePixelRatio);
+            for (const t of [1400,1800]) {
+              await page.waitForTimeout(t===1400?1400:400);
+              const file = `${OUT}/${w}x${h}-t${t}.png`;
+              await page.screenshot({ path: file });
+              const m = await page.evaluate(() => ({sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth}));
+              fs.appendFileSync(`${OUT}/shot-log.tsv`, [file, new Date().toISOString(), `WebKit ${ver} (Playwright, CI)`, w+"x"+h, "dpr="+dpr, "scrollW="+m.sw+"/clientW="+m.cw, ua].join("\t")+"\n");
+            }
+            await ctx.close();
+          }
+          await browser.close();
+          JS
+          node webkit-shot-109.mjs "$PWD/webkit-out"
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ae109-webkit-shots
+          path: |
+            webkit-out/
+            preview.log
+          if-no-files-found: warn
