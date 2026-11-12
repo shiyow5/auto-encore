@@ -421,7 +421,10 @@ export function drawNote(
         // 塗りに接する空きは輪郭色（縁取り）
         // ♪の旗と棒の隙間（列5・棒の高さ）は縁取りせず空けて、ベルト矢印を透けさせる
         const gap = length === "short" && x === 5 && y <= 5;
-        if (!gap && (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1))) {
+        if (
+          !gap &&
+          (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1))
+        ) {
           ctx.fillStyle = "#140f18";
           ctx.fillRect(x, y, 1, 1);
         }
