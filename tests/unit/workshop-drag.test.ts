@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DragStroke, cellsBetween } from "../../src/scenes/workshop/drag";
+import { DragStroke, cellsBetween, strokeButtonHeld } from "../../src/scenes/workshop/drag";
 import { loadGameData } from "../../src/data";
 import { place, removeAt, rulesFor } from "../../src/scenes/workshop/placements";
 import type { Placement } from "../../src/core/sim/types";
@@ -91,5 +91,30 @@ describe("DragStroke（1回のドラッグ）", () => {
     expect(s.mode).toBe("erase");
     for (const c of s.move({ x: 4, y: 3 })) list = removeAt(list, c);
     expect(list.map((p) => key(p.pos))).toEqual(["1,3", "5,3"]);
+  });
+
+  it("盤外に出て別の場所から入り直しても、通っていないマスを補間しない", () => {
+    // 1列目の上端 (0,0) から外に出て、10列目 (9,0) から戻る → 間の上の行は埋めない
+    const s = new DragStroke("place", { x: 0, y: 0 });
+    s.leave();
+    const fresh = s.move({ x: 9, y: 0 });
+    expect(fresh.map(key)).toEqual(["9,0"]);
+    // 入り直したマスから先は通常どおり補間する
+    expect(s.move({ x: 9, y: 2 }).map(key)).toEqual(["9,1", "9,2"]);
+  });
+
+  it("盤外に出ても、戻ったマスが訪問済みなら二重に返さない", () => {
+    const s = new DragStroke("place", { x: 1, y: 1 });
+    s.move({ x: 2, y: 1 });
+    s.leave();
+    expect(s.move({ x: 2, y: 1 })).toEqual([]);
+  });
+
+  it("始めたボタンが離れていたら strokeButtonHeld は false（盤外で離した取りこぼし）", () => {
+    expect(strokeButtonHeld(1, 0)).toBe(true);
+    expect(strokeButtonHeld(0, 0)).toBe(false);
+    expect(strokeButtonHeld(2, 2)).toBe(true);
+    expect(strokeButtonHeld(1, 2)).toBe(false);
+    expect(strokeButtonHeld(0, 2)).toBe(false);
   });
 });

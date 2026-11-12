@@ -60,7 +60,7 @@ import {
 } from "./workshop/placements";
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
-import { DragStroke } from "./workshop/drag";
+import { DragStroke, strokeButtonHeld } from "./workshop/drag";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import {
   activeTexture,
@@ -182,6 +182,8 @@ export class WorkshopScene extends Phaser.Scene {
   private pointerPressing = false;
   /** 押したままなぞっている最中のドラッグ（#120）。無ければ null。 */
   private stroke: DragStroke | null = null;
+  /** ストロークを始めたボタン（PointerEvent.button）。pointermove の buttons と突き合わせて取りこぼしを検出する */
+  private strokeButton = 0;
   /** ドラッグ直後に出る click を無視するための印（クリック1回の挙動は変えない）。 */
   private suppressClick = false;
 
@@ -308,6 +310,7 @@ export class WorkshopScene extends Phaser.Scene {
     window.addEventListener("resize", this.onResize);
     window.addEventListener("pointerup", this.endStroke);
     window.addEventListener("pointercancel", this.endStroke);
+    window.addEventListener("blur", this.endStroke);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
     this.layout();
 
@@ -831,6 +834,7 @@ export class WorkshopScene extends Phaser.Scene {
           this.pointerPressing = true;
           // 押したままなぞる連続配置・連続削除（#120）。Shift+クリックは音高の巡回なので対象外
           if (e.shiftKey) return;
+          this.strokeButton = e.button;
           if (e.button === 2 || (e.button === 0 && this.eraseMode)) {
             this.stroke = new DragStroke("erase", pos);
           } else if (e.button === 0) {
@@ -854,11 +858,19 @@ export class WorkshopScene extends Phaser.Scene {
     // ドラッグ: 通ったマスに連続で置く／消す。座標からマスを求めるので、速く動かしても・指でも効く
     grid.addEventListener("pointermove", (e) => {
       if (!this.stroke || this.playing) return;
+      // 盤の外でボタンを離すと pointerup が来ないことがある。始めたボタンが離れていたらここで終える
+      if (!strokeButtonHeld(e.buttons, this.strokeButton)) {
+        this.endStroke();
+        return;
+      }
       const r = grid.getBoundingClientRect();
       if (r.width <= 0 || r.height <= 0) return;
       const cx = Math.floor(((e.clientX - r.left) / r.width) * this.rules.width);
       const cy = Math.floor(((e.clientY - r.top) / r.height) * this.rules.height);
-      if (cx < 0 || cy < 0 || cx >= this.rules.width || cy >= this.rules.height) return;
+      if (cx < 0 || cy < 0 || cx >= this.rules.width || cy >= this.rules.height) {
+        this.stroke.leave();
+        return;
+      }
       for (const c of this.stroke.move({ x: cx, y: cy })) {
         if (this.stroke.mode === "erase") this.removeAtPos(c);
         else this.placeAt(c);
@@ -1115,6 +1127,7 @@ export class WorkshopScene extends Phaser.Scene {
     window.removeEventListener("resize", this.onResize);
     window.removeEventListener("pointerup", this.endStroke);
     window.removeEventListener("pointercancel", this.endStroke);
+    window.removeEventListener("blur", this.endStroke);
     this.overlay.remove();
     this.cells = [];
     this.tiles = [];

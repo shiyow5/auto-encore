@@ -33,13 +33,21 @@ export function cellsBetween(a: Point, b: Point): Point[] {
   return out;
 }
 
+/**
+ * PointerEvent.button（0=左,1=中,2=右）で始めたストロークのボタンが、buttons（ビットマスク: 左1・右2・中4）でまだ押されているか。
+ */
+export function strokeButtonHeld(buttons: number, button: number): boolean {
+  const bit = button === 0 ? 1 : button === 2 ? 2 : button === 1 ? 4 : 0;
+  return (buttons & bit) !== 0;
+}
+
 export type DragMode = "place" | "erase";
 
 /** 1回のドラッグ。start で始め、move のたびにまだ触れていないマスだけを返す。 */
 export class DragStroke {
   readonly mode: DragMode;
   private readonly visited = new Set<string>();
-  private last: Point;
+  private last: Point | null;
   private moved = false;
 
   constructor(mode: DragMode, start: Point) {
@@ -52,15 +60,21 @@ export class DragStroke {
     return this.moved;
   }
 
+  /** ポインタが盤外に出た。次の move は直線補間せず、入り直したマスから始める。 */
+  leave(): void {
+    this.last = null;
+  }
+
   /**
    * ポインタが pos のマスに来た。新しく触れたマスを順に返す（無ければ空）。
    * 最初のマスはクリック側で処理されるので、移動した最初の move で一緒に返す。
    */
   move(pos: Point): Point[] {
-    if (pos.x === this.last.x && pos.y === this.last.y) return [];
+    if (this.last && pos.x === this.last.x && pos.y === this.last.y) return [];
     this.moved = true;
     const fresh: Point[] = [];
-    for (const c of cellsBetween(this.last, pos)) {
+    // 盤外に出ていた（last が無い）ときは補間せず、入り直したマスから始める
+    for (const c of this.last ? cellsBetween(this.last, pos) : [pos]) {
       const k = `${c.x},${c.y}`;
       if (this.visited.has(k)) continue;
       this.visited.add(k);
