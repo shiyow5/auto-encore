@@ -23,31 +23,22 @@ colors:
 typography:
   h1:
     fontFamily: "DotGothic16"
-    fontSize: "1.75rem"
+    fontSize: "2rem"
     fontWeight: "400"
     lineHeight: "1.3"
   h2:
     fontFamily: "DotGothic16"
-    fontSize: "1.25rem"
+    fontSize: "1.5rem"
     fontWeight: "400"
     lineHeight: "1.3"
-  body-lg:
+  body:
     fontFamily: "DotGothic16"
     fontSize: "1rem"
     lineHeight: "1.6"
-  body-md:
+  small:
     fontFamily: "DotGothic16"
     fontSize: "0.875rem"
-    lineHeight: "1.5"
-  label-sm:
-    fontFamily: "DotGothic16"
-    fontSize: "0.75rem"
     lineHeight: "1.4"
-  label-caps:
-    fontFamily: "DotGothic16"
-    fontSize: "0.625rem"
-    lineHeight: "1.4"
-    letterSpacing: "0.05em"
 rounded:
   sm: 2px
   md: 4px
@@ -64,7 +55,7 @@ components:
     textColor: "{colors.on-tertiary}"
     rounded: "{rounded.sm}"
     padding: "8px 16px"
-    typography: "{typography.label-sm}"
+    typography: "{typography.body}"
   button-primary-hover:
     backgroundColor: "#33EBFF"
   button-secondary:
@@ -73,7 +64,7 @@ components:
     border: "1px solid {colors.secondary}"
     rounded: "{rounded.sm}"
     padding: "8px 16px"
-    typography: "{typography.label-sm}"
+    typography: "{typography.body}"
   panel:
     backgroundColor: "{colors.neutral}"
     textColor: "{colors.primary}"
@@ -99,7 +90,7 @@ components:
     rounded: "{rounded.sm}"
   medal-display:
     textColor: "{colors.highlight}"
-    typography: "{typography.label-sm}"
+    typography: "{typography.body}"
   graph-area:
     backgroundColor: "#0F0F1E"
     textColor: "{colors.primary}"
@@ -139,9 +130,31 @@ Implementation: `src/art/workshopBg.ts` (canvas, depth -20 — behind the ambien
 
 The entire UI uses **DotGothic16** (SIL OFL 1.1). The same font as log-dive ensures visual consistency across both games in the project. The font is bundled in `assets/font/` with the OFL license file.
 
-- Headings: 1.75rem / 1.25rem with normal weight
-- Body: 1rem / 0.875rem with comfortable line height
-- Labels: 0.75rem down to 0.625rem for HUD and score elements
+Three levels, fixed (#99 / #114). Nothing is smaller than 14px. Checked by `e2e/ae99-typography.spec.ts` and `e2e/ae114-readability.spec.ts` on title, order select, workshop and result at 1280×720 / 390×844 / 844×390.
+
+| Level   | Size        | Used for                                                                              |
+| ------- | ----------- | ------------------------------------------------------------------------------------- |
+| Heading | 32px / 24px | Screen title (h1 32px), section headings (24px)                                       |
+| Body    | 16px        | All body text, buttons, labels, order rows, result table                              |
+| Small   | 14px        | Only `.ae-footnote` (shelf prices 1G/4G/…) and `.rs-footer` (credits / license links) |
+
+Icons drawn as emoji (🔒) are not text and may be smaller.
+
+### Text contrast (#114, WCAG AA 4.5:1)
+
+Measured with the WCAG 2.x formula. Every text colour must reach 4.5:1 on the surface it sits on — including locked and disabled text.
+
+| Text colour                      | on `--ae-bg` #1E1722 | on `--ae-surface` #2A2030 | on `--ae-surface-up` #3A2D42 |
+| -------------------------------- | -------------------- | ------------------------- | ---------------------------- |
+| `--ae-text` #F3E9DC              | 14.57                | 12.98                     | 10.71                        |
+| `--ae-text-weak` #C4B4C9         | 8.93                 | 7.95                      | 6.56                         |
+| `--ae-text-muted` #9A88A8        | 5.38                 | 4.79                      | **3.95 — do not use**        |
+| Locked shelf tool #B8A8C0        | 7.83                 | 6.97                      | 5.75                         |
+| `--ae-amber` #F2B45A             | 9.54                 | 8.50                      | 7.01                         |
+| `--ae-entry` #92DDCC             | 11.19                | 9.97                      | 8.22                         |
+| `--ae-exit` #F29BB8              | 8.46                 | 7.54                      | 6.22                         |
+| `--ae-danger` #FF8A7A            | 7.63                 | 6.80                      | 5.61                         |
+| #1E1722 on `--ae-amber` (button) | 9.54                 | —                         | —                            |
 
 ## Layout
 
@@ -208,7 +221,7 @@ Defined as strings in `src/art/sprites.ts`; drawn with `iconCanvas()` and scaled
 ## Do's and Don'ts
 
 - **Do** use amber (#F2B45A) as the primary accent (primary button, headings, selected state)
-- **Do** keep all text at 16px equivalent or larger (DotGothic16 0.75rem = ~12px, used only for non-critical HUD labels)
+- **Do** keep all text at 16px or larger; only `.ae-footnote` / `.rs-footer` may use 14px, and nothing goes below 14px (#114)
 - **Do** maintain consistent 8px/16px spacing throughout
 - **Do** bundle DotGothic16 with OFL license file
 - **Do** use lightweight-charts on result screens for data visualization
