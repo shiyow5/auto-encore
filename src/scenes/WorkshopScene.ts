@@ -443,7 +443,8 @@ export class WorkshopScene extends Phaser.Scene {
     this.stroke = null;
   };
 
-  private placeAt(pos: Point, quiet = false): void {
+  /** se を渡すとドラッグ中の間引き対象（#191）。配置に成功したときだけ発音枠を消費する。 */
+  private placeAt(pos: Point, se: SeThrottle | null = null): void {
     if (this.playing) return;
     const hasPitch = pitchChoices(this.machines, this.selected).length > 0;
     const res = place(
@@ -461,7 +462,7 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     this.placements = res.placements;
-    if (!quiet) playSfx("place");
+    if (!se || se.allow(performance.now())) playSfx("place");
     this.tutorialEvent("placed");
     const pitch = hasPitch ? `（音高 ${pitchLabel(this.nextPitchValue)}）` : "";
     this.say(
@@ -958,7 +959,7 @@ export class WorkshopScene extends Phaser.Scene {
       }
       for (const c of this.stroke.move({ x: cx, y: cy })) {
         if (this.stroke.mode === "erase") this.removeAtPos(c);
-        else this.placeAt(c, !(this.placeSe?.allow(performance.now()) ?? true));
+        else this.placeAt(c, this.placeSe);
       }
     });
     ov.append(grid);
