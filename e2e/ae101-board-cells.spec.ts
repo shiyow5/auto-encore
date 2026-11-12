@@ -10,10 +10,10 @@ test("AE#101: board frame, grid lines, cursor and shelf borders", async ({ page 
 
   const grid = page.locator(".ws-grid");
   const shadow = await grid.evaluate((el) => getComputedStyle(el).boxShadow);
-  // 内側 2px #7A6888 / 外枠 5px(=3px) #F3E9DC / 台座 21px(=16px) #2A2030
+  // 内側 2px #7A6888 / 外枠 5px(=3px) #F3E9DC / 台座 21px(=16px) #8C6642(作業台の木天板 #110)
   expect(shadow).toContain("rgb(122, 104, 136) 0px 0px 0px 2px");
   expect(shadow).toContain("rgb(243, 233, 220) 0px 0px 0px 5px");
-  expect(shadow).toContain("rgb(42, 32, 48) 0px 0px 0px 21px");
+  expect(shadow).toContain("rgb(140, 102, 66) 0px 0px 0px 21px");
 
   const cell = page.locator(".ws-cell").nth(5);
   expect(await cell.evaluate((el) => getComputedStyle(el).boxShadow)).toContain(

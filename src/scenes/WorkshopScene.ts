@@ -11,6 +11,7 @@
  * - 「実行」（K4）: execute() で step() を止まるまで回して採点 → 音符を tick ごとに置き直して見せる → 結果画面。
  *   ?fx=0 / 視差効果を減らす のときは再生せず、すぐ結果画面へ
  */
+import { drawWorkshopBg } from "../art/workshopBg";
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { rotateCW } from "../core/grid";
@@ -201,6 +202,7 @@ export class WorkshopScene extends Phaser.Scene {
   /** スマホ横（844×390 など）の専用配置。canvas は画面と同じ大きさ（#165） */
   private compact = false;
   private cell = CELL;
+  private bgGfx!: Phaser.GameObjects.Graphics;
   private gridX = GRID_X;
   private gridY = GRID_Y;
   /** 縦持ちの「消す」モード: 入っている間はマスのタップで機械を消す（長押し・右クリックの代わり）。 */
@@ -302,6 +304,8 @@ export class WorkshopScene extends Phaser.Scene {
     });
     this.fx.emit("ambient");
     this.combo = 0;
+    // ambient の後景 FX(depth -10)より奥に置く。手前だと不透明な床がオーロラ等を覆う(#110 Codex P2)
+    this.bgGfx = this.add.graphics().setDepth(-20);
     this.gfx = this.add.graphics().setDepth(5);
     // ?seed= の QA 実行では出さない（押下を遮らない）
     this.tutorial = flags().seed !== null ? "done" : initialStep(orderId, isTutorialDone());
@@ -591,6 +595,12 @@ export class WorkshopScene extends Phaser.Scene {
     const g = this.gfx;
     const { width, height } = this.rules;
     g.clear();
+    drawWorkshopBg(this.bgGfx, this.scale.width, this.scale.height, {
+      x: this.gridX,
+      y: this.gridY,
+      w: width * this.cell,
+      h: height * this.cell,
+    });
     // 稼働灯は drawRunFx（再生中の tick）でだけ出す。それ以外は隠す
     for (const el of this.lamps) el.hidden = true;
     for (const t of this.tiles) t.destroy();

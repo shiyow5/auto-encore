@@ -334,11 +334,13 @@
   width: var(--grid-w);
   height: var(--grid-h);
   display: grid;
-  /* #101: 内側 2px #7A6888 → 外枠 3px #F3E9DC → 台座 16px #2A2030（盤面の外周） */
+  /* #101: 内側 2px #7A6888 → 外枠 3px #F3E9DC → 台座 16px #8C6642(作業台の木天板・セル #1E1722 と 3:1 以上 / #110)（盤面の外周） */
   box-shadow:
     0 0 0 2px #7a6888,
     0 0 0 5px #f3e9dc,
-    0 0 0 21px #2a2030;
+    0 0 0 21px #8c6642,
+    0 0 0 22px #4a3322,
+    6px 8px 12px 22px rgba(11, 7, 16, 0.5);
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   pointer-events: auto;
@@ -605,7 +607,8 @@
   box-shadow:
     0 0 0 2px #7a6888,
     0 0 0 5px #f3e9dc,
-    0 0 0 8px #2a2030;
+    0 0 0 8px #8c6642,
+    0 0 0 9px #4a3322;
 }
 
 .ws-portrait .ws-actions {
@@ -1517,7 +1520,8 @@ body[data-scene="workshop"] #audio-toggle {
   box-shadow:
     0 0 0 2px #7a6888,
     0 0 0 5px #f3e9dc,
-    0 0 0 8px #2a2030;
+    0 0 0 8px #8c6642,
+    0 0 0 9px #4a3322;
 }
 
 .ws-compact .ws-actions .ws-btn {
