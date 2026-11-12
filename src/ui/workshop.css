@@ -1000,7 +1000,8 @@ body[data-scene="workshop"] #audio-toggle {
 }
 
 /* ♪ボタン（画面右上）のドット絵アイコン。整数倍（12px×2）でぼかさない */
-#audio-toggle .ae-icon {
+#audio-toggle .ae-icon,
+#volume-toggle .ae-icon {
   width: 24px;
   height: 24px;
   image-rendering: pixelated;

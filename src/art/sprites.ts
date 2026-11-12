@@ -346,8 +346,18 @@ export function drawPort(
 ): void {
   ctx.fillStyle = "#140f18";
   ctx.fillRect(0, 0, TILE, TILE);
-  ctx.fillStyle = kind === "input" ? "#8fd6c8" : "#f28f9a";
-  ctx.fillRect(1, 1, TILE - 2, TILE - 2);
+  const base = kind === "input" ? "#8fd6c8" : "#f28f9a";
+  const light = kind === "input" ? "#c4efe6" : "#f9c3c9";
+  const shade = kind === "input" ? "#5fae9f" : "#c8606d";
+  // 平らな塗りではなく、1pxの明/暗の縁で段差をつけたドット絵のパネルにする
+  for (let y = 1; y < TILE - 1; y++) {
+    for (let x = 1; x < TILE - 1; x++) {
+      const top = y === 1 || x === 1;
+      const bottom = y === TILE - 2 || x === TILE - 2;
+      ctx.fillStyle = top && !bottom ? light : bottom ? shade : base;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
   const { w, dots } = labelDots(label);
   // 上半分に置く（下半分は盤面側の向き矢印が入る）
   const ox = Math.floor((TILE - w) / 2);
@@ -399,29 +409,31 @@ export function iconCanvas(name: SpriteName, className = "ae-icon"): HTMLCanvasE
 
 /** 音符（長さ1=大 / 2以上=小）。c=音高色 h=ハイライト d=輪郭。10x10。 */
 const NOTE_ROWS: Readonly<Record<"short" | "long", readonly string[]>> = {
+  // 丸ではなく「♪」の形（玉＋棒＋旗）。短い音は旗つき
   short: [
-    "..dddddd..",
-    ".dccccccd.",
-    "dcchhccccd",
-    "dchhcccccd",
-    "dcccccccdd",
-    "dcccccccdd",
-    "dccccccdd.",
-    ".dccccccd.",
-    "..dddddd..",
-    "..........",
+    "......dd..",
+    "......dcdd",
+    "......dccd",
+    "......dcd.",
+    "......dc..",
+    "..ddd.dc..",
+    ".dcchdcd..",
+    ".dchccd...",
+    ".dcccdd...",
+    "..ddd.....",
   ],
+  // 長い音は旗なし（玉＋棒）で大きめ
   long: [
-    "..........",
-    "...dddd...",
-    "..dcchcd..",
-    ".dcchccdd.",
-    ".dcccccdd.",
-    ".dcccccdd.",
-    "..dcccdd..",
-    "...dddd...",
-    "..........",
-    "..........",
+    "......dd..",
+    "......dcd.",
+    "......dcd.",
+    "......dcd.",
+    "......dcd.",
+    ".dddd.dcd.",
+    "dcchhddcd.",
+    "dchccccd..",
+    "dccccccd..",
+    ".dddddd...",
   ],
 };
 export const NOTE_SIZE = 10;
