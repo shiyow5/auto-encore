@@ -131,6 +131,10 @@ The implementation is the source of truth: all colors live in CSS variables `--a
 
 Entry/exit must not rely on color alone: add the "入"/"出" label or an arrow shape. Medals also carry a shape (●/▲/■).
 
+### Workshop background (#110 / #101)
+
+Implementation: `src/art/workshopBg.ts` (canvas, depth 0) and `.ws-grid` box-shadow in `src/ui/workshop.css`. Layers from back to front: floor tile (16px checker `#241B29`/`#2B2131`, grout `#1A131F`) → drop shadow → workbench top (wood `#8C6642`, edge `#4A3322`; 16px ring on landscape, 3px on portrait/compact) → corner vignette (`#0B0710`, 5 steps, ~10% of the short side). Board cell `#1E1722` vs bench `#8C6642` = 3.41:1 (≥3:1). Text areas (side panels, bottom band) stay on the dark floor.
+
 ## Typography
 
 The entire UI uses **DotGothic16** (SIL OFL 1.1). The same font as log-dive ensures visual consistency across both games in the project. The font is bundled in `assets/font/` with the OFL license file.
