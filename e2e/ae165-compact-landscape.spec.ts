@@ -78,3 +78,58 @@ test("AE#165: 844×300 でも棚が画面内に収まり、全消しに届く", 
   await clear.scrollIntoViewIfNeeded();
   await clear.click();
 });
+
+test("AE#161: 844×390 注文1で合計の帯は本文の下端に付き、本文・実行ボタンに重ならない", async ({
+  page,
+}) => {
+  await page.goto("/?fx=0");
+  await page.getByLabel("はじめる").click();
+  await page.locator('[data-order-id="order-01"] button').click();
+  await expect(page.locator("#ws-overlay.ws-compact")).toBeVisible();
+
+  const r = await page.evaluate(() => {
+    const rect = (s: string) => document.querySelector(s)!.getBoundingClientRect();
+    const body = document.querySelector<HTMLElement>(".ws-order-body")!;
+    const b = rect(".ws-order-body");
+    const t = rect(".ws-order-total");
+    const run = rect(".ws-run");
+    // 本文の末尾までスクロールしたとき、最後の行が帯の上に出る
+    body.scrollTop = body.scrollHeight;
+    const last = body
+      .querySelector(".ws-order-total")!
+      .previousElementSibling!.getBoundingClientRect();
+    return {
+      bodyBottom: b.bottom,
+      totalBottom: t.bottom,
+      runTop: run.top,
+      runBottom: run.bottom,
+      orderBottom: rect(".ws-order").bottom,
+      lastBottom: last.bottom,
+      totalTopAtEnd: document.querySelector(".ws-order-total")!.getBoundingClientRect().top,
+    };
+  });
+  // 帯は本文の下端（= 実行ボタンの直上）。本文の中ほどに浮かない
+  expect(Math.abs(r.totalBottom - r.bodyBottom)).toBeLessThanOrEqual(1);
+  expect(r.runTop).toBeGreaterThanOrEqual(r.bodyBottom);
+  expect(r.runBottom).toBeLessThanOrEqual(r.orderBottom);
+  expect(r.lastBottom).toBeLessThanOrEqual(r.totalTopAtEnd + 1);
+});
+
+test("AE#161: 390×844 縦持ちは崩れない（合計の帯が本文の外へ出ない）", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?fx=0");
+  await page.getByLabel("はじめる").click();
+  await page.locator('[data-order-id="order-01"] button').click();
+  await expect(page.locator("#ws-overlay.ws-portrait")).toBeVisible();
+  const r = await page.evaluate(() => {
+    const run = document.querySelector(".ws-run")!.getBoundingClientRect();
+    return {
+      runBottom: run.bottom,
+      runH: run.height,
+      overflow: document.documentElement.scrollWidth > innerWidth,
+    };
+  });
+  expect(r.runBottom).toBeLessThanOrEqual(844);
+  expect(r.runH).toBeGreaterThanOrEqual(44);
+  expect(r.overflow).toBe(false);
+});

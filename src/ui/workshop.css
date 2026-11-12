@@ -1502,7 +1502,9 @@ body[data-scene="workshop"] #audio-toggle {
   margin: 0 0 6px !important;
 }
 
-#ws-overlay.ws-compact .ws-order-total {
+/* #161: 本文(.ws-order-body)の下端に付ける。実行ボタンは本文の外(flex の下段)にあるので、
+ * 汎用の :not(.ws-portrait) 規則の bottom:46px（実行ボタン分）を打ち消す。残すと合計の帯が本文に重なる */
+#ws-overlay.ws-compact:not(.ws-portrait) .ws-order-total {
   position: sticky;
   bottom: 0;
 }
@@ -1555,10 +1557,8 @@ body[data-scene="workshop"] #audio-toggle {
   bottom: calc(52px + 44px + env(safe-area-inset-bottom, 0px));
   min-height: 96px;
 }
-/* 注文票の本文: 末尾が下の帯（合計）に潜らないよう、帯の高さ分の余白を足す */
-.ws-compact .ws-order-body {
-  padding-bottom: 32px; /* 合計の帯（約22px）+ 余白。最後の行が帯に隠れない */
-}
+/* #161: 合計の帯は本文の末尾（流れの最後）にあり、sticky で本文の下端に付く。ここに padding-bottom を足すと
+ * sticky の基準線が持ち上がり、帯の下に本文が覗いて「合計が本文に重なる」ので、余白は足さない */
 
 /* 縦持ちで吹き出しが出ている間は、注文票の本文が狭い。合計の帯は本文の流れの末尾に置き、文に重ねない */
 .ws-portrait:has(.ws-guide) .ws-order-total {
