@@ -196,6 +196,9 @@
 }
 
 .ws-order {
+  /* #109: 内側スクロールが大きくはみ出す 844×390 では、単色の background-color だと注文票の下に
+   * 何も描かれない穴（白い矩形）が出た。同色の background-image で描くと出ない（見た目は同じ） */
+  background-image: linear-gradient(var(--ae-surface), var(--ae-surface));
   right: calc(var(--u) * 4);
   width: calc(var(--u) * 68);
   max-height: calc(var(--u) * 140); /* #136: 注文3でも内側スクロールを出さない */
