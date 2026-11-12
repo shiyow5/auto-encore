@@ -36,7 +36,7 @@ class TitleOverlay {
     ov.style.cssText = `
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(15, 12, 20, 0.95); color: var(--ae-text); font-family: var(--ae-font);
+      background: radial-gradient(ellipse at center, rgba(52, 40, 62, 0.72) 0%, rgba(15, 12, 20, 0.94) 100%); color: var(--ae-text); font-family: var(--ae-font);
       z-index: 100;
     `;
 
@@ -58,14 +58,12 @@ class TitleOverlay {
 
     const btnStart = h("button", {
       type: "button",
-      class: "ws-btn",
+      class: "ws-btn ae-btn ae-btn-primary",
       "aria-label": "はじめる",
     });
     btnStart.textContent = "はじめる";
     btnStart.style.cssText = `
-      min-height: 44px; padding: 8px 24px; font-size: 16px; font-family: var(--ae-font);
-      background: var(--ae-surface-up); color: var(--ae-text); border: 1px solid var(--ae-line);
-      cursor: pointer; margin: 4px;
+      font-family: var(--ae-font); margin: 4px;
     `;
     btnStart.addEventListener("click", () => {
       playSfx("start");
@@ -76,14 +74,12 @@ class TitleOverlay {
 
     const btnGuide = h("button", {
       type: "button",
-      class: "ws-btn",
+      class: "ws-btn ae-btn ae-btn-secondary",
       "aria-label": "遊び方",
     });
     btnGuide.textContent = "遊び方";
     btnGuide.style.cssText = `
-      min-height: 44px; padding: 8px 24px; font-size: 16px; font-family: var(--ae-font);
-      background: var(--ae-surface); color: var(--ae-text-weak); border: 1px solid var(--ae-surface-up);
-      cursor: pointer; margin: 4px;
+      font-family: var(--ae-font); margin: 4px;
     `;
     btnGuide.addEventListener("click", () => this.toggleGuide());
     ov.append(btnGuide);
