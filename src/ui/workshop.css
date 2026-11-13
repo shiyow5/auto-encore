@@ -280,7 +280,7 @@
   background-image: linear-gradient(var(--ae-surface), var(--ae-surface));
   right: calc(var(--u) * 4);
   width: calc(var(--u) * 68);
-  max-height: calc(var(--u) * 140); /* #136: 注文3でも内側スクロールを出さない */
+  max-height: calc(var(--u) * 160); /* #102: 出口行も含め全行が表示/スクロールで到達可能 */
   overflow: auto;
   scrollbar-color: var(--ae-text-weak) var(--ae-surface-up);
 }
@@ -689,14 +689,19 @@
   display: flex;
   gap: 8px;
   height: 64px;
-  padding: 4px 16px;
+  padding: 4px 8px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
   pointer-events: auto;
-  /* 左右 16px のフェードで「続きがある」ことを見せる */
+  /* 左右 8px のフェードで「続きがある」ことを見せる */
   background:
-    linear-gradient(to right, var(--ae-surface), transparent 16px),
-    linear-gradient(to left, var(--ae-surface), transparent 16px);
+    linear-gradient(to right, var(--ae-surface), transparent 8px),
+    linear-gradient(to left, var(--ae-surface), transparent 8px);
+}
+.ws-portrait .ws-palette::-webkit-scrollbar {
+  display: none;
 }
 
 .ws-portrait .ws-palette .ws-btn,
@@ -1045,7 +1050,7 @@ body[data-scene="workshop"] #audio-toggle {
   column-gap: 4px; /* 96px幅に「仕分け機」(64px)を1行で収める */
   align-items: center;
   align-content: center;
-  padding-left: 6px; /* 枠 2px + 6px = ボタン左端からアイコンまで 8px */
+  padding-left: 7px; /* ボタン左端からアイコンまで実測8px（#102指定） */
   padding-right: 0;
 }
 #ws-overlay .ws-palette .ws-tool > .ae-icon:not(.ws-tool-lock) {
