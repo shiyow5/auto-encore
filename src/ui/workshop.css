@@ -532,6 +532,11 @@
   position: sticky;
   bottom: 0;
   z-index: 1;
+  /* #188: 合計の帯と実行ボタンの隙間・ボタンの下から、スクロール中の本文（「…運びます。」など）が
+   * 透けて「実行中…」の行に重なって見える。注文票と同じ色で隙間を埋める */
+  box-shadow:
+    0 -8px 0 0 var(--ae-surface),
+    0 8px 0 0 var(--ae-surface);
 }
 
 .ws-run:hover {
@@ -543,6 +548,8 @@
   margin: calc(var(--u) * 2) 0 0;
   text-align: center;
   color: var(--ae-text);
+  /* #188: 折り返すと 2 行目が枠（高さ 1 行）からはみ出して実行ボタンに重なる。1 行に収める */
+  white-space: nowrap;
 }
 
 .ws-btn:disabled {
