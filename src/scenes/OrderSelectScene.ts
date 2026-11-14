@@ -111,7 +111,7 @@ export class OrderSelectScene extends Phaser.Scene {
         item.append(btn);
       } else {
         const prev = data.orders[index - 1];
-        const locked = h("span", { class: "os-lock-title" }, `ロック中: ${order.title}`);
+        const locked = h("span", { class: "os-lock-title" }, order.title);
         locked.prepend(iconCanvas("lock"));
         item.append(locked);
         if (prev) {

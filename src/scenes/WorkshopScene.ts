@@ -790,10 +790,11 @@ export class WorkshopScene extends Phaser.Scene {
         "data-allowed": String(allowed),
       });
       b.append(
-        iconCanvas(id),
+        iconCanvas(`icon-${id}`),
         h("span", { class: "ws-tool-name" }, MACHINE_NAME[id]),
         h("span", { class: "ws-tool-cost ae-footnote" }, `${cost}G`),
       );
+      if (!allowed) b.append(iconCanvas("lock", "ae-icon ws-tool-lock"));
       b.addEventListener("click", () => {
         this.selected = id;
         this.refreshOverlay();
@@ -822,7 +823,7 @@ export class WorkshopScene extends Phaser.Scene {
     // ミュートボタン (audio.ts の共有設定を使用)
     this.muteButton = h("button", {
       type: "button",
-      class: "ws-btn",
+      class: "ws-btn ws-mute",
       "aria-label": isAudioEnabled() ? "音を切る" : "音をオンにする",
     });
     this.setMuteLabel(isAudioEnabled());
@@ -1192,6 +1193,7 @@ export class WorkshopScene extends Phaser.Scene {
 
   /** 音ボタン: ドット絵のスピーカー + 『音: ON/OFF』（絵文字・色だけに頼らない）。 */
   private setMuteLabel(enabled: boolean): void {
+    this.muteButton.dataset.sound = enabled ? "on" : "off";
     this.muteButton.replaceChildren(
       iconCanvas(enabled ? "speaker-on" : "speaker-off"),
       document.createTextNode(enabled ? "音: ON" : "音: OFF"),
