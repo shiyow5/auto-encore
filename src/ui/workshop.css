@@ -1491,6 +1491,7 @@ body[data-scene="workshop"] #audio-toggle {
   width: calc(var(--grid-w-px) + 16px);
   box-sizing: border-box;
   height: 48px;
+  overflow: hidden;
 }
 
 /* チュートリアルの吹き出しは盤面の幅より広く取り、右端の ♪・音量（右 60px）の手前まで伸ばす。
