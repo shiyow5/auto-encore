@@ -572,7 +572,7 @@
 #ws-overlay.ws-compact .ws-runbar-title {
   height: 28px;
   line-height: 28px;
-  font-size: 20px;
+  font-size: 24px;
 }
 
 #ws-overlay.ws-compact[data-running="true"] .ws-help-line,
@@ -641,6 +641,11 @@
   right: 16px;
   bottom: calc(52px + 44px + env(safe-area-inset-bottom, 0px)); /* 状態行の 1 行上 */
   pointer-events: none;
+}
+
+/* PC: 実行中は棚に「実行中は編集できません」の 1 行が増えて棚が約 40px 伸びるので、操作ヘルプを同じだけ下げて重ねない（AE#103 kyoya 残件3） */
+#ws-overlay[data-running="true"]:not(.ws-portrait):not(.ws-compact) .ws-help-panel {
+  top: calc(var(--u) * 98 + 44px);
 }
 
 /* 実行中の棚（#103）: 全体グレーアウトはやめ、opacity 0.6 + 操作不可。選択中ボタンの枠は #F2B45A のまま */
@@ -821,6 +826,7 @@
   padding: 4px 8px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: 8px; /* 先頭のベルトが左端で欠けない（padding 8px 分を残してスナップ。AE#103 kyoya 残件4） */
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   pointer-events: auto;

@@ -383,7 +383,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.playing = { ex, frame: 0, timer };
     this.combo = 0;
     playSfx("run");
-    this.say("実行中…");
+    this.say(""); // 旧「実行中…」は廃止（盤面上の「実行中 ♪」と二重になるため。#103）
     duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
