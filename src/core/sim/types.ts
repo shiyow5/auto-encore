@@ -97,6 +97,8 @@ export interface Order {
   readonly schemaVersion: 1;
   readonly id: string;
   readonly title: string;
+  /** 依頼人（注文票に「依頼人: 名前」と出す）。無ければ出さない。 */
+  readonly client?: { readonly id: string; readonly name: string };
   readonly board: Board;
   readonly inputs: readonly InputDef[];
   readonly outputs: readonly OutputDef[];

@@ -230,6 +230,7 @@ export function parseOrder(json: unknown, file: string): Order {
     schemaVersion: 1,
     id,
     title: expectString(o.title, root.at("title")),
+    ...(o.client === undefined ? {} : { client: parseClient(o.client, root.at("client")) }),
     board,
     inputs,
     outputs,
@@ -241,6 +242,12 @@ export function parseOrder(json: unknown, file: string): Order {
     referenceSolutions,
     texts: o.texts === undefined ? {} : expectObject(o.texts, root.at("texts")),
   };
+}
+
+function parseClient(v: unknown, c: Ctx): { id: string; name: string } {
+  const o = expectObject(v, c);
+  expectKeys(o, ["id", "name"], [], c);
+  return { id: expectString(o.id, c.at("id")), name: expectString(o.name, c.at("name")) };
 }
 
 function parseBoard(v: unknown, c: Ctx): Board {

@@ -12,6 +12,7 @@ import type { SimState } from "../core/sim/sim";
 import type { Order, Placement } from "../core/sim/types";
 import { loadGameData } from "../data";
 import { SaveStore, MemoryStorage } from "../core/save";
+import { iconCanvas, type SpriteName } from "../art/sprites";
 import { createSceneFx } from "../fx/scene-fx";
 import { BRONZE_PALETTE } from "../fx/fx-map";
 import { fxEnabled } from "../ui/flags";
@@ -22,6 +23,8 @@ import { playSfx } from "../audio/player";
 import { sfxForReport } from "../audio/sounds";
 import {
   MEDAL_TEXT,
+  allClearMessage,
+  isAllCleared,
   STOP_TEXT,
   VERDICT_TEXT,
   metricRows,
@@ -29,6 +32,21 @@ import {
   verdictOf,
   type ThroughputPoint,
 } from "./workshop/execute";
+
+/** 紙吹雪（決まった位置・色の小さな四角。乱数なし）。CSS アニメで落ちる。 */
+function confetti(n: number): HTMLElement {
+  const box = h("div", { class: "rs-confetti", "aria-hidden": "true" });
+  const colors = ["#f2b45a", "#8fd6c8", "#f28f9a", "#f3e9dc"];
+  for (let i = 0; i < n; i++) {
+    const p = h("span", { class: "rs-conf" });
+    p.style.left = `${((i * 37) % 100) + 0}%`;
+    p.style.background = colors[i % colors.length] ?? "#f2b45a";
+    p.style.animationDelay = `${((i * 13) % 20) / 10}s`;
+    p.style.animationDuration = `${2 + (i % 5) * 0.4}s`;
+    box.append(p);
+  }
+  return box;
+}
 
 export interface ResultData {
   readonly order: Order;
@@ -119,10 +137,12 @@ export class ResultScene extends Phaser.Scene {
     this.overlay = ov;
 
     ov.append(h("h2", { id: "rs-title" }, `結果: ${VERDICT_TEXT[verdict]}`));
+    // 合格・アンコールのときだけ、紙吹雪と星（?fx=0 や動きを減らす設定では出さない。CSS 側でも止める）
+    if (verdict !== "fail" && fxEnabled()) ov.append(confetti(verdict === "encore" ? 28 : 14));
     ov.append(h("p", { class: "rs-sub" }, `${order.title} — ${STOP_TEXT[report.metrics.result]}`));
 
     const table = h("table", { class: "rs-table" });
-    table.append(h("caption", {}, "3指標"));
+    table.append(h("caption", { class: "visually-hidden" }, "3指標"));
     const head = h("tr", {});
     for (const t of ["指標", "値", "メダル"]) head.append(h("th", { scope: "col" }, t));
     const thead = h("thead", {});
@@ -138,7 +158,17 @@ export class ResultScene extends Phaser.Scene {
       }
       tr.append(h("th", { scope: "row" }, r.label));
       tr.append(h("td", {}, r.value));
-      tr.append(h("td", { "data-medal": r.medal }, MEDAL_TEXT[r.medal]));
+      // メダルはドット絵＋文字「金/銀/銅」を併記（色だけで区別しない / kyoya P2）。なしは文字のまま。
+      const medalCell = h("td", { "data-medal": r.medal });
+      if (r.medal === "none") {
+        medalCell.textContent = MEDAL_TEXT.none;
+      } else {
+        medalCell.append(
+          iconCanvas(`medal-${r.medal}` as SpriteName, "ae-medal"),
+          h("span", { class: "rs-medal-label" }, MEDAL_TEXT[r.medal]),
+        );
+      }
+      tr.append(medalCell);
       body.append(tr);
     }
     table.append(body);
@@ -172,6 +202,27 @@ export class ResultScene extends Phaser.Scene {
     actions.append(back);
     ov.append(actions);
 
+    // #137: 最後の注文のあとも行き止まりにならないよう、注文選択とタイトルへの道を常に出す
+    const toSelect = h(
+      "button",
+      { type: "button", class: "ae-btn ae-btn-secondary rs-orders" },
+      "注文選択",
+    );
+    toSelect.addEventListener("click", () => {
+      setQaBusy("transition", true);
+      this.scene.start("orders");
+    });
+    const toTitle = h(
+      "button",
+      { type: "button", class: "ae-btn ae-btn-secondary rs-title-btn" },
+      "タイトル",
+    );
+    toTitle.addEventListener("click", () => {
+      setQaBusy("transition", true);
+      this.scene.start("title");
+    });
+    actions.append(toSelect, toTitle);
+
     // Issue #47: 結果が合格 (pass または encore) なら「次の注文へ」を表示
     if (report.passed) {
       const unlockStore = new SaveStore<string[]>(
@@ -191,6 +242,10 @@ export class ResultScene extends Phaser.Scene {
       if (nextOrder && !unlocked.includes(nextOrder.id)) {
         unlockStore.save([...unlocked, nextOrder.id]);
       }
+      if (isAllCleared(allOrders, order.id, true, [...unlocked, order.id])) {
+        const done = allClearMessage(order);
+        if (done) ov.insertBefore(h("p", { class: "rs-allclear" }, done), actions);
+      }
       if (nextOrder) {
         const nextBtn = h("button", {
           type: "button",
@@ -202,7 +257,7 @@ export class ResultScene extends Phaser.Scene {
           // 前の注文の配置は盤・入口が違うので持ち込まない
           this.scene.start("workshop", { orderId: nextOrder.id });
         });
-        actions.append(nextBtn);
+        actions.insertBefore(nextBtn, toSelect);
       }
     }
 

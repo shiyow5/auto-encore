@@ -85,7 +85,8 @@ export function installAudioToggle(): void {
   v.type = "button";
   v.id = "volume-toggle";
   v.className = "audio-toggle volume-toggle";
-  v.textContent = "音量";
+  v.replaceChildren(iconCanvas("speaker-on"));
+  v.setAttribute("aria-label", "音量");
   v.setAttribute("aria-expanded", "false");
   v.setAttribute("aria-controls", "volume-panel");
   const panel = buildPanel();

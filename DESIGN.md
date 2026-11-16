@@ -193,6 +193,16 @@ When `matchMedia("(prefers-reduced-motion: reduce)")` matches or `?fx=0` is set,
 - The row containing the first mismatch indicator flashes red in the result table to show the exact error position.
 - SE: `runError` (short 0.23s beep).
 
+### Pixel Icons (Issue #112)
+
+Defined as strings in `src/art/sprites.ts`; drawn with `iconCanvas()` and scaled with `image-rendering: pixelated` (never blurred).
+
+- Speaker (volume on/off) and ♪ note (on/off): 14px sprites, shown at `clamp(16px, 7·--u, 28px)` in `.ae-icon`. Muted state also changes shape (not colour alone).
+- Medals (gold/silver/bronze): 12px sprites at 24px (2x), always paired with a text label (金/銀/銅).
+- Title mark: ♪ (`note-on`) at 40px above the heading; decorative, `aria-hidden`.
+- Machine sprites: 14px tiles; running lamp has 2 frames (rio, #112).
+- Ports (entrance/exit panels): light/dark edge so shape reads without colour.
+
 ### Result Screen
 
 - Graph area: dark panel (`--ae-bg`) with lightweight-charts for performance visualization
