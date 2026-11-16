@@ -182,3 +182,16 @@ describe("結果画面の演出（Issue #171）", () => {
     expect(FX_MAP.medalEarned.length).toBeGreaterThan(0);
   });
 });
+
+describe("pickMedalFx（最高メダル優先）", () => {
+  it("銀+銅併存は銀（銅パレットにならない）", async () => {
+    const { pickMedalFx } = await import("../../src/fx/fx-map");
+    expect(pickMedalFx(["silver", "bronze", "silver"])).toBe("silver");
+  });
+  it("金が最優先 / 銅のみは銅 / none のみは null", async () => {
+    const { pickMedalFx } = await import("../../src/fx/fx-map");
+    expect(pickMedalFx(["gold", "silver", "bronze"])).toBe("gold");
+    expect(pickMedalFx(["none", "bronze", "none"])).toBe("bronze");
+    expect(pickMedalFx(["none", "none"])).toBeNull();
+  });
+});

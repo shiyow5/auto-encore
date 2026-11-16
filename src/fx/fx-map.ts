@@ -148,3 +148,13 @@ export const FX_SFX: Readonly<Partial<Record<FxEventName, FxSfx>>> = {
   medalSilver: { sfx: "medalSilver", delayMs: 750 },
   runError: { sfx: "runError" },
 };
+
+export type MedalFxPick = "gold" | "silver" | "bronze" | null;
+
+/** 最高メダルで演出を選ぶ（gold > silver > bronze）。銅は銅のみのときだけ。 */
+export function pickMedalFx(medals: readonly string[]): MedalFxPick {
+  if (medals.includes("gold")) return "gold";
+  if (medals.includes("silver")) return "silver";
+  if (medals.includes("bronze")) return "bronze";
+  return null;
+}
