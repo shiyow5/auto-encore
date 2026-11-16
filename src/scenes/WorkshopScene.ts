@@ -85,6 +85,9 @@ export const HELP_TOUCH = "タップかなぞる=置く／消すボタン=消す
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
 export const PLAY_MS_PER_TICK = 110;
+/** 出口に音符が着いたとき、出口チップを拡大して見せる時間（#103。rio の演出仕様 120ms / 1.15 倍） */
+const EXIT_PULSE_MS = 120;
+const EXIT_PULSE_SCALE = 1.15;
 
 /** 1マスの大きさ（内部解像度のドット）。design-detail §1-2 は 16px 仮想だが、320×180 に棚と注文票を並べるため仮に 14。 */
 export const CELL = 14;
@@ -97,6 +100,8 @@ const FX_BAND_H = 37;
 const FX_ALPHA = 0.5;
 
 const COLOR = {
+  noteFrame: 0xf2b45a,
+  passed: 0xf6c77f,
   floor: 0x1e1722,
   belt: 0x5c4a66,
   merger: 0x4a5c66,
@@ -221,8 +226,16 @@ export class WorkshopScene extends Phaser.Scene {
   private muteButton!: HTMLButtonElement;
   private unsubSound: (() => void) | null = null;
   private runButton!: HTMLButtonElement;
-  /** 実行ボタンの下に出す「実行中…(tick n)」。実行中だけ見える */
-  private runStatus!: HTMLElement;
+  /** 盤面の上に出す「実行中 ♪」+ 進行バー + 「tick n/N」（#103）。実行中だけ見える */
+  private runBar!: HTMLElement;
+  private runFill!: HTMLElement;
+  private runTickText!: HTMLElement;
+  /** 棚の上の「実行中は編集できません」（#103） */
+  private shelfNote!: HTMLElement;
+  /** 出口チップの拡大を出した（1 回だけ）。実行ごとに戻す */
+  private exitPulsed = false;
+  /** 出口チップを拡大中（120ms） */
+  private exitPulse = false;
   /** 再生中の実行結果と、今見せている tick。null なら編集中。 */
   private playing: { ex: Execution; frame: number; timer: Phaser.Time.TimerEvent } | null = null;
   private readonly onResize = (): void => {
@@ -370,11 +383,12 @@ export class WorkshopScene extends Phaser.Scene {
     this.playing = { ex, frame: 0, timer };
     this.combo = 0;
     playSfx("run");
+    this.say("実行中…");
     duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
-    this.say("実行中…");
-    this.runStatus.textContent = "実行中…(tick 0)";
+    this.exitPulsed = false;
+    this.updateRunBar();
     this.changed();
   }
 
@@ -402,10 +416,35 @@ export class WorkshopScene extends Phaser.Scene {
         playNote(ev.pitch);
       }
     }
+    this.maybePulseExit();
     this.redraw();
     setQaState(p.ex.frames[p.frame] ?? null);
     this.overlay.dataset.tick = String(p.frame);
-    this.runStatus.textContent = `実行中…(tick ${p.frame})`;
+    this.updateRunBar();
+  }
+
+  /** 進行バーと「tick n/N」を今の tick に合わせる。（#103）。 */
+  private updateRunBar(): void {
+    const p = this.playing;
+    if (!p) return;
+    const total = Math.max(1, p.ex.frames.length - 1);
+    this.runFill.style.width = `${(Math.min(p.frame, total) / total) * 100}%`;
+    this.runTickText.textContent = `tick ${p.frame}/${total}`;
+    this.overlay.dataset.tickTotal = String(total);
+  }
+
+  /** 出口に音符が着いた最初の tick だけ、出口チップを EXIT_PULSE_MS 間拡大する（1 回だけ）。redraw の前に呼ぶ。 */
+  private maybePulseExit(): void {
+    const p = this.playing;
+    if (!p || this.exitPulsed) return;
+    const f = p.ex.frames[p.frame];
+    if (!f || !f.outputs.some((o) => o.received.length > 0)) return;
+    this.exitPulsed = true;
+    this.exitPulse = true;
+    this.time.delayedCall(EXIT_PULSE_MS, () => {
+      this.exitPulse = false;
+      if (this.playing) this.redraw();
+    });
   }
 
   private finishPlayback(): void {
@@ -627,10 +666,24 @@ export class WorkshopScene extends Phaser.Scene {
         continue;
       }
       // 入口/出口: 色（ミント=入口/ピンク=出口）+ 矢印のみ。文字は右パネルの注文票に出す（#112 方針c）
-      put(portTexture(this.textures, r.kind), r.pos);
+      if (r.kind === "output" && this.exitPulse) {
+        const big = this.cell * EXIT_PULSE_SCALE;
+        const o = (big - this.cell) / 2;
+        this.tiles.push(
+          this.add
+            .image(x - o, y - o, portTexture(this.textures, r.kind))
+            .setOrigin(0, 0)
+            .setDisplaySize(big, big)
+            .setDepth(2),
+        );
+      } else {
+        put(portTexture(this.textures, r.kind), r.pos);
+      }
       this.arrow(x, y, r.dir ?? "E", COLOR.floor);
     }
 
+    // #103: 音符が通り過ぎたベルトは矢印を #F6C77F にする（演出 fx の有無に関係なく「状態表示」として出す）
+    const passed = this.passedCells();
     for (const p of this.placements) {
       const { x, y } = this.cellXY(p.pos);
       const running = this.playing && fxEnabled() && p.machine !== "belt"; // 稼働の絵の切替は装飾
@@ -640,7 +693,7 @@ export class WorkshopScene extends Phaser.Scene {
           : `ae-${p.machine}`,
         p.pos,
       );
-      this.arrow(x, y, p.dir, COLOR.arrow);
+      this.arrow(x, y, p.dir, passed.has(p.pos.y * width + p.pos.x) ? COLOR.passed : COLOR.arrow);
       // 仕分け機は右下に音高の色の点（ド・ミ・ソ = 音符と同じ色）
       if (p.config) {
         g.fillStyle(0x140f18, 1);
@@ -724,11 +777,23 @@ export class WorkshopScene extends Phaser.Scene {
     el.hidden = false;
   }
 
+  /** 今の tick より前に音符がいたマス（key = y * width + x）。今いるマスは含めない。 */
+  private passedCells(): Set<number> {
+    const out = new Set<number>();
+    const p = this.playing;
+    if (!p) return out;
+    for (let i = 0; i < p.frame; i++) for (const c of p.ex.frames[i]?.cells ?? []) out.add(c.key);
+    return out;
+  }
+
   /** その tick の音符をマスの中央に置く（移動の補間なし＝最小の再生）。長い音は大きめ。 */
   private drawNotes(frame: SimState): void {
     const { width } = this.rules;
     for (const c of frame.cells) {
       const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      // #103: 音符がいるマスは #F2B45A の 2px 枠
+      this.gfx.lineStyle(2, COLOR.noteFrame, 1);
+      this.gfx.strokeRect(x + 1, y + 1, this.cell - 2, this.cell - 2);
       const key = noteTexture(
         this.textures,
         c.note.length === 1 ? "short" : "long",
@@ -775,7 +840,9 @@ export class WorkshopScene extends Phaser.Scene {
 
     // 棚（左）
     const shelf = h("section", { class: "ws-shelf", "aria-label": "パーツ棚" });
-    shelf.append(h("h2", {}, "棚"));
+    this.shelfNote = h("p", { class: "ws-shelf-note" }, "実行中は編集できません");
+    this.shelfNote.hidden = true;
+    shelf.append(h("h2", {}, "棚"), this.shelfNote);
     // 縦持ちでは palette（機械）が横スクロール、actions（向き・音高・消す…）が操作の列になる。横持ちは従来どおり縦に並ぶ（display: contents）
     const palette = h("div", { class: "ws-palette", role: "group", "aria-label": "機械を選ぶ" });
     const actions = h("div", { class: "ws-actions", role: "group", "aria-label": "操作" });
@@ -1032,12 +1099,22 @@ export class WorkshopScene extends Phaser.Scene {
       body.append(title, detail);
     }
     this.costText = h("p", { "aria-label": "配置の合計" });
-    // 実行中は同じ位置（実行ボタンの直上）に「実行中…(tick n)」を出す。配置の合計は実行中は隠す
-    this.runStatus = h("p", { class: "ws-run-status", "aria-hidden": "true" });
-    this.runStatus.hidden = true;
-    // 合計と実行中表示は注文票の下端に固定（入口・出口が長くても見える。#136）
+    // 合計は注文票の下端に固定（入口・出口が長くても見える。#136）
     const total = h("div", { class: "ws-order-total" });
-    total.append(this.costText, this.runStatus);
+    total.append(this.costText);
+    // #103: 実行中の表示は盤面の上に出す（「実行中 ♪」+ 進行バー + tick n/N）
+    this.runFill = h("span", { class: "ws-runbar-fill" });
+    this.runTickText = h("span", { class: "ws-runbar-tick" });
+    const track = h("span", { class: "ws-runbar-track" });
+    track.append(this.runFill);
+    this.runBar = h("div", { class: "ws-runbar", "aria-hidden": "true" });
+    this.runBar.hidden = true;
+    this.runBar.append(
+      h("p", { class: "ws-runbar-title" }, "実行中 ♪"),
+      h("div", { class: "ws-runbar-row" }),
+    );
+    this.runBar.lastElementChild?.append(track, this.runTickText);
+    ov.append(this.runBar);
     body.append(total);
     this.runButton = h("button", { type: "button", class: "ws-btn ws-run" });
     this.runButton.addEventListener("click", () => this.runSim());
@@ -1159,8 +1236,9 @@ export class WorkshopScene extends Phaser.Scene {
     const running = this.playing !== null;
     this.overlay.dataset.running = String(running);
     this.runButton.textContent = running ? "結果へスキップ" : "実行";
-    this.runStatus.hidden = !running;
-    this.costText.hidden = running;
+    this.runBar.hidden = !running;
+    this.shelfNote.hidden = !running;
+    this.runButton.classList.toggle("ws-run-secondary", running);
     for (const b of this.overlay.querySelectorAll<HTMLButtonElement>(
       ".ws-shelf .ws-btn, .ws-bar .ws-clear",
     )) {

@@ -88,6 +88,9 @@ for (const vp of VIEWPORTS) {
           });
         });
       const btns = [...document.querySelectorAll<HTMLElement>("#ws-overlay .ws-actions .ws-btn")];
+      // #103: 実行中の棚は pointer-events:none（elementFromPoint が素通りする）。覆い隠す別要素の検出のため、測る間だけ戻す
+      for (const g of document.querySelectorAll<HTMLElement>("#ws-overlay .ws-actions"))
+        g.style.pointerEvents = "auto";
       const covered = btns.filter((b) => {
         const q = rect(b);
         const top = document.elementFromPoint(q.x + q.width / 2, q.y + q.height / 2);

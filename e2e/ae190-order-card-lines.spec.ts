@@ -54,7 +54,7 @@ for (const id of IDS) {
       await place(page, loadSol(id));
       if (running) {
         await page.locator(".ws-run").click();
-        await expect(page.locator(".ws-run-status")).toContainText("実行中…(tick");
+        await expect(page.locator(".ws-runbar-tick")).toContainText("tick"); // #103: 進行バーの右
       }
       const res = await page.evaluate(() => {
         const body = document.querySelector<HTMLElement>(".ws-order-body")!;
