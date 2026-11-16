@@ -558,17 +558,35 @@
 .ws-portrait .ws-runbar,
 .ws-compact .ws-runbar {
   left: var(--grid-x-px);
-  right: 112px;
+  right: 120px;
   width: auto;
   top: calc(var(--grid-y-px) - 64px);
+}
+
+/* スマホ横: 盤面の上(gridY=56)は 56px しかないので、説明帯(top 4px・高さ 48px)と同じ位置に置き、
+ * 実行中は説明帯を譲る。タイトル 28 + 進行バー行 20 = 48px で、上にはみ出さない */
+.ws-compact .ws-runbar {
+  top: 4px;
+}
+
+#ws-overlay.ws-compact .ws-runbar-title {
+  height: 28px;
+  line-height: 28px;
+  font-size: 20px;
+}
+
+#ws-overlay.ws-compact[data-running="true"] .ws-help-line,
+#ws-overlay.ws-compact[data-running="true"] .ws-guide {
+  visibility: hidden;
 }
 
 .ws-runbar[hidden] {
   display: none;
 }
 
-.ws-runbar-title {
-  margin: 0;
+#ws-overlay .ws-runbar-title,
+#ws-overlay.ws-portrait .ws-runbar-title {
+  margin: 0; /* #ws-overlay p の下余白 8px に負けないよう ID 付きで 0 にする */
   height: 32px;
   line-height: 32px;
   text-align: center;

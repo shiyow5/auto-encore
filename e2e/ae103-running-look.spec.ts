@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 const SIZES = [
   { width: 1280, height: 720 },
   { width: 390, height: 844 },
+  { width: 844, height: 390 },
 ];
 
 for (const size of SIZES) {
@@ -80,6 +81,22 @@ for (const size of SIZES) {
     expect(m.tick).toMatch(/^tick \d+\/\d+$/);
     expect(m.barTop).toBeGreaterThanOrEqual(0);
     expect(m.barBottom).toBeLessThanOrEqual(m.gridTop); // 盤面の上
+    // 他の要素（実行ボタン・音量・出口の表示など）と重ならない
+    const overlaps = await page.evaluate(() => {
+      const bar = document.querySelector<HTMLElement>(".ws-runbar")!.getBoundingClientRect();
+      const out: string[] = [];
+      for (const el of document.querySelectorAll<HTMLElement>(
+        "#ws-overlay button, #volume-toggle, .ws-help-line, .ws-guide",
+      )) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        if (getComputedStyle(el).visibility === "hidden") continue;
+        if (r.left < bar.right && r.right > bar.left && r.top < bar.bottom && r.bottom > bar.top)
+          out.push(el.className || el.id);
+      }
+      return out;
+    });
+    expect(overlaps).toEqual([]);
     expect(m.runBg).toBe("rgba(0, 0, 0, 0)"); // Secondary（塗りなし）
     expect(m.runBorder).toBe("rgb(122, 104, 136)"); // #7A6888
     expect(m.note).toBe(false); // 「実行中は編集できません」

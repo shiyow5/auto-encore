@@ -383,6 +383,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.playing = { ex, frame: 0, timer };
     this.combo = 0;
     playSfx("run");
+    this.say("実行中…");
     duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
@@ -415,13 +416,14 @@ export class WorkshopScene extends Phaser.Scene {
         playNote(ev.pitch);
       }
     }
+    this.maybePulseExit();
     this.redraw();
     setQaState(p.ex.frames[p.frame] ?? null);
     this.overlay.dataset.tick = String(p.frame);
     this.updateRunBar();
   }
 
-  /** 進行バーと「tick n/N」を今の tick に合わせる。出口に音符が着いた最初の tick で出口チップを 1 回だけ拡大（#103）。 */
+  /** 進行バーと「tick n/N」を今の tick に合わせる。（#103）。 */
   private updateRunBar(): void {
     const p = this.playing;
     if (!p) return;
@@ -429,15 +431,20 @@ export class WorkshopScene extends Phaser.Scene {
     this.runFill.style.width = `${(Math.min(p.frame, total) / total) * 100}%`;
     this.runTickText.textContent = `tick ${p.frame}/${total}`;
     this.overlay.dataset.tickTotal = String(total);
-    // 出口に音符が着いた最初の tick だけ、出口チップを 120ms 間 1.15 倍にする（1 回だけ）
-    if (!this.exitPulsed && p.ex.binEvents.some((ev) => ev.tick <= p.frame)) {
-      this.exitPulsed = true;
-      this.exitPulse = true;
-      this.time.delayedCall(EXIT_PULSE_MS, () => {
-        this.exitPulse = false;
-        if (this.playing) this.redraw();
-      });
-    }
+  }
+
+  /** 出口に音符が着いた最初の tick だけ、出口チップを EXIT_PULSE_MS 間拡大する（1 回だけ）。redraw の前に呼ぶ。 */
+  private maybePulseExit(): void {
+    const p = this.playing;
+    if (!p || this.exitPulsed) return;
+    const f = p.ex.frames[p.frame];
+    if (!f || !f.outputs.some((o) => o.received.length > 0)) return;
+    this.exitPulsed = true;
+    this.exitPulse = true;
+    this.time.delayedCall(EXIT_PULSE_MS, () => {
+      this.exitPulse = false;
+      if (this.playing) this.redraw();
+    });
   }
 
   private finishPlayback(): void {
