@@ -14,7 +14,7 @@ async function waitForIdle(page: Page): Promise<void> {
 }
 
 async function openOrder01(page: Page): Promise<void> {
-  await page.goto("/");
+  await page.goto("/?fx=0");
   await expect(page.locator("body")).toHaveAttribute("data-scene", "title", { timeout: 15_000 });
   await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-scene", "order-select", {
@@ -35,6 +35,8 @@ async function placeBeltsAndRun(page: Page, last: number): Promise<void> {
 }
 
 test.use({ viewport: { width: 844, height: 390 } });
+// 検証用(#207): ① タイムアウト 90s
+test.setTimeout(90_000);
 
 test("#207: 成功時、結果画面の4ボタンがスクロールなしで見える", async ({ page }) => {
   await openOrder01(page);
