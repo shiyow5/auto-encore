@@ -664,7 +664,11 @@ export class WorkshopScene extends Phaser.Scene {
       if (fxEnabled()) this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
       this.drawNotes(frame);
       if (!fxEnabled() && this.playing)
-        this.drawStaticMarks(frame, this.playing.frame >= this.playing.ex.frames.length - 1);
+        this.drawStaticMarks(
+          frame,
+          this.playing.frame >= this.playing.ex.frames.length - 1,
+          !this.playing.ex.report.passed,
+        );
     }
   }
 
@@ -725,15 +729,16 @@ export class WorkshopScene extends Phaser.Scene {
 
   /**
    * fx=0 / reduced-motion の静的強調（#119, LD#190 と同じ: 色＋記号＋太線。動かない）。
-   * 進行中: 音符のいるマスの左に緑の太線。最終 tick で音符が残ったマス（詰まり位置）: 赤の太線＋左上に「▼」。
+   * 進行中: 音符のいるマスの左に緑の太線。失敗（passed=false）の最終 tick で音符が残ったマス（詰まり位置）: 赤の太線＋左上に「▼」。
+   * 成功時は最終 tick でも赤を出さない（詰まりではないため）。
    */
-  private drawStaticMarks(frame: SimState, last: boolean): void {
+  private drawStaticMarks(frame: SimState, last: boolean, failed: boolean): void {
     const { width } = this.rules;
     const g = this.gfx;
     const bar = Math.max(3, Math.round((3 * this.cell) / CELL));
     for (const c of frame.cells) {
       const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
-      const stuck = last;
+      const stuck = last && failed;
       g.fillStyle(stuck ? 0xff8a7a : 0x8fd68f, 1);
       g.fillRect(x, y, bar, this.cell);
       if (stuck) {
