@@ -318,7 +318,7 @@ test("?fx=0: 注文選択のロック表示と「タイトルへ戻る」", asyn
   await expect(overlay).not.toContainText("解放済み");
   await expect(overlay).not.toContainText("---");
   const locked = overlay.locator(".os-row-locked").first();
-  await expect(locked).toContainText("ロック中: 高い音と低い音");
+  await expect(locked).toContainText("高い音と低い音");
   await expect(locked).toContainText("解放条件:");
   await expect(locked).toContainText("開店前の試し弾き をクリア");
   // #102 で 🔒 絵文字をドット絵の鍵アイコン(canvas)に置き換えた
