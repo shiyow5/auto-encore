@@ -565,7 +565,7 @@ export function noteTexture(
   return key;
 }
 
-/** 稼働ランプ付きの機械テクスチャ。frame 0/1 で左上/右上のランプが交互に灯る（2フレーム）。 */
+/** 稼働ランプ付きの機械テクスチャ。frame 0/1 で左上/右上のランプ（3px）が交互に灯る（2フレーム）。 */
 export function activeTexture(
   textures: Phaser.Textures.TextureManager,
   machine: SpriteName,
@@ -578,14 +578,22 @@ export function activeTexture(
   if (tex) {
     const ctx = tex.getContext();
     drawRows(ctx, rows);
+    // 3px ランプ。点灯時は明色＋1px の外周グロー（暗い枠の内側に収める）、消灯側は暗色のまま。
     const lamp = (x: number, lit: boolean) => {
+      const on = PALETTE.a ?? "#f2b45a";
       ctx.fillStyle = "#140f18";
-      ctx.fillRect(x - 1, 1, 4, 4);
-      ctx.fillStyle = lit ? (PALETTE.a ?? "#f2b45a") : "#3a2f40";
-      ctx.fillRect(x, 2, 2, 2);
+      ctx.fillRect(x - 1, 1, 5, 5);
+      if (lit) {
+        ctx.globalAlpha = 0.45;
+        ctx.fillStyle = on;
+        ctx.fillRect(x - 1, 1, 5, 5);
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = lit ? on : "#3a2f40";
+      ctx.fillRect(x, 2, 3, 3);
     };
     lamp(1, frame === 0);
-    lamp(TILE - 3, frame === 1);
+    lamp(TILE - 4, frame === 1);
     tex.refresh();
   }
   return key;
