@@ -11,6 +11,7 @@ test("音量: 変更して再読み込みしても残る。0% にしてもミュ
   const sfx = page.locator("#volume-sfx");
   const bgm = page.locator("#volume-bgm");
   await expect(sfx).toHaveValue("100");
+  await expect(bgm).toHaveValue("50"); // BGM の既定は 50%（#218。ゲイン 1.0 × 50% = 旧既定と同じ聞こえ方）
   await sfx.fill("40");
   await bgm.fill("0");
   await expect(page.locator("#audio-toggle")).toHaveAttribute("aria-pressed", "false");
