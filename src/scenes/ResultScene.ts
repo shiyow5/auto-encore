@@ -14,6 +14,7 @@ import { loadGameData } from "../data";
 import { SaveStore, MemoryStorage } from "../core/save";
 import { iconCanvas, type SpriteName } from "../art/sprites";
 import { createSceneFx } from "../fx/scene-fx";
+import { BRONZE_PALETTE } from "../fx/fx-map";
 import { fxEnabled } from "../ui/flags";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
@@ -115,6 +116,7 @@ export class ResultScene extends Phaser.Scene {
     fx.emit("songComplete");
     const medals = Object.values(report.medals);
     if (medals.includes("gold")) fx.emit("medalEarned");
+    else if (medals.includes("bronze")) fx.emit("medalSilver", 1, { palette: BRONZE_PALETTE });
     else if (medals.some((m) => m !== "none")) fx.emit("medalSilver");
   }
 
