@@ -1667,6 +1667,17 @@ body[data-scene="workshop"] #audio-toggle {
   #rs-overlay h2 {
     font-size: 1.6rem;
   }
+  /* #113: 失敗時は表の上に「最初にずれたのは」が1行入るので、余白と行の上下を詰めて表の下端まで収める */
+  .rs-sub,
+  .rs-fm {
+    margin-bottom: 0.5rem;
+  }
+  .rs-table th,
+  .rs-table td {
+    height: 32px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
 
   /* #203: 横持ちでチュートリアル吹き出しが3行になるため、高さを拡張して枠内へ */
   .ws-compact .ws-guide {
