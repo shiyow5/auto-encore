@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:nightly": "playwright test -c playwright.nightly.config.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint ."

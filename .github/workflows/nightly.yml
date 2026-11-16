@@ -45,3 +45,21 @@ jobs:
           name: placement-1000-failure
           path: nightly-report/
           retention-days: 14
+
+  e2e-light-fx:
+    name: e2e-light-fx (#207, 非必須)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --user 1001
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:e2e
+      - run: npm run test:e2e:nightly
