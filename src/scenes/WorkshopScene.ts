@@ -85,6 +85,9 @@ export const HELP_TOUCH = "タップかなぞる=置く／消すボタン=消す
 
 /** 再生の速さ（1 tick を何ミリ秒で見せるか）。 */
 export const PLAY_MS_PER_TICK = 110;
+/** ?fx=0 / reduced-motion の再生: 総再生の上限と 1 tick の下限（#119）。 */
+const FX_OFF_MAX_TOTAL_MS = 4000;
+const FX_OFF_MIN_MS_PER_TICK = 40;
 
 /** 1マスの大きさ（内部解像度のドット）。design-detail §1-2 は 16px 仮想だが、320×180 に棚と注文票を並べるため仮に 14。 */
 export const CELL = 14;
@@ -355,21 +358,27 @@ export class WorkshopScene extends Phaser.Scene {
       this.fx?.emit("runError");
       return;
     }
-    if (!fxEnabled() || ex.frames.length <= 1) {
+    // fx=0 でも再生は出す（#119）。装飾(灯・尾・火花・音のダッキング)だけ切り、音符の位置は残す
+    if (ex.frames.length <= 1) {
       this.showResult(ex);
       return;
     }
     // 最初の再生で AudioContext を resume
     initAudio(() => {});
     const timer = this.time.addEvent({
-      delay: PLAY_MS_PER_TICK,
+      delay: fxEnabled()
+        ? PLAY_MS_PER_TICK
+        : Math.max(
+            FX_OFF_MIN_MS_PER_TICK,
+            Math.min(PLAY_MS_PER_TICK, FX_OFF_MAX_TOTAL_MS / ex.frames.length),
+          ),
       loop: true,
       callback: () => this.advance(),
     });
     this.playing = { ex, frame: 0, timer };
     this.combo = 0;
     playSfx("run");
-    duckBgm(true);
+    if (fxEnabled()) duckBgm(true);
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
     this.say("実行中…");
@@ -652,8 +661,10 @@ export class WorkshopScene extends Phaser.Scene {
 
     const frame = this.playing?.ex.frames[this.playing.frame];
     if (frame) {
-      this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
+      if (fxEnabled()) this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
       this.drawNotes(frame);
+      if (!fxEnabled() && this.playing)
+        this.drawStaticMarks(frame, this.playing.frame >= this.playing.ex.frames.length - 1);
     }
   }
 
@@ -708,6 +719,35 @@ export class WorkshopScene extends Phaser.Scene {
         [far, this.cell - 3],
       ] as const) {
         g.fillRect(x + dx, y + dy, 2, 2);
+      }
+    }
+  }
+
+  /**
+   * fx=0 / reduced-motion の静的強調（#119, LD#190 と同じ: 色＋記号＋太線。動かない）。
+   * 進行中: 音符のいるマスの左に緑の太線。最終 tick で音符が残ったマス（詰まり位置）: 赤の太線＋左上に「▼」。
+   */
+  private drawStaticMarks(frame: SimState, last: boolean): void {
+    const { width } = this.rules;
+    const g = this.gfx;
+    const bar = Math.max(3, Math.round((3 * this.cell) / CELL));
+    for (const c of frame.cells) {
+      const { x, y } = this.cellXY({ x: c.key % width, y: Math.floor(c.key / width) });
+      const stuck = last;
+      g.fillStyle(stuck ? 0xff8a7a : 0x8fd68f, 1);
+      g.fillRect(x, y, bar, this.cell);
+      if (stuck) {
+        g.lineStyle(2, 0xff8a7a, 1);
+        g.strokeRect(x + 1, y + 1, this.cell - 2, this.cell - 2);
+        const s = Math.round((3 * this.cell) / CELL);
+        g.fillTriangle(
+          x + bar + 1,
+          y + 2,
+          x + bar + 1 + 2 * s,
+          y + 2,
+          x + bar + 1 + s,
+          y + 2 + 2 * s,
+        );
       }
     }
   }
