@@ -1667,6 +1667,13 @@ body[data-scene="workshop"] #audio-toggle {
   #rs-overlay h2 {
     font-size: 1.6rem;
   }
+
+  /* #203: 横持ちでチュートリアル吹き出しが3行になるため、高さを拡張して枠内へ */
+  .ws-compact .ws-guide {
+    height: auto;
+    max-height: calc(3 * 20px + 4px);
+    overflow: hidden;
+  }
 }
 
 /* #113: 結果のメダルは形でも区別（金=丸 / 銀=三角 / 銅=四角）。降りてきて弾み、失敗は位置を点滅 */
