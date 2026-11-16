@@ -252,7 +252,7 @@
 .ws-help-panel {
   left: calc(var(--u) * 4);
   right: auto;
-  top: calc(var(--u) * 98);
+  top: calc(var(--u) * 110);
   width: calc(var(--u) * 60);
   box-sizing: border-box;
   padding: 10px 12px;
@@ -1886,4 +1886,10 @@ body[data-scene="workshop"] #audio-toggle {
 #rs-overlay[data-fx="off"] .ae-medal,
 #rs-overlay[data-fx="off"] .rs-fm strong {
   animation: none;
+}
+
+/* #139 元に戻す: 縦持ちは 5 個並びで 4 文字が約 67px 幅に収まらないので、この1個だけ余白と字間を詰める（16px・高さ 44px は維持） */
+.ws-portrait .ws-actions .ws-undo {
+  padding: 0;
+  letter-spacing: -1px;
 }

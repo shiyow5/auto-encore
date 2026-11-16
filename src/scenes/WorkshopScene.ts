@@ -61,6 +61,7 @@ import {
 } from "./workshop/placements";
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
+import { popHistory, pushHistory } from "../core/undo";
 import { DragStroke, SeThrottle, strokeButtonHeld } from "./workshop/drag";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import {
@@ -169,11 +170,21 @@ function multiLine(text: string, cls: string): HTMLParagraphElement {
   return p;
 }
 
+/** Ctrl+Z / ⌘+Z（Shift なし）。Shift+Z はやり直し用に空けておく。 */
+function isUndoKey(e: KeyboardEvent): boolean {
+  return (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === "z" || e.key === "Z");
+}
+
 export class WorkshopScene extends Phaser.Scene {
   private order!: Order;
   private machines!: MachineTable;
   private rules!: WorkshopRules;
   private placements: readonly Placement[] = [];
+  /** 「元に戻す」履歴（#139）。変更直前の placements を積む。シーンに入るたびに空 */
+  private history: readonly (readonly Placement[])[] = [];
+  /** いまのドラッグで履歴を積み済みか（1ストローク＝1件） */
+  private strokeRecorded = false;
+  private undoButton!: HTMLButtonElement;
   private selected: MachineId = "belt";
   private nextDir: Dir = "E";
   /** 次に置く仕分け機の音高。候補は machines.json。 */
@@ -250,7 +261,11 @@ export class WorkshopScene extends Phaser.Scene {
         return;
       }
       // 縦横が入れ替わった: 配置を引き継いでレイアウトごと作り直す
-      this.scene.restart({ placements: this.placements, orderId: this.order.id });
+      this.scene.restart({
+        placements: this.placements,
+        orderId: this.order.id,
+        history: this.history,
+      });
       return;
     }
     if ((this.portrait || this.compact) && this.applyViewport()) this.redraw();
@@ -290,7 +305,11 @@ export class WorkshopScene extends Phaser.Scene {
     super("workshop");
   }
 
-  create(init?: { placements?: readonly Placement[]; orderId?: string }): void {
+  create(init?: {
+    placements?: readonly Placement[];
+    orderId?: string;
+    history?: readonly (readonly Placement[])[];
+  }): void {
     const data = loadGameData();
     const orderId = init?.orderId ?? "order-01";
     const order = data.orders.find((o) => o.id === orderId);
@@ -300,6 +319,8 @@ export class WorkshopScene extends Phaser.Scene {
     // 棚は machines.json の全機械。注文で使えるかは「実行」時の検証で見る
     this.rules = rulesFor(order, Object.keys(data.machines) as MachineId[]);
     this.placements = init?.placements ?? [];
+    this.history = init?.history ?? [];
+    this.strokeRecorded = false;
     this.playing = null;
     this.selected = order.allowedMachines[0] ?? "belt";
     this.nextDir = "E";
@@ -501,6 +522,7 @@ export class WorkshopScene extends Phaser.Scene {
       this.fx?.emit("placeError");
       return;
     }
+    this.recordBeforeChange();
     this.placements = res.placements;
     if (!se || se.allow(performance.now())) playSfx("place");
     this.tutorialEvent("placed");
@@ -516,6 +538,7 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.playing) return;
     const p = pos ? placementAt(this.placements, pos) : undefined;
     if (pos && p && pitchChoices(this.machines, p.machine).length > 0) {
+      this.recordBeforeChange();
       this.placements = cyclePitchAt(this.placements, this.machines, pos);
       playSfx("pitch");
       const now = placementAt(this.placements, pos)?.config?.pitch;
@@ -535,6 +558,7 @@ export class WorkshopScene extends Phaser.Scene {
   private rotate(pos: Point | null): void {
     if (this.playing) return;
     if (pos && placementAt(this.placements, pos)) {
+      this.recordBeforeChange();
       this.placements = rotateAt(this.placements, pos);
       playSfx("rotate");
       this.tutorialEvent("rotated");
@@ -552,6 +576,7 @@ export class WorkshopScene extends Phaser.Scene {
   private removeAtPos(pos: Point): void {
     if (this.playing) return;
     if (!placementAt(this.placements, pos)) return;
+    this.recordBeforeChange();
     this.placements = removeAt(this.placements, pos);
     playSfx("remove");
     this.say(`${pos.x},${pos.y} の機械を消した`);
@@ -561,9 +586,33 @@ export class WorkshopScene extends Phaser.Scene {
   private clearAll(): void {
     if (this.playing) return;
     if (this.placements.length === 0) return;
+    this.recordBeforeChange();
     this.placements = [];
     playSfx("clear");
     this.say("全部消した");
+    this.changed();
+  }
+
+  /** 変更の直前に呼ぶ（変化が確定した後）。ドラッグ中は最初の1回だけ積む（#139）。 */
+  private recordBeforeChange(): void {
+    if (this.stroke) {
+      if (this.strokeRecorded) return;
+      this.strokeRecorded = true;
+    }
+    this.history = pushHistory(this.history, this.placements);
+  }
+
+  /** 直前の配置操作を1つ戻す（Ctrl+Z / ⌘+Z / ボタン）。実行中・履歴が空なら何もしない。 */
+  private undo(): void {
+    if (this.playing) return;
+    const { stack, prev } = popHistory(this.history);
+    if (!prev) return;
+    // ドラッグ中の undo: ストロークを終える。続きのドラッグで盤面が履歴なしに変わるのを防ぐ（離したときの click も無視される）
+    if (this.stroke) this.endStroke();
+    this.history = stack;
+    this.placements = prev;
+    playSfx("remove");
+    this.say("元に戻した");
     this.changed();
   }
 
@@ -889,6 +938,14 @@ export class WorkshopScene extends Phaser.Scene {
       this.refreshOverlay();
     });
     actions.append(this.eraseButton);
+    this.undoButton = h("button", {
+      type: "button",
+      class: "ws-btn ws-undo",
+      "aria-label": "直前の操作を元に戻す",
+    });
+    this.undoButton.textContent = "元に戻す";
+    this.undoButton.addEventListener("click", () => this.undo());
+    actions.append(this.undoButton);
     // ミュートボタン (audio.ts の共有設定を使用)
     this.muteButton = h("button", {
       type: "button",
@@ -991,8 +1048,10 @@ export class WorkshopScene extends Phaser.Scene {
           if (e.shiftKey) return;
           this.strokeButton = e.button;
           if (e.button === 2 || (e.button === 0 && this.eraseMode)) {
+            this.strokeRecorded = false;
             this.stroke = new DragStroke("erase", pos);
           } else if (e.button === 0) {
+            this.strokeRecorded = false;
             this.stroke = new DragStroke("place", pos);
             this.placeSe = new SeThrottle();
           }
@@ -1155,11 +1214,19 @@ export class WorkshopScene extends Phaser.Scene {
       } else if (e.key === "p" || e.key === "P") {
         e.preventDefault();
         this.cyclePitch(this.hover);
+      } else if (isUndoKey(e)) {
+        e.preventDefault();
+        this.undo();
       }
     });
     this.input.keyboard?.on("keydown-R", () => {
       if (document.activeElement && ov.contains(document.activeElement)) return;
       this.rotate(this.hover);
+    });
+    this.input.keyboard?.on("keydown-Z", (e: KeyboardEvent) => {
+      if (!isUndoKey(e)) return;
+      if (document.activeElement && ov.contains(document.activeElement)) return;
+      this.undo();
     });
     this.input.keyboard?.on("keydown-P", () => {
       if (document.activeElement && ov.contains(document.activeElement)) return;
@@ -1197,6 +1264,9 @@ export class WorkshopScene extends Phaser.Scene {
     } else if (e.key === "p" || e.key === "P") {
       e.preventDefault();
       this.cyclePitch(pos);
+    } else if (isUndoKey(e)) {
+      e.preventDefault();
+      this.undo();
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       this.removeAtPos(pos);
@@ -1233,6 +1303,7 @@ export class WorkshopScene extends Phaser.Scene {
     const cost = totalCost(this.placements, this.machines, this.order);
     this.costText.textContent = `機械 ${this.placements.length}台 / ${cost}G`;
     this.overlay.dataset.placements = String(this.placements.length);
+    this.overlay.dataset.undo = String(this.history.length);
     const running = this.playing !== null;
     this.overlay.dataset.running = String(running);
     this.runButton.textContent = running ? "結果へスキップ" : "実行";
@@ -1244,6 +1315,7 @@ export class WorkshopScene extends Phaser.Scene {
     )) {
       b.disabled = running;
     }
+    this.undoButton.disabled = running || this.history.length === 0;
     this.cells.forEach((b) => b.setAttribute("aria-disabled", String(running)));
     this.renderTutorial();
   }
