@@ -1,0 +1,136 @@
+[
+ {
+  "tag": "d1280-main",
+  "final": "result",
+  "sec": 32,
+  "errors": [],
+  "layout": [],
+  "notes": [
+   "o2 hash=undefined (golden 38e9100750e0dee2)"
+  ],
+  "shots": 9
+ },
+ {
+  "tag": "d1920-main",
+  "final": "result",
+  "sec": 31,
+  "errors": [],
+  "layout": [],
+  "notes": [
+   "o2 hash=undefined (golden 38e9100750e0dee2)"
+  ],
+  "shots": 9
+ },
+ {
+  "tag": "spPortrait-main",
+  "final": "result",
+  "sec": 46,
+  "errors": [],
+  "layout": [
+   {
+    "at": "o1-workshop-empty",
+    "issues": [
+     "ボタン横はみ出し: \"回収箱を選ぶ（0G・この注文では使えない）\" [356..433]"
+    ]
+   },
+   {
+    "at": "o1-placed",
+    "issues": [
+     "ボタン横はみ出し: \"回収箱を選ぶ（0G・この注文では使えない）\" [356..433]"
+    ]
+   },
+   {
+    "at": "o1-running",
+    "issues": [
+     "ボタン横はみ出し: \"回収箱を選ぶ（0G・この注文では使えない）\" [356..433]"
+    ]
+   },
+   {
+    "at": "o2-workshop-empty",
+    "issues": [
+     "ボタン横はみ出し: \"回収箱を選ぶ（0G・この注文では使えない）\" [356..433]"
+    ]
+   },
+   {
+    "at": "o2-placed",
+    "issues": [
+     "ボタン横はみ出し: \"回収箱を選ぶ（0G・この注文では使えない）\" [356..433]"
+    ]
+   }
+  ],
+  "notes": [
+   "o2 hash=undefined (golden 38e9100750e0dee2)"
+  ],
+  "shots": 9
+ },
+ {
+  "tag": "spLandscape-main",
+  "final": "result",
+  "sec": 48,
+  "errors": [],
+  "layout": [
+   {
+    "at": "o1-result",
+    "issues": [
+     "ボタン下はみ出し: \"工房にもどる\"",
+     "ボタン下はみ出し: \"次の注文へ\"",
+     "ボタン下はみ出し: \"注文選択\"",
+     "ボタン下はみ出し: \"タイトル\""
+    ]
+   },
+   {
+    "at": "o2-result",
+    "issues": [
+     "ボタン下はみ出し: \"工房にもどる\"",
+     "ボタン下はみ出し: \"次の注文へ\"",
+     "ボタン下はみ出し: \"注文選択\"",
+     "ボタン下はみ出し: \"タイトル\""
+    ]
+   }
+  ],
+  "notes": [
+   "o2 hash=undefined (golden 38e9100750e0dee2)"
+  ],
+  "shots": 9
+ },
+ {
+  "tag": "d1280-monkey-pt-a",
+  "final": "order-select",
+  "steps": 150,
+  "sec": 772,
+  "errors": [],
+  "layout": [],
+  "notes": [],
+  "shots": 2
+ },
+ {
+  "tag": "d1280-monkey-pt-b",
+  "final": "result",
+  "steps": 104,
+  "sec": 562,
+  "errors": [],
+  "layout": [],
+  "notes": [],
+  "shots": 4
+ },
+ {
+  "tag": "d1280-monkey-pt-c",
+  "final": "order-select",
+  "steps": 150,
+  "sec": 771,
+  "errors": [],
+  "layout": [],
+  "notes": [],
+  "shots": 2
+ },
+ {
+  "tag": "spPortrait-monkey-pt-d",
+  "final": "order-select",
+  "steps": 150,
+  "sec": 771,
+  "errors": [],
+  "layout": [],
+  "notes": [],
+  "shots": 2
+ }
+]
