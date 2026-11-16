@@ -28,5 +28,19 @@ test("#207(nightly): fx 未指定でも結果画面に着き、4ボタンが見�
   await page.getByRole("button", { name: "実行" }).click();
   await waitForIdle(page);
   await expect(page.locator("body")).toHaveAttribute("data-scene", "result");
-  await expect(page.locator(".rs-actions button")).toHaveCount(4);
+  const buttons = page.locator(".rs-actions button");
+  await expect(buttons).toHaveCount(4);
+  // 可視性 + viewport 内判定（隠れ・見切れで通らないようにする）
+  const vp = page.viewportSize();
+  expect(vp).not.toBeNull();
+  for (let i = 0; i < 4; i++) {
+    const btn = buttons.nth(i);
+    await expect(btn).toBeVisible();
+    const box = await btn.boundingBox();
+    expect(box, `ボタン${i}の boundingBox`).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(vp!.width);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(vp!.height);
+  }
 });
