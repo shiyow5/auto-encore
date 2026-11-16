@@ -643,9 +643,34 @@
   pointer-events: none;
 }
 
-/* PC: 実行中は棚に「実行中は編集できません」の 1 行が増えて棚が約 40px 伸びるので、操作ヘルプを同じだけ下げて重ねない（AE#103 kyoya 残件3） */
-#ws-overlay[data-running="true"]:not(.ws-portrait):not(.ws-compact) .ws-help-panel {
-  top: calc(var(--u) * 98 + 44px);
+/* PC: 実行中の「実行中は編集できません」は見出し「棚」の位置に重ねて出す（流れから外す）ので、棚の高さも操作列の位置も実行前と同じ（AE#103 kyoya 残件3 / 案2） */
+#ws-overlay[data-running="true"]:not(.ws-portrait):not(.ws-compact) .ws-shelf h2 {
+  visibility: hidden;
+}
+
+#ws-overlay[data-running="true"]:not(.ws-portrait):not(.ws-compact) .ws-shelf-note {
+  position: absolute;
+  top: calc(var(--u) * 3);
+  left: calc(var(--u) * 3);
+  right: calc(var(--u) * 3);
+  line-height: calc(var(--u) * 5 * 1.2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 横画面（compact）: 棚は見出しが無いので、注記は棚の外（画面左下）に固定して出す。棚の高さ・操作列の位置は実行前と同じ（案2） */
+#ws-overlay.ws-compact[data-running="true"] .ws-shelf-note {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  width: 216px;
+  box-sizing: border-box;
+  padding: 2px 6px;
+  font-size: 14px;
+  line-height: 18px;
+  white-space: nowrap;
+  background: var(--ae-surface);
+  pointer-events: none;
 }
 
 /* 実行中の棚（#103）: 全体グレーアウトはやめ、opacity 0.6 + 操作不可。選択中ボタンの枠は #F2B45A のまま */
