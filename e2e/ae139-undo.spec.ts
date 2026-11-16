@@ -90,3 +90,19 @@ test("元に戻す: ドラッグ中に Ctrl+Z → 続きのドラッグでは何
   await expect(ov).toHaveAttribute("data-placements", "0");
   await expect(undo).toBeDisabled();
 });
+
+test("元に戻す: 390×844 で .ws-undo が窮屈にならない（短縮ラベル・aria-label 維持）、undo で対象マスが光る", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openWorkshop(page);
+  const undo = page.locator(".ws-undo");
+  await expect(undo).toHaveText("戻す");
+  await expect(undo).toHaveAttribute("aria-label", "直前の操作を元に戻す");
+  const fit = await undo.evaluate((el) => ({ sw: el.scrollWidth, cw: el.clientWidth }));
+  expect(fit.sw).toBeLessThanOrEqual(fit.cw);
+
+  await cell(page, 5, 3).click();
+  await undo.click();
+  await expect(cell(page, 5, 3)).toHaveClass(/ws-undo-flash/);
+});

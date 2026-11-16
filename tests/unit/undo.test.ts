@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { popHistory, pushHistory, UNDO_LIMIT } from "../../src/core/undo";
+import { changedCells, popHistory, pushHistory, UNDO_LIMIT } from "../../src/core/undo";
 
 describe("undo history (#139)", () => {
   it("積んだ順の逆で戻せる", () => {
@@ -39,5 +39,22 @@ describe("undo history (#139)", () => {
     const r = popHistory<number>([]);
     expect(r.prev).toBeNull();
     expect(r.stack).toEqual([]);
+  });
+});
+
+describe("changedCells (#139)", () => {
+  const belt = (x: number, y: number, dir: "E" | "N" = "E") => ({
+    machine: "belt" as const,
+    pos: { x, y },
+    dir,
+  });
+  it("増えた・消えた・向きが変わったマスだけ返す", () => {
+    const before = [belt(1, 1), belt(2, 1)];
+    const after = [belt(1, 1, "N"), belt(3, 1)];
+    const got = changedCells(before, after).map((p) => `${p.x},${p.y}`);
+    expect(got.sort()).toEqual(["1,1", "2,1", "3,1"]);
+  });
+  it("同じ配置なら空", () => {
+    expect(changedCells([belt(1, 1)], [belt(1, 1)])).toEqual([]);
   });
 });

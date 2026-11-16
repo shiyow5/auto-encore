@@ -61,7 +61,7 @@ import {
 } from "./workshop/placements";
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
-import { popHistory, pushHistory } from "../core/undo";
+import { changedCells, popHistory, pushHistory } from "../core/undo";
 import { DragStroke, SeThrottle, strokeButtonHeld } from "./workshop/drag";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
 import {
@@ -609,11 +609,26 @@ export class WorkshopScene extends Phaser.Scene {
     if (!prev) return;
     // ドラッグ中の undo: ストロークを終える。続きのドラッグで盤面が履歴なしに変わるのを防ぐ（離したときの click も無視される）
     if (this.stroke) this.endStroke();
+    const restored = changedCells(this.placements, prev);
     this.history = stack;
     this.placements = prev;
     playSfx("remove");
     this.say("元に戻した");
     this.changed();
+    this.flashCells(restored);
+  }
+
+  /** 戻したマスを約0.2秒淡く光らせる（#139。?fx=0 / 視差効果を減らす は CSS 側で無効）。 */
+  private flashCells(cells: readonly { x: number; y: number }[]): void {
+    if (!fxEnabled()) return;
+    for (const { x, y } of cells) {
+      const el = this.cells[y * this.rules.width + x];
+      if (!el) continue;
+      el.classList.remove("ws-undo-flash");
+      void el.offsetWidth; // アニメーションを先頭から再生し直す
+      el.classList.add("ws-undo-flash");
+      window.setTimeout(() => el.classList.remove("ws-undo-flash"), 250);
+    }
   }
 
   private changed(): void {
@@ -943,7 +958,7 @@ export class WorkshopScene extends Phaser.Scene {
       class: "ws-btn ws-undo",
       "aria-label": "直前の操作を元に戻す",
     });
-    this.undoButton.textContent = "元に戻す";
+    this.undoButton.textContent = this.portrait ? "戻す" : "元に戻す"; // 縦持ちは幅に収まる短縮ラベル（aria-label は同じ）
     this.undoButton.addEventListener("click", () => this.undo());
     actions.append(this.undoButton);
     // ミュートボタン (audio.ts の共有設定を使用)

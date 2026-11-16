@@ -1919,8 +1919,20 @@ body[data-scene="workshop"] #audio-toggle {
   animation: none;
 }
 
-/* #139 元に戻す: 縦持ちは 5 個並びで 4 文字が約 67px 幅に収まらないので、この1個だけ余白と字間を詰める（16px・高さ 44px は維持） */
-.ws-portrait .ws-actions .ws-undo {
-  padding: 0;
-  letter-spacing: -1px;
+/* #139 元に戻す: 戻したマスを約0.2秒淡く光らせる（縦持ちの短縮ラベル「戻す」は TS 側） */
+.ws-cell.ws-undo-flash {
+  animation: ws-undo-flash 0.2s ease-out;
+}
+@keyframes ws-undo-flash {
+  from {
+    background: rgb(243 233 220 / 55%);
+  }
+  to {
+    background: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-cell.ws-undo-flash {
+    animation: none;
+  }
 }
