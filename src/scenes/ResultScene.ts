@@ -134,6 +134,7 @@ export class ResultScene extends Phaser.Scene {
       "data-result": report.metrics.result,
     });
     this.overlay = ov;
+    if (!fxEnabled()) ov.dataset.fx = "off"; // ?fx=0（CSS の reduced-motion と併せて動きを止める）
 
     ov.append(h("h2", { id: "rs-title" }, `結果: ${VERDICT_TEXT[verdict]}`));
     // 合格・アンコールのときだけ、紙吹雪と星（?fx=0 や動きを減らす設定では出さない。CSS 側でも止める）
