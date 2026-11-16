@@ -128,4 +128,42 @@ test.describe("spec-e §2: 最初にずれた位置", () => {
       await expect(page.locator(".rs-fm")).toHaveCount(1);
     });
   }
+
+  // #113: 失敗理由は初見で見える位置に出す。横持ち 844×390 で表の下に出て画面外に切れていた
+  for (const vp of [
+    { width: 844, height: 390 },
+    { width: 1280, height: 720 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`#113: 失敗時「最初にずれたのは」がスクロールなしで見える (${vp.width}×${vp.height})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(vp);
+      await openOrder01(page);
+      await placeBeltsAndRun(page, 9);
+      const fm = page.locator(".rs-fm");
+      await expect(fm).toBeVisible();
+      // 変更前後の比較用（PR 添付）。CI では撮らない
+      if (process.env.AE_SHOT) {
+        await page.screenshot({ path: `${process.env.AE_SHOT}-${vp.width}x${vp.height}.png` });
+      }
+      expect(await page.locator("#rs-overlay").evaluate((el) => el.scrollTop)).toBe(0);
+      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+      const box = await fm.boundingBox();
+      expect(box).not.toBeNull();
+      if (!box) return;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.y).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+      expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
+      // 結果画面の枠（overflow:auto）からもはみ出していない
+      const ov = await page.locator("#rs-overlay").boundingBox();
+      expect(ov).not.toBeNull();
+      if (ov) expect(box.y + box.height).toBeLessThanOrEqual(ov.y + ov.height);
+      // 表の上に入れたぶん表が押し出されて切れないこと（#198 の「表の下端まで初期表示」を失敗時も保つ）
+      const table = await page.locator(".rs-table").boundingBox();
+      expect(table).not.toBeNull();
+      if (table) expect(table.y + table.height).toBeLessThanOrEqual(vp.height);
+    });
+  }
 });

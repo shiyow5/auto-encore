@@ -1778,6 +1778,47 @@ body[data-scene="workshop"] #audio-toggle {
   #rs-overlay h2 {
     font-size: 1.6rem;
   }
+  /* #113: 失敗時は表の上に「最初にずれたのは」が1行入るので、余白と行の上下を詰めて表の下端まで収める */
+  .rs-sub,
+  .rs-fm {
+    margin-bottom: 0.5rem;
+  }
+  .rs-table th,
+  .rs-table td {
+    height: 32px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  /* #207: 横持ち（844×390 など）で結果画面の4ボタンを1行にし、表示領域に収める。表・余白の高さを詰める */
+  #rs-overlay,
+  #rs-overlay:has(.rs-confetti) {
+    top: 0;
+    transform: translate(-50%, 0);
+    max-height: 100vh;
+    padding-top: 0.5rem;
+  }
+  #rs-overlay h2 {
+    margin-bottom: 0;
+  }
+  .rs-sub,
+  .rs-fm {
+    margin-bottom: 0.25rem;
+  }
+  .rs-table th,
+  .rs-table td {
+    height: 28px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+  .rs-actions {
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .rs-actions .ae-btn {
+    width: 128px;
+    padding: 0 8px; /* 既定の 20px だと「工房にもどる」が2行に折り返す */
+  }
 
   /* #203: 横持ちでチュートリアル吹き出しが3行になるため、高さを拡張して枠内へ */
   .ws-compact .ws-guide {

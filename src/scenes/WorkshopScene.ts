@@ -9,7 +9,7 @@
  *   注文で使えない機械も置けるが、「実行」時の検証（validatePlacements）で理由を出して止める
  * - 仕分け機の音高: 置いた仕分け機の上で P（またはマスを Shift+クリック）で候補を巡回。棚の「音高」ボタンは次に置く音高
  * - 「実行」（K4）: execute() で step() を止まるまで回して採点 → 音符を tick ごとに置き直して見せる → 結果画面。
- *   ?fx=0 / 視差効果を減らす のときは再生せず、すぐ結果画面へ
+ *   ?fx=0 / 視差効果を減らす のときも音符の位置は tick ごとに見せる（装飾だけ切る, #119）
  */
 import { drawWorkshopBg } from "../art/workshopBg";
 import Phaser from "phaser";
@@ -368,7 +368,8 @@ export class WorkshopScene extends Phaser.Scene {
       this.fx?.emit("runError");
       return;
     }
-    if (!fxEnabled() || ex.frames.length <= 1) {
+    // 状態（音符の位置）は ?fx=0 でも tick ごとに見せる。fx で切るのは装飾（drawRunFx など）だけ (#119)
+    if (ex.frames.length <= 1) {
       this.showResult(ex);
       return;
     }
@@ -678,7 +679,7 @@ export class WorkshopScene extends Phaser.Scene {
     const passed = this.passedCells();
     for (const p of this.placements) {
       const { x, y } = this.cellXY(p.pos);
-      const running = this.playing && p.machine !== "belt";
+      const running = this.playing && fxEnabled() && p.machine !== "belt"; // 稼働の絵の切替は装飾
       put(
         running
           ? activeTexture(this.textures, p.machine, (this.playing?.frame ?? 0) % 2 === 0 ? 0 : 1)
@@ -698,7 +699,8 @@ export class WorkshopScene extends Phaser.Scene {
 
     const frame = this.playing?.ex.frames[this.playing.frame];
     if (frame) {
-      this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
+      // 装飾（稼働灯・尾・火花）。fx の判定はここ1か所に集約
+      if (fxEnabled()) this.drawRunFx(frame, this.playing?.ex.frames[this.playing.frame - 1]);
       this.drawNotes(frame);
     }
   }
