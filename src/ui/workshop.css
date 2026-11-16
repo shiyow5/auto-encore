@@ -543,13 +543,124 @@
   background: var(--ae-amber-hover);
 }
 
-/* 実行中の「実行中…(tick n)」。実行ボタンの真下に出す（盤面・演出の帯には重ねない） */
-.ws-run-status {
-  margin: calc(var(--u) * 2) 0 0;
+/* 実行中の表示（#103, minori 指定）: 盤面の上・盤面と同じ幅。「実行中 ♪」(24px #F2B45A, 高さ 32px) + 進行バー(高さ 8px) + tick n/N(16px) */
+.ws-runbar {
+  position: absolute;
+  left: var(--grid-x);
+  width: var(--grid-w);
+  /* 盤面の台座(22px)の上に置く。横持ち(PC)の盤面の上は 4 倍表示で約 104px 空いている */
+  top: calc(var(--grid-y) - 22px - 58px);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* スマホ縦・横: 盤面の上は右上の音量ボタン(#volume-toggle)と同じ高さ。右 112px を空けて重ねない（#162 と同じ扱い） */
+.ws-portrait .ws-runbar,
+.ws-compact .ws-runbar {
+  left: var(--grid-x-px);
+  right: 112px;
+  width: auto;
+  top: calc(var(--grid-y-px) - 64px);
+}
+
+.ws-runbar[hidden] {
+  display: none;
+}
+
+.ws-runbar-title {
+  margin: 0;
+  height: 32px;
+  line-height: 32px;
   text-align: center;
-  color: var(--ae-text);
-  /* #188: 折り返すと 2 行目が枠（高さ 1 行）からはみ出して実行ボタンに重なる。1 行に収める */
+  font-size: 24px;
+  color: var(--ae-amber);
   white-space: nowrap;
+}
+
+.ws-runbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+}
+
+.ws-runbar-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 8px;
+  background: var(--ae-surface-up);
+}
+
+.ws-runbar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--ae-amber);
+}
+
+.ws-runbar-tick {
+  flex: none;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--ae-text);
+  white-space: nowrap;
+}
+
+/* 縦持ちは盤面の上が説明文の帯。実行中は編集できないので、帯を進行表示に譲る */
+#ws-overlay.ws-portrait[data-running="true"] .ws-help-line {
+  visibility: hidden;
+}
+
+/* チュートリアルの吹き出しは盤面の上に出るので、実行中は進行表示に譲る */
+#ws-overlay[data-running="true"] .ws-guide {
+  visibility: hidden;
+}
+
+/* 縦持ち: 棚は盤面の下にばらけて並ぶので、「実行中は編集できません」は状態行の 1 行上（下部バーの上）に出す */
+.ws-portrait .ws-shelf-note {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(52px + 44px + env(safe-area-inset-bottom, 0px)); /* 状態行の 1 行上 */
+  pointer-events: none;
+}
+
+/* 実行中の棚（#103）: 全体グレーアウトはやめ、opacity 0.6 + 操作不可。選択中ボタンの枠は #F2B45A のまま */
+.ws-shelf-note {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ae-text-weak);
+}
+
+.ws-shelf-note[hidden] {
+  display: none;
+}
+
+#ws-overlay[data-running="true"] .ws-palette,
+#ws-overlay[data-running="true"] .ws-actions {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+#ws-overlay[data-running="true"] .ws-shelf .ws-btn:disabled {
+  opacity: 1; /* 重ねて薄くしない（親の 0.6 だけ） */
+}
+
+#ws-overlay[data-running="true"] .ws-shelf .ws-btn[aria-pressed="true"] {
+  border-color: var(--ae-amber);
+}
+
+/* 実行中の「結果へスキップ」は Secondary（枠 2px #7A6888、文字 #F3E9DC）。Primary 琥珀は実行前だけ */
+.ws-run.ws-run-secondary,
+.ws-run.ws-run-secondary:hover {
+  color: var(--ae-text);
+  background: transparent;
+  border: 2px solid var(--ae-line);
+  font-weight: normal;
+}
+
+.ws-run.ws-run-secondary:hover {
+  background: #4a3a54;
 }
 
 .ws-btn:disabled {
