@@ -1668,3 +1668,45 @@ body[data-scene="workshop"] #audio-toggle {
     font-size: 1.6rem;
   }
 }
+
+/* #113: 結果のメダルは形でも区別（金=丸 / 銀=三角 / 銅=四角）。降りてきて弾み、失敗は位置を点滅 */
+#rs-overlay .ae-medal {
+  animation: rs-medal-drop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+#rs-overlay tr:nth-child(2) .ae-medal {
+  animation-delay: 0.15s;
+}
+#rs-overlay tr:nth-child(3) .ae-medal {
+  animation-delay: 0.3s;
+}
+@keyframes rs-medal-drop {
+  from {
+    transform: translateY(-28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+/* 失敗: ずれた位置を点滅（色は danger のまま、背景を反転して 3 回） */
+.rs-fm strong {
+  padding: 0 0.3em;
+  animation: rs-fm-blink 0.8s steps(2, jump-none) 3;
+}
+@keyframes rs-fm-blink {
+  50% {
+    background: var(--ae-danger);
+    color: var(--ae-bg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #rs-overlay .ae-medal,
+  .rs-fm strong {
+    animation: none;
+  }
+}
+#rs-overlay[data-fx="off"] .ae-medal,
+#rs-overlay[data-fx="off"] .rs-fm strong {
+  animation: none;
+}
