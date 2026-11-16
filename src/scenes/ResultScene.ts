@@ -141,6 +141,19 @@ export class ResultScene extends Phaser.Scene {
     if (verdict !== "fail" && fxEnabled()) ov.append(confetti(verdict === "encore" ? 28 : 14));
     ov.append(h("p", { class: "rs-sub" }, `${order.title} — ${STOP_TEXT[report.metrics.result]}`));
 
+    // 最初にずれた位置（spec-e §2 / #96）。表の外に1行。ずれなし（null）のときは出さない。
+    // #113: 横持ち 844×390 で表の下だと画面外に切れるので、失敗理由は表の上（rs-sub の直後）に出す。
+    const fm = report.metrics.firstMismatch;
+    if (fm !== null) {
+      const note = h(
+        "p",
+        { class: "rs-fm", "data-first-mismatch": String(fm) },
+        "最初にずれたのは ",
+      );
+      note.append(h("strong", {}, `${fm}音目`));
+      ov.append(note);
+    }
+
     const table = h("table", { class: "rs-table" });
     table.append(h("caption", { class: "visually-hidden" }, "3指標"));
     const head = h("tr", {});
@@ -176,18 +189,6 @@ export class ResultScene extends Phaser.Scene {
     }
     table.append(body);
     ov.append(table);
-
-    // 最初にずれた位置（spec-e §2 / #96）。表の外に1行。ずれなし（null）のときは出さない。
-    const fm = report.metrics.firstMismatch;
-    if (fm !== null) {
-      const note = h(
-        "p",
-        { class: "rs-fm", "data-first-mismatch": String(fm) },
-        "最初にずれたのは ",
-      );
-      note.append(h("strong", {}, `${fm}音目`));
-      ov.append(note);
-    }
 
     const msg = verdictMessage(order, verdict);
     if (msg) ov.append(h("p", { class: "rs-msg" }, msg));
