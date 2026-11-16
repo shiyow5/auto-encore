@@ -65,3 +65,28 @@ test("元に戻す: 置く→回す→2回で0、ドラッグ3マス→1回で0�
   });
   expect(disabledWhileRunning).toEqual({ running: "true", disabled: true });
 });
+
+test("元に戻す: ドラッグ中に Ctrl+Z → 続きのドラッグでは何も置かれない（履歴と盤面が食い違わない）", async ({
+  page,
+}) => {
+  await openWorkshop(page);
+  const ov = page.locator("#ws-overlay");
+  const undo = page.getByRole("button", { name: "直前の操作を元に戻す" });
+  const center = async (x: number, y: number) => {
+    const b = (await cell(page, x, y).boundingBox())!;
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  };
+  const a = await center(2, 5);
+  const b = await center(3, 5);
+  const c = await center(4, 5);
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.mouse.move(b.x, b.y, { steps: 5 });
+  await expect(ov).toHaveAttribute("data-placements", "2");
+  await page.keyboard.press("Control+z");
+  await expect(ov).toHaveAttribute("data-placements", "0");
+  await page.mouse.move(c.x, c.y, { steps: 5 });
+  await page.mouse.up();
+  await expect(ov).toHaveAttribute("data-placements", "0");
+  await expect(undo).toBeDisabled();
+});

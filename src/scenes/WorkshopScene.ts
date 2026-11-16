@@ -607,6 +607,8 @@ export class WorkshopScene extends Phaser.Scene {
     if (this.playing) return;
     const { stack, prev } = popHistory(this.history);
     if (!prev) return;
+    // ドラッグ中の undo: ストロークを終える。続きのドラッグで盤面が履歴なしに変わるのを防ぐ（離したときの click も無視される）
+    if (this.stroke) this.endStroke();
     this.history = stack;
     this.placements = prev;
     playSfx("remove");
