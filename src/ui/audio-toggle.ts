@@ -95,11 +95,18 @@ export function installAudioToggle(): void {
     v.setAttribute("aria-expanded", String(open));
   };
   v.addEventListener("click", () => setOpen(panel.hidden));
-  panel.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      setOpen(false);
-      v.focus();
-    }
+  // パネルの外（フォーカスが body にあるときも含む）の Esc / タップで閉じる。
+  // 音量ボタンは「内側」扱い。外側にすると pointerdown で閉じた直後の click で再び開いてしまう。
+  document.addEventListener("keydown", (e) => {
+    if (panel.hidden || e.key !== "Escape") return;
+    setOpen(false);
+    v.focus();
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (panel.hidden) return;
+    const t = e.target;
+    if (t instanceof Node && (panel.contains(t) || v.contains(t))) return;
+    setOpen(false);
   });
 
   game?.append(b, v, panel);
