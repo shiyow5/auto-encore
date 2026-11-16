@@ -103,6 +103,26 @@ test("元に戻す: 390×844 で .ws-undo が窮屈にならない（短縮ラ�
   expect(fit.sw).toBeLessThanOrEqual(fit.cw);
 
   await cell(page, 5, 3).click();
+  // 光る class は 250ms で外れる。CI が遅いとポーリングが間に合わないので、付いたことを先に仕掛けて記録する
+  await cell(page, 5, 3).evaluate((el) => {
+    const w = window as unknown as { __flashed?: boolean };
+    w.__flashed = false;
+    const idx = [...document.querySelectorAll(".ws-cell")].indexOf(el);
+    const mo = new MutationObserver(() => {
+      // 盤面が作り直されても拾えるよう、同じ位置のマスを毎回探す
+      if (document.querySelectorAll(".ws-cell")[idx]?.classList.contains("ws-undo-flash")) {
+        w.__flashed = true;
+      }
+    });
+    mo.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+      subtree: true,
+      childList: true,
+    });
+  });
   await undo.click();
-  await expect(cell(page, 5, 3)).toHaveClass(/ws-undo-flash/);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __flashed?: boolean }).__flashed))
+    .toBe(true);
 });
