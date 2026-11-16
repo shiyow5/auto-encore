@@ -8,6 +8,7 @@
  */
 
 import { getVolume } from "../audio/volume";
+import { NOTE_LENGTH_S, noteEnvelopePoints } from "./note-envelope";
 
 // ---------- 定数 ----------
 
@@ -17,9 +18,6 @@ export function pitchToFreq(pitch: number): number {
   const freqs = [262, 330, 392];
   return freqs[pitch] ?? 440;
 }
-
-/** 音の長さ（ミリ秒）。短いビープ音。 */
-const NOTE_LENGTH_MS = 200;
 
 /** 音量。0〜1。 */
 const STORAGE_KEY = "ae-audio-enabled";
@@ -93,16 +91,19 @@ export function playNote(pitch: number): void {
     osc.type = "sine";
     osc.frequency.value = pitchToFreq(pitch);
 
-    // エンベロープ: 急峻に立ち上がり、徐々に減衰
+    // エンベロープ: 立ち上がり → ゆるやかに減衰 → 短いリリース（SE と同じ RMS 基準。note-envelope.ts）
     const env = context.createGain();
-    env.gain.setValueAtTime(0.3, context.currentTime);
-    env.gain.exponentialRampToValueAtTime(0.001, context.currentTime + NOTE_LENGTH_MS / 1000);
+    const now = context.currentTime;
+    for (const [t, g, kind] of noteEnvelopePoints()) {
+      if (kind === "set") env.gain.setValueAtTime(g, now + t);
+      else env.gain.exponentialRampToValueAtTime(g, now + t);
+    }
 
     osc.connect(env);
     env.connect(gainNode ?? context.destination);
 
     osc.start();
-    osc.stop(context.currentTime + NOTE_LENGTH_MS / 1000);
+    osc.stop(context.currentTime + NOTE_LENGTH_S);
   } catch {
     // 失敗しても無視
   }

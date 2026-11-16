@@ -12,7 +12,7 @@ import { isAudioEnabled, refreshNoteGain, toggleAudio } from "../fx/audio";
 import { flags } from "../ui/flags";
 import { BGM_BPM, BGM_INSTRUMENTS, BGM_PATTERNS, BGM_SEQUENCE, SFX, type SfxName } from "./sounds";
 import {
-  VOLUME_DEFAULT,
+  VOLUME_DEFAULTS,
   type VolumeKind,
   getVolume,
   isSilentByVolume,
@@ -23,10 +23,10 @@ import { renderSong } from "./zzfxm";
 
 type Engine = typeof import("zzfx");
 
-/** BGM は SE より小さく。 */
-const BGM_VOLUME = 0.5;
-/** 実行中（音符が鳴る間）は BGM をさらに絞る。 */
-const BGM_DUCKED = 0.15;
+/** BGM スライダー 100% のゲイン（旧 0.5 の2倍＝+6dB。既定 50% で旧既定と同じ聞こえ方）。 */
+export const BGM_VOLUME = 1.0;
+/** 実行中（音符が鳴る間）は BGM をさらに絞る。通常との比 0.30 は旧 0.15/0.5 のまま。 */
+export const BGM_DUCKED = 0.3;
 
 let engine: Engine | null = null;
 let loading: Promise<Engine | null> | null = null;
@@ -75,7 +75,8 @@ export function playSfx(name: SfxName): void {
   else void load().then(play);
 }
 
-function bgmGain(): number {
+/** BGM のゲイン。 */
+export function bgmGain(): number {
   return (ducked ? BGM_DUCKED : BGM_VOLUME) * getVolume("bgm");
 }
 
@@ -129,8 +130,8 @@ export function toggleSound(): boolean {
   const silentByVolume = isAudioEnabled() && isSilentByVolume();
   const enabled = silentByVolume ? true : toggleAudio();
   if (silentByVolume || (enabled && isSilentByVolume())) {
-    setVolumePercent("bgm", VOLUME_DEFAULT);
-    setVolumePercent("sfx", VOLUME_DEFAULT);
+    setVolumePercent("bgm", VOLUME_DEFAULTS.bgm);
+    setVolumePercent("sfx", VOLUME_DEFAULTS.sfx);
   }
   if (!enabled) stopBgmNow();
   else if (bgmWanted) startBgm();

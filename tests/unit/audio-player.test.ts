@@ -81,7 +81,22 @@ describe("player", () => {
     expect(a.isAudioEnabled()).toBe(true);
     expect(p.toggleSound()).toBe(true);
     expect(a.isAudioEnabled()).toBe(true);
-    expect(v.getVolumePercent("bgm")).toBe(100);
+    expect(v.getVolumePercent("bgm")).toBe(50);
     expect(v.getVolumePercent("sfx")).toBe(100);
+  });
+
+  it("BGM のゲイン: 100% で通常 1.0・絞り 0.30（比は旧 0.5:0.15 のまま）。既定 50% は旧既定と同じ 0.5", async () => {
+    const p = await import("../../src/audio/player");
+    const v = await import("../../src/audio/volume");
+    expect(p.BGM_VOLUME).toBe(1.0);
+    expect(p.BGM_DUCKED).toBeCloseTo(0.3);
+    expect(p.BGM_DUCKED / p.BGM_VOLUME).toBeCloseTo(0.15 / 0.5);
+    expect(p.bgmGain()).toBeCloseTo(0.5); // 既定 50%（旧: 0.5 × 100%）
+    v.setVolumePercent("bgm", 100);
+    expect(p.bgmGain()).toBeCloseTo(1.0);
+    p.duckBgm(true);
+    expect(p.bgmGain()).toBeCloseTo(0.3);
+    v.setVolumePercent("bgm", 50);
+    expect(p.bgmGain()).toBeCloseTo(0.15); // 旧の絞り 0.15 と同じ
   });
 });
