@@ -174,6 +174,25 @@ Drawn with the board `gfx` only, redrawn every tick (110ms). No new canvas. Only
 - Merger sparks: while a note sits on a merger cell, four 2x2 white dots near the cell corners, shifting 1px every tick.
 - Never covers a note, a machine glyph or text.
 
+### Success effects (result, passed)
+
+Played once on the result overlay. Uses pixelfx on the Phaser canvas behind DOM.
+
+- Confetti + key glint on screen center (320×240 origin).
+- Medal coin-spin animation at grid-left (x=36, y=100), heart pickup at center-right (x=284, y=100).
+- Gold medals: default amber/white palette. Non-gold medals use a cooler palette (silver) or warm brown palette (bronze) to distinguish by shape/color.
+- SE: `medalGold` (delayed 750ms after pass sound) for gold, `medalSilver` for non-gold.
+
+### Motion reduction (prefers-reduced-motion)
+
+When `matchMedia("(prefers-reduced-motion: reduce)")` matches or `?fx=0` is set, `fxEnabled()` returns false. All canvas-based effects (run lamp, note tail, merger sparks, success/failure effects, confetti, medal animations) are suppressed. The game still runs normally with `?fx=0` — only visual effects and the fade transition are removed.
+
+### Failure effects (result, not passed)
+
+- Glitch + CRT-off on screen center, then fade to black.
+- The row containing the first mismatch indicator flashes red in the result table to show the exact error position.
+- SE: `runError` (short 0.23s beep).
+
 ### Result Screen
 
 - Graph area: dark panel (`--ae-bg`) with lightweight-charts for performance visualization

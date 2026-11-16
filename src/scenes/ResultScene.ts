@@ -13,6 +13,7 @@ import type { Order, Placement } from "../core/sim/types";
 import { loadGameData } from "../data";
 import { SaveStore, MemoryStorage } from "../core/save";
 import { createSceneFx } from "../fx/scene-fx";
+import { BRONZE_PALETTE } from "../fx/fx-map";
 import { fxEnabled } from "../ui/flags";
 import { setQaBusy, setQaState } from "../ui/qa";
 import "../ui/workshop.css";
@@ -86,16 +87,17 @@ export class ResultScene extends Phaser.Scene {
   private overlay?: HTMLElement;
 
   /** 合格なら祝い、止まった（不合格）ならエラー演出。メダルが 1 つでもあれば取得演出。 */
-  private playFx(report: ScoreReport, verdict: string): void {
+  private playFx(report: ScoreReport): void {
     const fx = createSceneFx(this, "fx-result");
     if (!report.passed) {
-      fx.emit("runError", verdict.length);
+      fx.emit("runError");
       return;
     }
     fx.emit("result");
     fx.emit("songComplete");
     const medals = Object.values(report.medals);
     if (medals.includes("gold")) fx.emit("medalEarned");
+    else if (medals.includes("bronze")) fx.emit("medalSilver", 1, { palette: BRONZE_PALETTE });
     else if (medals.some((m) => m !== "none")) fx.emit("medalSilver");
   }
 
@@ -127,8 +129,13 @@ export class ResultScene extends Phaser.Scene {
     thead.append(head);
     table.append(thead);
     const body = h("tbody", {});
+    const fm = report.metrics.firstMismatch;
     for (const r of metricRows(report)) {
       const tr = h("tr", { "data-metric": r.key });
+      // 不合格で firstMismatch がこの指標なら、その行を点滅させる
+      if (!report.passed && fm !== null && r.key === fm.toString()) {
+        tr.setAttribute("data-mismatch", "true");
+      }
       tr.append(h("th", { scope: "row" }, r.label));
       tr.append(h("td", {}, r.value));
       tr.append(h("td", { "data-medal": r.medal }, MEDAL_TEXT[r.medal]));
@@ -138,14 +145,14 @@ export class ResultScene extends Phaser.Scene {
     ov.append(table);
 
     // 最初にずれた位置（spec-e §2 / #96）。表の外に1行。ずれなし（null）のときは出さない。
-    const fm = report.metrics.firstMismatch;
-    if (fm !== null) {
+    const fmNote = report.metrics.firstMismatch;
+    if (fmNote !== null) {
       const note = h(
         "p",
-        { class: "rs-fm", "data-first-mismatch": String(fm) },
+        { class: "rs-fm", "data-first-mismatch": String(fmNote) },
         "最初にずれたのは ",
       );
-      note.append(h("strong", {}, `${fm}音目`));
+      note.append(h("strong", {}, `${fmNote}音目`));
       ov.append(note);
     }
 
@@ -220,7 +227,7 @@ export class ResultScene extends Phaser.Scene {
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => setQaBusy("fade", false));
       this.cameras.main.fadeIn(200, 30, 23, 34);
     }
-    this.playFx(report, verdict);
+    this.playFx(report);
     // 不合格は runError の音（0.23秒）が先に鳴るので、結果の音はその後にずらす
     if (report.passed) playSfx(sfxForReport(report));
     else this.time.delayedCall(260, () => playSfx(sfxForReport(report)));

@@ -92,8 +92,9 @@ export class FxDirector {
         ...spec.options,
         ...extra,
       };
-      opts.x = at.x;
-      opts.y = at.y;
+      // extra に x/y がある場合はそこを優先（結果画面の runError で firstMismatch 位置にずらすため）
+      opts.x = extra.x ?? at.x;
+      opts.y = extra.y ?? at.y;
       const fx = sinks[spec.layer].play(spec.mod, opts, spec.ttl ?? null);
       this.live.push({ name, prio: FX_PRIORITY[name], layer: spec.layer, fx });
       played = true;

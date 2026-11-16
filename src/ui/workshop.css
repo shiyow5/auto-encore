@@ -645,6 +645,30 @@
   color: var(--ae-text-weak);
 }
 
+/* 不合格時に firstMismatch の行を点滅（ずれた位置を示す） */
+@keyframes mismatch-flash {
+  0%,
+  100% {
+    background-color: var(--ae-danger);
+    color: var(--ae-text);
+  }
+  50% {
+    background-color: transparent;
+    color: var(--ae-text);
+  }
+}
+.rs-table tr[data-mismatch="true"] {
+  animation: mismatch-flash 0.5s ease-in-out infinite;
+}
+
+/* prefers-reduced-motion で点滅を止める */
+@media (prefers-reduced-motion: reduce) {
+  .rs-table tr[data-mismatch="true"] {
+    animation: none;
+    background-color: color-mix(in srgb, var(--ae-danger) 20%, transparent);
+  }
+}
+
 .rs-msg {
   margin: 0 0 1rem;
 }

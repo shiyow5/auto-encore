@@ -27,6 +27,18 @@ export const WORKSHOP_PALETTE: string[] = [
   "#ffffff",
 ];
 
+/** 銅メダル演出用の暖かみのある茶色系パレット */
+export const BRONZE_PALETTE: string[] = [
+  "#2a1f15",
+  "#4a3520",
+  "#6b4c2e",
+  "#8a6840",
+  "#b08050",
+  "#d98e5f",
+  "#e8a87c",
+  "#f0c0a0",
+];
+
 /**
  * 「ゲーム内イベント名 → pixelfx エフェクト」の対応表（唯一の置き場）。
  * シーンはイベント名で呼ぶだけ。pixelfx を直接 import しない。
