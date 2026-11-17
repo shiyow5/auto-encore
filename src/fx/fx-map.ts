@@ -9,6 +9,8 @@ import * as glitch from "pixelfx/fx/scifi/glitch";
 import * as crtOff from "pixelfx/fx/transitions/crt-off";
 import * as hitSpark from "pixelfx/fx/impacts/hit-spark";
 import type { FxModule, FxOptions } from "pixelfx";
+import { MERGE_SPARK } from "./merge-spark";
+import { scaledFx } from "./scaled-fx";
 import type { SfxName } from "../audio/sounds";
 
 /**
@@ -48,6 +50,7 @@ export type FxEventName =
   | "ambient"
   | "noteCombo"
   | "noteArrive"
+  | "mergeSpark"
   | "songComplete"
   | "medalEarned"
   | "medalSilver"
@@ -89,6 +92,7 @@ export const FX_PRIORITY: Readonly<Record<FxEventName, number>> = {
   ambient: 0,
   noteCombo: 2,
   noteArrive: 1,
+  mergeSpark: 1,
   songComplete: 0,
   medalEarned: 0,
   medalSilver: 0,
@@ -108,6 +112,10 @@ export const FX_MAP: Readonly<Record<FxEventName, readonly FxSpec[]>> = {
   noteCombo: [{ mod: comboCounter, band: { fx: 0.5, fy: 0.5 }, exclusive: true, layer: "front" }],
   // 出口に音符が届いた 1 発。出口マーカーの真下（帯の右側）
   noteArrive: [{ mod: hitSpark, band: { fx: 0.9, fy: 0.5 }, layer: "front" }],
+  // E3 fx.ae.merge_spark: 合流機が交互に切り替わった瞬間の小さな火花。位置は帯の中で、合流機の列（emit の bandFx）に合わせる
+  mergeSpark: [
+    { mod: scaledFx(hitSpark, MERGE_SPARK.scale), band: { fx: 0.5, fy: 0.5 }, layer: "front" },
+  ],
   songComplete: [
     { mod: confetti, x: 160, y: 100, layer: "front" },
     { mod: keyGlint, x: 284, y: 60, ttl: 2, layer: "front" },
