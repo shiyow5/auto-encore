@@ -5,8 +5,8 @@ import type { SimState } from "../core/sim/sim";
  * ★ 仕様書 docs/fx-e3-merge-spark.md の未決項目の暫定値（PR #57 本文の一覧を参照）。
  */
 export const MERGE_SPARK = {
-  /** hit-spark の縮小率。★仮: 0.45 案（0.6 案も候補。実機で選定） */
-  scale: 0.45,
+  /** hit-spark の縮小率。sota のデザイン採否で 0.6 据え置き（この 1 か所で切替） */
+  scale: 0.6,
   /** 続けて出す最小間隔（ミリ秒）。これより短い間隔の切替では出さない */
   minIntervalMs: 250,
 } as const;

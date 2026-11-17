@@ -1953,7 +1953,7 @@ body[data-scene="workshop"] #audio-toggle {
 }
 
 /* E2 fx.ae.run_lamp（#57）: 実行中の稼働灯。16×16px、2 フレーム（点灯 / 減光）を 4fps（0.25 秒ごと）で切替。
-   ★仮: 減光色 #5a3f66（葡萄）。エラー色 #ff8a7a は data-state="error" で使う（発火条件は未決）。
+   減光色 #6b4a2b（暗いアンバー。sota のデザイン採否で決定）。エラー色 #ff8a7a は data-state="error" の CSS のみ残す（発火させない）。
    ?fx=0（data-fx="off"）と prefers-reduced-motion: reduce では点滅せず、点灯のまま静止 */
 .ws-run-lamp {
   display: inline-block;
@@ -1972,7 +1972,7 @@ body[data-scene="workshop"] #audio-toggle {
 }
 @keyframes ws-run-lamp-blink {
   50% {
-    background: #5a3f66;
+    background: #6b4a2b;
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -33,7 +33,7 @@ describe("E3 merge_spark: 最小間隔ゲート", () => {
 
   it("既定の間隔は MERGE_SPARK.minIntervalMs（250）", () => {
     expect(MERGE_SPARK.minIntervalMs).toBe(250);
-    expect(MERGE_SPARK.scale).toBe(0.45);
+    expect(MERGE_SPARK.scale).toBe(0.6);
   });
 
   it("reset() で最初から出せる", () => {
@@ -110,12 +110,12 @@ describe("scaledFx（pixelfx に縮小が無いための縮小ラッパー）", 
     return { w: x1 - x0 + 1, h: y1 - y0 + 1, n };
   }
 
-  it("0.45 倍にすると描かれる範囲が元より小さくなり、何かは描く", () => {
+  it("0.6 倍にすると描かれる範囲が元より小さくなり、何かは描く", () => {
     const orig = bbox(hitSpark);
-    const small = bbox(scaledFx(hitSpark, 0.45));
+    const small = bbox(scaledFx(hitSpark, 0.6));
     expect(small.n).toBeGreaterThan(0);
-    expect(small.w).toBeLessThanOrEqual(Math.ceil(orig.w * 0.45) + 2);
-    expect(small.h).toBeLessThanOrEqual(Math.ceil(orig.h * 0.45) + 2);
+    expect(small.w).toBeLessThanOrEqual(Math.ceil(orig.w * 0.6) + 2);
+    expect(small.h).toBeLessThanOrEqual(Math.ceil(orig.h * 0.6) + 2);
   });
 
   it("範囲外の倍率は拒否する", () => {
