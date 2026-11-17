@@ -76,8 +76,11 @@ export class FxDirector {
     this.timers.add(t);
   }
 
-  /** 1 つでも再生したら true。extra は全エフェクトに足すオプション（combo の count など）。 */
-  emit(name: FxEventName, seed = 1, extra: FxOptions = {}): boolean {
+  /**
+   * 1 つでも再生したら true。extra は全エフェクトに足すオプション（combo の count など）。
+   * bandFx を渡すと、band 指定の spec の横位置だけを帯の割合（0〜1）で差し替える（合流機の列に出すため）。
+   */
+  emit(name: FxEventName, seed = 1, extra: FxOptions = {}, bandFx?: number): boolean {
     if (this.disposed) return false;
     this.playSfxFor(name);
     const sinks = this.sinks;
@@ -86,7 +89,9 @@ export class FxDirector {
     let played = false;
     FX_MAP[name].forEach((spec: FxSpec, i) => {
       if (spec.exclusive) this.stop(name);
-      const at = this.place(spec);
+      const at = this.place(
+        bandFx !== undefined && spec.band ? { ...spec, band: { ...spec.band, fx: bandFx } } : spec,
+      );
       if (!at) return;
       if (spec.layer === "front" && !this.admit(FX_PRIORITY[name])) return;
       // palette は既定で工房トーン。spec / extra で上書きできる

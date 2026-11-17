@@ -1951,3 +1951,32 @@ body[data-scene="workshop"] #audio-toggle {
     scroll-behavior: auto !important;
   }
 }
+
+/* E2 fx.ae.run_lamp（#57）: 実行中の稼働灯。16×16px、2 フレーム（点灯 / 減光）を 4fps（0.25 秒ごと）で切替。
+   減光色 #6b4a2b（暗いアンバー。sota のデザイン採否で決定）。エラー色 #ff8a7a は data-state="error" の CSS のみ残す（発火させない）。
+   ?fx=0（data-fx="off"）と prefers-reduced-motion: reduce では点滅せず、点灯のまま静止 */
+.ws-run-lamp {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: #f2b45a;
+  animation: ws-run-lamp-blink 0.5s steps(1, end) infinite;
+}
+.ws-run-lamp[data-state="error"] {
+  background: #ff8a7a;
+}
+.ws-run-lamp[data-fx="off"] {
+  animation: none;
+}
+@keyframes ws-run-lamp-blink {
+  50% {
+    background: #6b4a2b;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-run-lamp {
+    animation: none;
+  }
+}

@@ -61,6 +61,7 @@ import {
 } from "./workshop/placements";
 import { createSceneFx } from "../fx/scene-fx";
 import type { FxDirector } from "../fx/FxDirector";
+import { MergeSparkGate, mergerSwitches } from "../fx/merge-spark";
 import { changedCells, popHistory, pushHistory } from "../core/undo";
 import { DragStroke, SeThrottle, strokeButtonHeld } from "./workshop/drag";
 import { execute, throughputSeries, type Execution } from "./workshop/execute";
@@ -239,6 +240,10 @@ export class WorkshopScene extends Phaser.Scene {
   private runButton!: HTMLButtonElement;
   /** 盤面の上に出す「実行中 ♪」+ 進行バー + 「tick n/N」（#103）。実行中だけ見える */
   private runBar!: HTMLElement;
+  /** E2 fx.ae.run_lamp（#57）。実行中だけ「実行中 ♪」の左で点滅する 16×16 の灯 */
+  private runLamp!: HTMLElement;
+  /** E3 fx.ae.merge_spark（#57）の最小間隔ゲート */
+  private readonly mergeGate = new MergeSparkGate();
   private runFill!: HTMLElement;
   private runTickText!: HTMLElement;
   /** 棚の上の「実行中は編集できません」（#103） */
@@ -409,6 +414,8 @@ export class WorkshopScene extends Phaser.Scene {
     setQaBusy("play", true);
     setQaState(ex.frames[0] ?? null);
     this.exitPulsed = false;
+    this.mergeGate.reset();
+    delete this.overlay.dataset.mergeSparks;
     this.updateRunBar();
     this.changed();
   }
@@ -430,6 +437,19 @@ export class WorkshopScene extends Phaser.Scene {
       if (this.combo % 4 === 0) this.fx?.emit("comboMilestone", this.combo);
       this.fx?.emit("noteArrive");
     }
+    // E3: 合流機が交互に切り替わった瞬間だけ火花（最小間隔 250ms。?fx=0 / reduce では出さない）
+    const cur = p.ex.frames[p.frame];
+    if (cur) {
+      for (const key of mergerSwitches(p.ex.frames[p.frame - 1], cur)) {
+        if (!this.mergeGate.fire(performance.now(), fxEnabled())) break;
+        const col = key % this.rules.width;
+        this.fx?.emit("mergeSpark", p.frame, {}, (col + 0.5) / this.rules.width);
+        // e2e 用: 出した回数（canvas は DOM から見えないため）。?fx=0 / reduce では増えない
+        this.overlay.dataset.mergeSparks = String(
+          Number(this.overlay.dataset.mergeSparks ?? 0) + 1,
+        );
+      }
+    }
     // bin に入った音符を鳴らす
     if (isAudioEnabled()) {
       const events = p.ex.binEvents.filter((ev) => ev.tick === p.frame);
@@ -449,6 +469,8 @@ export class WorkshopScene extends Phaser.Scene {
     const p = this.playing;
     if (!p) return;
     const total = Math.max(1, p.ex.frames.length - 1);
+    // E2: ?fx=0 では点滅させず点灯のまま（reduce は CSS の @media 側）
+    this.runLamp.dataset.fx = fxEnabled() ? "on" : "off";
     this.runFill.style.width = `${(Math.min(p.frame, total) / total) * 100}%`;
     this.runTickText.textContent = `tick ${p.frame}/${total}`;
     this.overlay.dataset.tickTotal = String(total);
@@ -1183,10 +1205,10 @@ export class WorkshopScene extends Phaser.Scene {
     track.append(this.runFill);
     this.runBar = h("div", { class: "ws-runbar", "aria-hidden": "true" });
     this.runBar.hidden = true;
-    this.runBar.append(
-      h("p", { class: "ws-runbar-title" }, "実行中 ♪"),
-      h("div", { class: "ws-runbar-row" }),
-    );
+    this.runLamp = h("span", { class: "ws-run-lamp", "aria-hidden": "true" });
+    const runTitle = h("p", { class: "ws-runbar-title" });
+    runTitle.append(this.runLamp, "実行中 ♪");
+    this.runBar.append(runTitle, h("div", { class: "ws-runbar-row" }));
     this.runBar.lastElementChild?.append(track, this.runTickText);
     ov.append(this.runBar);
     body.append(total);
