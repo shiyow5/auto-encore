@@ -1936,3 +1936,18 @@ body[data-scene="workshop"] #audio-toggle {
     animation: none;
   }
 }
+
+/* #220: 視差効果を減らす設定の総仕上げ。個別の指定漏れがあっても、位置移動・拡大縮小・点滅・無限ループは出さない。
+   必要な状態変化は即時（0.01ms）。状態は文字・形・色で伝える（メダルの形、失敗の「ずれた位置」の文字、静的な枠線）。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
