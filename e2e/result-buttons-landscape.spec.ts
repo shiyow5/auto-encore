@@ -35,8 +35,6 @@ async function placeBeltsAndRun(page: Page, last: number): Promise<void> {
 }
 
 test.use({ viewport: { width: 844, height: 390 } });
-// #207: 横持ち結果画面は重いため、テストタイムアウトを 90s に延長
-test.setTimeout(90_000);
 
 test("#207: 成功時、結果画面の4ボタンがスクロールなしで見える", async ({ page }) => {
   await openOrder01(page);
